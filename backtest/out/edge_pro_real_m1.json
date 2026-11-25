@@ -1,0 +1,90 @@
+{
+  "name": "KEHAI Edge Pro — real M1 + TV filters",
+  "tv_stack": [
+    "Session VWAP (LuxAlgo Sessions style)",
+    "Supertrend 7/2 (TV 1m common)",
+    "BB/KC Squeeze gate (Squeeze Engine style)",
+    "News blackout NFP/CPI/FOMC/BoJ",
+    "Spread cap 1.4 pips (real ask-bid when available)"
+  ],
+  "results": [
+    {
+      "label": "yahoo_real_m1_~28d",
+      "source": "usdjpy_m1_yahoo_recent.json",
+      "bars": 28067,
+      "avg_spread": 0.8,
+      "skipped": {
+        "news": 80,
+        "spread": 0,
+        "squeeze": 925,
+        "vwap": 15
+      },
+      "all": {
+        "year": null,
+        "trades": 175,
+        "wins": 43,
+        "losses": 132,
+        "win_rate": 24.6,
+        "net_pips": -229.3,
+        "net_jpy": -229292,
+        "avg_pips": -1.31,
+        "profit_factor": 0.49,
+        "max_dd_jpy": 226493,
+        "avg_hold_min": 4.7,
+        "tp": 38,
+        "sl": 77,
+        "signal_exits": 58,
+        "monthly": [
+          {
+            "month": "2026-10",
+            "pnl_jpy": -32974
+          },
+          {
+            "month": "2026-11",
+            "pnl_jpy": -196319
+          }
+        ]
+      },
+      "by_year": {
+        "2026": {
+          "year": 2026,
+          "trades": 175,
+          "wins": 43,
+          "losses": 132,
+          "win_rate": 24.6,
+          "net_pips": -229.3,
+          "net_jpy": -229292,
+          "avg_pips": -1.31,
+          "profit_factor": 0.49,
+          "max_dd_jpy": 226493,
+          "avg_hold_min": 4.7,
+          "tp": 38,
+          "sl": 77,
+          "signal_exits": 58,
+          "monthly": [
+            {
+              "month": "2026-10",
+              "pnl_jpy": -32974
+            },
+            {
+              "month": "2026-11",
+              "pnl_jpy": -196319
+            }
+          ]
+        }
+      },
+      "filters": [
+        "session",
+        "news",
+        "spread<=1.4",
+        "no-squeeze",
+        "vwap",
+        "adx",
+        "st",
+        "mtf",
+        "±65 cross"
+      ]
+    }
+  ],
+  "generated_at": "2026-11-25T09:38:14.182014+00:00"
+}

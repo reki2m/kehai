@@ -65,7 +65,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">Edge Strict — 最強スキャル合成インジケータ</p>
+          <p className="tagline">Edge Pro — TV VWAP / Squeeze / ニュース帯対応</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -121,7 +121,7 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              サンプル気配 · Edge Strict（ADX/ST/MTFゲート）· 実口座API未接続
+              サンプル気配 · Edge Pro（VWAP/Squeeze/News/Spread）· 実口座API未接続
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />

@@ -272,6 +272,56 @@ export function adx(candles: Candle[], period = 14): AdxPoint[] {
   return out
 }
 
+/** Session VWAP (TradingView / LuxAlgo style) — resets each UTC day. */
+export function sessionVwap(candles: Candle[]): LinePoint[] {
+  const out: LinePoint[] = []
+  let dayKey = ''
+  let pv = 0
+  let vol = 0
+  for (const c of candles) {
+    const d = new Date(c.time * 1000)
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
+    if (key !== dayKey) {
+      dayKey = key
+      pv = 0
+      vol = 0
+    }
+    const typical = (c.high + c.low + c.close) / 3
+    const v = Math.max(1, c.volume || 1)
+    pv += typical * v
+    vol += v
+    out.push({ time: c.time, value: pv / vol })
+  }
+  return out
+}
+
+/** True when Bollinger is inside Keltner (TradingView Squeeze style). */
+export function bollingerSqueeze(
+  candles: Candle[],
+  bbPeriod = 20,
+  bbMult = 2,
+  kcMult = 1.5,
+): { time: number; squeeze: boolean }[] {
+  const bb = bollinger(candles, bbPeriod, bbMult)
+  const a = atr(candles, bbPeriod)
+  const atrMap = new Map(a.map((p) => [p.time, p.value]))
+  const emaMid = ema(candles, bbPeriod)
+  const midMap = new Map(emaMid.map((p) => [p.time, p.value]))
+  const out: { time: number; squeeze: boolean }[] = []
+  for (const b of bb) {
+    const atrV = atrMap.get(b.time)
+    const mid = midMap.get(b.time) ?? b.middle
+    if (atrV === undefined) continue
+    const kcUpper = mid + kcMult * atrV
+    const kcLower = mid - kcMult * atrV
+    out.push({
+      time: b.time,
+      squeeze: b.upper <= kcUpper && b.lower >= kcLower,
+    })
+  }
+  return out
+}
+
 /** ATR Supertrend direction: +1 uptrend, -1 downtrend */
 export function supertrendDirection(
   candles: Candle[],

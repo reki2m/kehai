@@ -1,11 +1,18 @@
+import {
+  estimateSpreadPips,
+  MAX_ENTRY_SPREAD_PIPS,
+  newsBlackout,
+} from './filters'
 import type { Candle } from './marketData'
 import {
   adx,
   atr,
   bollinger,
+  bollingerSqueeze,
   ema,
   macd,
   rsi,
+  sessionVwap,
   stochastic,
   supertrendDirection,
 } from './indicators'
@@ -16,13 +23,19 @@ import {
   type IndicatorSignal,
 } from './signals'
 
-/** Frozen Edge Strict params from 2025 train / 2026 holdout. */
+/**
+ * KEHAI Edge Pro — TradingView-inspired scalping stack.
+ * Sources: session VWAP (LuxAlgo Sessions), Supertrend 7/2 (1m TV common),
+ * Squeeze Engine style BB/KC gate, plus prior Edge Strict gates.
+ */
 export const EDGE_PARAMS = {
   entryScore: 65,
   adxMin: 22,
   slAtr: 1.2,
   tpAtr: 2.0,
   cooldownBars: 12,
+  stPeriod: 7,
+  stMult: 2,
 } as const
 
 export type TradeAction = 'LONG' | 'SHORT' | 'WAIT'
@@ -41,6 +54,8 @@ export interface EdgeSignal extends Confluence {
   stopDistance: number
   takeProfitDistance: number
   sessionOpen: boolean
+  spreadPips: number
+  newsLabel: string | null
 }
 
 function last<T>(arr: T[]): T | undefined {
@@ -49,7 +64,6 @@ function last<T>(arr: T[]): T | undefined {
 
 /** Tokyo 09–15 / London 16–24 in Asia/Tokyo. */
 export function isScalpSession(unixSec: number, now = new Date()): boolean {
-  // Prefer candle time when available; fall back to wall clock for live tick.
   const t = unixSec > 0 ? new Date(unixSec * 1000) : now
   const fmt = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Tokyo',
@@ -67,21 +81,25 @@ export function isScalpSession(unixSec: number, now = new Date()): boolean {
   return (hm >= 9 * 60 && hm < 15 * 60) || (hm >= 16 * 60 && hm < 24 * 60)
 }
 
-/**
- * KEHAI Edge Strict — confluence + ADX / Supertrend / MTF gates.
- * Tuned for 1m scalping; action fires only on score cross of ±65 with gates green.
- */
 export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal {
   const base = evaluateConfluence(candles)
   const price = last(candles)?.close ?? 0
   const t = last(candles)?.time ?? 0
   const signals: IndicatorSignal[] = [...base.signals]
 
+  const atrVal = last(atr(candles, 14))?.value ?? 0
+  const atrPips = atrVal > 0 ? atrVal / 0.01 : undefined
+  const spreadPips = estimateSpreadPips(t, atrPips)
+  const news = newsBlackout(t)
+
   const adxVal = last(adx(candles, 14))
-  const st = last(supertrendDirection(candles, 10, 2))
+  const st = last(
+    supertrendDirection(candles, EDGE_PARAMS.stPeriod, EDGE_PARAMS.stMult),
+  )
+  const vwap = last(sessionVwap(candles))
+  const squeeze = last(bollingerSqueeze(candles))
   const ema21mtf = last(ema(candles, 105))
   const ema55mtf = last(ema(candles, 275))
-  const atrVal = last(atr(candles, 14))?.value ?? 0
   const ema8 = last(ema(candles, 8))
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
@@ -91,6 +109,31 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
   const d = last(stoch.d)
   const macdVal = last(macd(candles))
   const bb = last(bollinger(candles))
+
+  if (vwap) {
+    signals.unshift({
+      id: 'vwap',
+      name: 'Session VWAP',
+      bias: price >= vwap.value ? 'bull' : 'bear',
+      strength: Math.min(1, Math.abs(price - vwap.value) / (atrVal || price * 0.0005)),
+      detail:
+        price >= vwap.value
+          ? `VWAP上 ${vwap.value.toFixed(3)} — TV機関バイアス買い`
+          : `VWAP下 ${vwap.value.toFixed(3)} — TV機関バイアス売り`,
+    })
+  }
+
+  if (squeeze) {
+    signals.unshift({
+      id: 'squeeze',
+      name: 'BB Squeeze',
+      bias: 'neutral',
+      strength: squeeze.squeeze ? 0.2 : 0.8,
+      detail: squeeze.squeeze
+        ? 'スクイーズ中 — ブレイク待ち（TV Squeeze）'
+        : 'スクイーズ解除 — 拡大局面',
+    })
+  }
 
   if (adxVal) {
     signals.unshift({
@@ -113,10 +156,10 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
   if (st) {
     signals.unshift({
       id: 'supertrend',
-      name: 'Supertrend',
+      name: `Supertrend(${EDGE_PARAMS.stPeriod},${EDGE_PARAMS.stMult})`,
       bias: st.value > 0 ? 'bull' : 'bear',
       strength: 0.9,
-      detail: st.value > 0 ? '上昇トレンド帯' : '下降トレンド帯',
+      detail: st.value > 0 ? '上昇トレンド帯（TV 1m設定）' : '下降トレンド帯（TV 1m設定）',
     })
   }
 
@@ -159,7 +202,15 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
       id: 'rsi7',
       name: 'RSI(7)',
       bias:
-        rsi7.value <= 28 ? 'bull' : rsi7.value >= 72 ? 'bear' : rsi7.value > 55 ? 'bull' : rsi7.value < 45 ? 'bear' : 'neutral',
+        rsi7.value <= 28
+          ? 'bull'
+          : rsi7.value >= 72
+            ? 'bear'
+            : rsi7.value > 55
+              ? 'bull'
+              : rsi7.value < 45
+                ? 'bear'
+                : 'neutral',
       strength: Math.min(1, Math.abs(rsi7.value - 50) / 30),
       detail: `スキャルRSI ${rsi7.value.toFixed(1)}`,
     })
@@ -199,11 +250,17 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
   const adxOk = !!adxVal && adxVal.adx >= EDGE_PARAMS.adxMin
   const stOk = !!st
   const mtfOk = !!ema21mtf && !!ema55mtf
+  const vwapOk = !!vwap
+  const notSqueeze = !!squeeze && !squeeze.squeeze
+  const spreadOk = spreadPips <= MAX_ENTRY_SPREAD_PIPS
+  const newsOk = !news
   const score = base.score
   const stAlignLong = stOk && st!.value > 0
   const stAlignShort = stOk && st!.value < 0
   const mtfAlignLong = mtfOk && ema21mtf!.value > ema55mtf!.value
   const mtfAlignShort = mtfOk && ema21mtf!.value < ema55mtf!.value
+  const vwapLong = vwapOk && price >= vwap!.value
+  const vwapShort = vwapOk && price < vwap!.value
   const scoreLong = score >= EDGE_PARAMS.entryScore
   const scoreShort = score <= -EDGE_PARAMS.entryScore
   const crossedLong =
@@ -219,6 +276,34 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
       detail: sessionOpen ? '東京/ロンドン稼働中' : '時間外 — 待機',
     },
     {
+      id: 'news',
+      name: 'ニュース帯',
+      ok: newsOk,
+      detail: newsOk ? '高インパクトなし' : `回避: ${news!.label}`,
+    },
+    {
+      id: 'spread',
+      name: 'スプレッド',
+      ok: spreadOk,
+      detail: `${spreadPips.toFixed(2)} pips ${spreadOk ? `≤ ${MAX_ENTRY_SPREAD_PIPS}` : '(拡大中)'}`,
+    },
+    {
+      id: 'squeeze',
+      name: 'Squeeze',
+      ok: notSqueeze,
+      detail: notSqueeze ? '拡大局面 OK' : 'スクイーズ中 — 見送り',
+    },
+    {
+      id: 'vwap',
+      name: 'Session VWAP',
+      ok: vwapLong || vwapShort,
+      detail: vwapOk
+        ? price >= vwap!.value
+          ? '価格≥VWAP'
+          : '価格<VWAP'
+        : '未計算',
+    },
+    {
       id: 'adx',
       name: 'ADXゲート',
       ok: adxOk,
@@ -230,11 +315,7 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
       id: 'supertrend',
       name: 'Supertrend',
       ok: stAlignLong || stAlignShort,
-      detail: stOk
-        ? st!.value > 0
-          ? '上昇帯'
-          : '下降帯'
-        : '未計算',
+      detail: stOk ? (st!.value > 0 ? '上昇帯' : '下降帯') : '未計算',
     },
     {
       id: 'mtf',
@@ -256,11 +337,12 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
     },
   ]
 
-  // Live UI: armed when all directional gates align. Backtests use cross-only.
   let action: TradeAction = 'WAIT'
-  if (sessionOpen && adxOk) {
-    if (scoreLong && stAlignLong && mtfAlignLong) action = 'LONG'
-    else if (scoreShort && stAlignShort && mtfAlignShort) action = 'SHORT'
+  const baseOk = sessionOpen && adxOk && newsOk && spreadOk && notSqueeze
+  if (baseOk) {
+    if (scoreLong && stAlignLong && mtfAlignLong && vwapLong) action = 'LONG'
+    else if (scoreShort && stAlignShort && mtfAlignShort && vwapShort)
+      action = 'SHORT'
   }
 
   let bias: Bias = base.bias
@@ -271,6 +353,12 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
   } else if (action === 'SHORT') {
     bias = 'bear'
     label = 'EDGE ショート'
+  } else if (!newsOk) {
+    label = `ニュース回避 (${news!.label})`
+  } else if (!spreadOk) {
+    label = 'スプレッド拡大'
+  } else if (!notSqueeze) {
+    label = 'スクイーズ待ち'
   } else if (!sessionOpen) {
     label = 'セッション外'
   } else if (!adxOk) {
@@ -291,5 +379,7 @@ export function evaluateEdge(candles: Candle[], prevScore?: number): EdgeSignal 
     stopDistance: atrVal * EDGE_PARAMS.slAtr,
     takeProfitDistance: atrVal * EDGE_PARAMS.tpAtr,
     sessionOpen,
+    spreadPips,
+    newsLabel: news?.label ?? null,
   }
 }

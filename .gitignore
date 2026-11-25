@@ -25,3 +25,8 @@ dist-ssr
 backtest/__pycache__/
 backtest/node_modules/
 backtest/out/scalp_trades.json
+backtest/data/usdjpy_m1_dukascopy_*.json
+backtest/data/usdjpy_m1_yahoo_recent.json
+backtest/data/usdjpy_m1_dukascopy_real.json
+backtest/data/usdjpy_60m_2020_2026.json
+backtest/data/usdjpy_m1_dukascopy_*.json

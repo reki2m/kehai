@@ -71,6 +71,10 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
             <span className="risk-hint">（ATR×1.2 / ×2.0）</span>
           </p>
         )}
+        <p className="risk-line">
+          スプレッド見積 {edge.spreadPips.toFixed(2)} pips
+          {edge.newsLabel ? ` · ニュース: ${edge.newsLabel}` : ''}
+        </p>
       </div>
 
       <ul className="gate-list" aria-label="エントリーゲート">
