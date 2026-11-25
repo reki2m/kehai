@@ -24,7 +24,7 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
   return (
     <aside className="signal-rail" aria-label="KEHAI Apex シグナル">
       <div className={`confluence tone-${tone}`}>
-        <p className="confluence-kicker">KEHAI Apex · 最高峰スキャル</p>
+        <p className="confluence-kicker">KEHAI Apex · WinEdge スキャル</p>
         <div className="confluence-score">
           <span className="score-value">
             {edge.score > 0 ? '+' : ''}
@@ -70,7 +70,7 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
             SL {edge.stopDistance.toFixed(digits)} · TP{' '}
             {edge.takeProfitDistance.toFixed(digits)}
             <span className="risk-hint">
-              （wick+{APEX_PARAMS.slBufferPips}p · {APEX_PARAMS.rr}R）
+              （固定 {APEX_PARAMS.slPips}p / {APEX_PARAMS.tpPips}p · 2R）
             </span>
           </p>
         )}
