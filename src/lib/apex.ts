@@ -15,21 +15,88 @@ import type { PairMeta } from './pairs'
 import type { Bias, IndicatorSignal } from './signals'
 
 /**
- * KEHAI Apex — Famous TV stack locked on real spreads.
+ * KEHAI Apex — Triple Session (Tokyo + London Mid + NY Mid)
  *
- * Primary: UT Bot Alerts (key=2, ATR=7) flip + SSL Channel confirm
- * Session: London Mid 08:30–10 UTC · VWAP side · fixed 2.5/5.0p
+ * Stack: UT Bot flip × SSL confirm, session-tuned knobs from real M1 search
+ * (Yahoo WF + Dukascopy confirm, broker spread 0.2p).
  *
- * Also surfaces WaveTrend (LazyBear) as confluence readout (not required).
- * Validated: Dukascopy WF both halves + Yahoo full/holdout > 0.
+ * Locked (USDJPY):
+ *  Tokyo 00:00–03 UTC · UT1.5/7 · SL4/TP8 · EMA filter · no VWAP
+ *  London 08:30–10 UTC · UT2/10 · SL3/TP6 · VWAP
+ *  NY 14:00–16 UTC · UT3/7 · SL3/TP6 · EMA filter · no VWAP
  */
+
+export type FxSession = 'tokyo' | 'london' | 'ny'
+
+export interface SessionProfile {
+  id: FxSession
+  label: string
+  labelJa: string
+  /** Display window in JST. */
+  jst: string
+  utKey: number
+  utAtr: number
+  sslLen: number
+  slPips: number
+  tpPips: number
+  maxSpread: number
+  requireVwap: boolean
+  requireEma: boolean
+}
+
+export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
+  tokyo: {
+    id: 'tokyo',
+    label: 'Tokyo Open',
+    labelJa: '東京時間',
+    jst: '09:00–12:00 JST',
+    utKey: 1.5,
+    utAtr: 7,
+    sslLen: 10,
+    slPips: 4,
+    tpPips: 8,
+    maxSpread: 0.5,
+    requireVwap: false,
+    requireEma: true,
+  },
+  london: {
+    id: 'london',
+    label: 'London Mid',
+    labelJa: 'ロンドン時間',
+    jst: '17:30–19:00 JST',
+    utKey: 2,
+    utAtr: 10,
+    sslLen: 10,
+    slPips: 3,
+    tpPips: 6,
+    maxSpread: 0.35,
+    requireVwap: true,
+    requireEma: false,
+  },
+  ny: {
+    id: 'ny',
+    label: 'NY Mid',
+    labelJa: 'NY時間',
+    jst: '23:00–01:00 JST',
+    utKey: 3,
+    utAtr: 7,
+    sslLen: 10,
+    slPips: 3,
+    tpPips: 6,
+    maxSpread: 0.4,
+    requireVwap: false,
+    requireEma: true,
+  },
+}
+
+/** Default / legacy export for UI that still reads APEX_PARAMS. */
 export const APEX_PARAMS = {
-  family: 'ut_ssl' as const,
-  kz: 'london' as const,
-  hourMode: 'london_mid' as const,
-  maxSpread: 0.35,
-  slPips: 2.5,
-  tpPips: 5.0,
+  family: 'ut_ssl_triple' as const,
+  kz: 'tokyo_london_ny' as const,
+  hourMode: 'triple' as const,
+  maxSpread: 0.5,
+  slPips: 3,
+  tpPips: 6,
   utKey: 2,
   utAtr: 7,
   sslLen: 10,
@@ -61,6 +128,8 @@ export interface ApexSignal {
   newsLabel: string | null
   family: string
   setup: string | null
+  session: FxSession | null
+  sessionLabel: string | null
 }
 
 function last<T>(arr: T[]): T | undefined {
@@ -75,19 +144,26 @@ function utcHm(unixSec: number) {
   }
 }
 
-export function isEntryWindow(unixSec: number): boolean {
+export function detectFxSession(unixSec: number): FxSession | null {
   const { weekday, hm } = utcHm(unixSec)
-  if (weekday === 0 || weekday === 6) return false
-  return hm >= 8 * 60 + 30 && hm < 10 * 60
+  if (weekday === 0 || weekday === 6) return null
+  if (hm >= 0 && hm < 3 * 60) return 'tokyo'
+  if (hm >= 8 * 60 + 30 && hm < 10 * 60) return 'london'
+  if (hm >= 14 * 60 && hm < 16 * 60) return 'ny'
+  return null
 }
 
-/** Broader weekday sessions for energy / index / VIX (not London Mid FX). */
+/** @deprecated use detectFxSession — kept for London-only callers */
+export function isEntryWindow(unixSec: number): boolean {
+  return detectFxSession(unixSec) === 'london'
+}
+
+/** Broader weekday sessions for energy / index / VIX. */
 export function isInstrumentWindow(unixSec: number, pair?: PairMeta): boolean {
   const { weekday, hm } = utcHm(unixSec)
   if (weekday === 0 || weekday === 6) return false
-  if (!pair || pair.kind === 'fx') return isEntryWindow(unixSec)
+  if (!pair || pair.kind === 'fx') return detectFxSession(unixSec) != null
   if (pair.id === 'NIKKEI') {
-    // CME Nikkei / Tokyo-ish active hours (UTC)
     return hm < 8 * 60 || hm >= 23 * 60 || (hm >= 0 && hm < 7 * 60)
   }
   if (pair.id === 'DOW' || pair.id === 'VIX') {
@@ -100,24 +176,33 @@ export function isInstrumentWindow(unixSec: number, pair?: PairMeta): boolean {
 }
 
 export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
-  const p = APEX_PARAMS
-  const pip = pair?.pip ?? p.pip
-  const slPips = pair?.sl ?? p.slPips
-  const tpPips = pair?.tp ?? p.tpPips
+  const pip = pair?.pip ?? APEX_PARAMS.pip
   const cur = last(candles)
   const price = cur?.close ?? 0
   const t = cur?.time ?? 0
   const atrVal = last(atr(candles, 14))?.value ?? 0
   const atrPips = atrVal > 0 ? atrVal / pip : 0
-  // Non-FX: skip FX session-spread model; use broker floor scaled lightly by ATR
+
+  const fxSession = !pair || pair.kind === 'fx' ? detectFxSession(t) : null
+  const profile = fxSession ? SESSION_PROFILES[fxSession] : null
+
+  const slPips = profile?.slPips ?? pair?.sl ?? APEX_PARAMS.slPips
+  const tpPips = profile?.tpPips ?? pair?.tp ?? APEX_PARAMS.tpPips
+  const maxSpread = profile?.maxSpread ?? APEX_PARAMS.maxSpread
+  const utKey = profile?.utKey ?? APEX_PARAMS.utKey
+  const utAtr = profile?.utAtr ?? APEX_PARAMS.utAtr
+  const sslLen = profile?.sslLen ?? APEX_PARAMS.sslLen
+  const requireVwap = profile?.requireVwap ?? true
+  const requireEma = profile?.requireEma ?? false
+
   const spreadPips =
     pair && pair.kind !== 'fx'
-      ? Math.min(p.maxSpread, 0.15 + Math.min(0.2, atrPips * 0.002))
+      ? Math.min(maxSpread, 0.15 + Math.min(0.2, atrPips * 0.002))
       : estimateSpreadPips(t, atrPips || undefined)
   const news = pair?.kind === 'fx' ? newsBlackout(t) : null
   const vwap = last(sessionVwap(candles))
-  const utSeries = utBotDirection(candles, p.utKey, p.utAtr)
-  const sslSeries = sslDirection(candles, p.sslLen)
+  const utSeries = utBotDirection(candles, utKey, utAtr)
+  const sslSeries = sslDirection(candles, sslLen)
   const ut = last(utSeries)
   const utPrev = utSeries.length >= 2 ? utSeries[utSeries.length - 2] : undefined
   const ssl = last(sslSeries)
@@ -127,49 +212,55 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
 
-  const windowOk = isInstrumentWindow(t, pair)
+  const windowOk =
+    pair && pair.kind !== 'fx' ? isInstrumentWindow(t, pair) : fxSession != null
   const newsOk = !news
-  const spreadOk = spreadPips <= p.maxSpread
+  const spreadOk = spreadPips <= maxSpread
 
   const utFlipLong = !!(ut && utPrev && ut.value > 0 && utPrev.value <= 0)
   const utFlipShort = !!(ut && utPrev && ut.value < 0 && utPrev.value >= 0)
   const sslLong = !!ssl && ssl.value > 0
   const sslShort = !!ssl && ssl.value < 0
+  const emaLong = !requireEma || (!!ema21 && !!ema55 && ema21.value > ema55.value)
+  const emaShort = !requireEma || (!!ema21 && !!ema55 && ema21.value < ema55.value)
 
-  let longSetup = utFlipLong && sslLong
-  let shortSetup = utFlipShort && sslShort
-  if (p.requireVwap && vwap) {
+  let longSetup = utFlipLong && sslLong && emaLong
+  let shortSetup = utFlipShort && sslShort && emaShort
+  if (requireVwap && vwap) {
     longSetup = longSetup && price >= vwap.value
     shortSetup = shortSetup && price <= vwap.value
   }
   const setup = longSetup || shortSetup ? 'UT Bot × SSL' : null
 
-  const signals: IndicatorSignal[] = []
-
   const windowName =
-    !pair || pair.kind === 'fx'
-      ? 'London Mid'
-      : pair.id === 'NIKKEI'
-        ? '日経帯'
-        : pair.id === 'USOIL'
-          ? '原油帯'
-          : '米株帯'
+    profile?.labelJa ??
+    (pair?.id === 'NIKKEI'
+      ? '日経帯'
+      : pair?.id === 'USOIL'
+        ? '原油帯'
+        : pair && pair.kind !== 'fx'
+          ? '米株帯'
+          : '東京/ロンドン/NY')
+
+  const windowDetail = profile
+    ? `${profile.label} · ${profile.jst}`
+    : pair && pair.kind !== 'fx'
+      ? 'アクティブ時間帯'
+      : '東京 09–12 / ロンドン 17:30–19 / NY 23–01 JST'
+
+  const signals: IndicatorSignal[] = []
 
   signals.push({
     id: 'window',
     name: windowName,
     bias: windowOk ? (longSetup ? 'bull' : shortSetup ? 'bear' : 'neutral') : 'neutral',
     strength: windowOk ? 0.95 : 0.15,
-    detail: windowOk
-      ? pair && pair.kind !== 'fx'
-        ? 'アクティブ時間帯'
-        : '08:30–10:00 UTC'
-      : 'エントリー帯外',
+    detail: windowOk ? windowDetail : 'エントリー帯外',
   })
 
   signals.push({
     id: 'utbot',
-    name: `UT Bot (${p.utKey}/${p.utAtr})`,
+    name: `UT Bot (${utKey}/${utAtr})`,
     bias: ut ? (ut.value > 0 ? 'bull' : 'bear') : 'neutral',
     strength: utFlipLong || utFlipShort ? 1 : 0.7,
     detail: utFlipLong
@@ -188,11 +279,7 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
     name: 'SSL Channel',
     bias: ssl ? (ssl.value > 0 ? 'bull' : 'bear') : 'neutral',
     strength: 0.85,
-    detail: ssl
-      ? ssl.value > 0
-        ? 'SSL 買い側'
-        : 'SSL 売り側'
-      : '未計算',
+    detail: ssl ? (ssl.value > 0 ? 'SSL 買い側' : 'SSL 売り側') : '未計算',
   })
 
   if (w1 && w2) {
@@ -226,7 +313,7 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
       id: 'ema',
       name: 'EMA 21/55',
       bias: ema21.value > ema55.value ? 'bull' : 'bear',
-      strength: 0.6,
+      strength: requireEma ? 0.85 : 0.6,
       detail: ema21.value > ema55.value ? '短期>長期' : '短期<長期',
     })
   }
@@ -236,7 +323,7 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
       id: 'window',
       name: windowName,
       ok: windowOk,
-      detail: windowOk ? '時間帯OK' : '時間外',
+      detail: windowOk ? windowDetail : '時間外',
     },
     {
       id: 'news',
@@ -248,7 +335,7 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
       id: 'spread',
       name: 'スプレッド',
       ok: spreadOk,
-      detail: `${spreadPips.toFixed(2)} ≤ ${p.maxSpread}`,
+      detail: `${spreadPips.toFixed(2)} ≤ ${maxSpread}`,
     },
     {
       id: 'utbot',
@@ -262,23 +349,41 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
       ok: (utFlipLong && sslLong) || (utFlipShort && sslShort),
       detail: sslLong ? '買い側' : sslShort ? '売り側' : 'なし',
     },
-    {
+  ]
+
+  if (requireVwap) {
+    gates.push({
       id: 'vwap',
       name: 'VWAP側',
-      ok: !!vwap,
+      ok: !!vwap && ((longSetup && price >= vwap.value) || (shortSetup && price <= vwap.value) || (!longSetup && !shortSetup && !!vwap)),
       detail: vwap
         ? price >= vwap.value
           ? '価格≥VWAP'
           : '価格<VWAP'
         : '未計算',
-    },
-    {
-      id: 'setup',
-      name: 'UT×SSL',
-      ok: !!(longSetup || shortSetup),
-      detail: setup ?? '未成立',
-    },
-  ]
+    })
+  }
+
+  if (requireEma) {
+    gates.push({
+      id: 'ema',
+      name: 'EMAトレンド',
+      ok: (utFlipLong && emaLong) || (utFlipShort && emaShort) || (!(utFlipLong || utFlipShort) && !!ema21),
+      detail:
+        ema21 && ema55
+          ? ema21.value > ema55.value
+            ? '上昇バイアス'
+            : '下降バイアス'
+          : '未計算',
+    })
+  }
+
+  gates.push({
+    id: 'setup',
+    name: 'UT×SSL',
+    ok: !!(longSetup || shortSetup),
+    detail: setup ?? '未成立',
+  })
 
   const baseOk = windowOk && newsOk && spreadOk
   let action: TradeAction = 'WAIT'
@@ -293,18 +398,31 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
   if (longSetup) score += 40
   if (shortSetup) score -= 40
   if (w1 && w2) score += w1.value > w2.value ? 8 : -8
+  if (fxSession === 'tokyo') score += longSetup || shortSetup ? 4 : 0
+  if (fxSession === 'ny') score += longSetup || shortSetup ? 4 : 0
   score = Math.max(-100, Math.min(100, Math.round(score)))
 
   const bias: Bias =
-    action === 'LONG' ? 'bull' : action === 'SHORT' ? 'bear' : ut && ut.value > 0 ? 'bull' : ut && ut.value < 0 ? 'bear' : 'neutral'
+    action === 'LONG'
+      ? 'bull'
+      : action === 'SHORT'
+        ? 'bear'
+        : ut && ut.value > 0
+          ? 'bull'
+          : ut && ut.value < 0
+            ? 'bear'
+            : 'neutral'
 
+  const sessTag = profile ? profile.labelJa : ''
   let label = 'APEX 待機'
-  if (action === 'LONG') label = 'APEX ロング · UT×SSL'
-  else if (action === 'SHORT') label = 'APEX ショート · UT×SSL'
+  if (action === 'LONG') label = `APEX ロング · ${sessTag || 'UT×SSL'}`
+  else if (action === 'SHORT') label = `APEX ショート · ${sessTag || 'UT×SSL'}`
   else if (!newsOk) label = `ニュース回避 (${news!.label})`
   else if (!spreadOk) label = 'スプレッド拡大'
   else if (!windowOk) label = `${windowName}外`
   else if (!(utFlipLong || utFlipShort)) label = 'UT Bot待ち'
+  else if (requireEma && ((utFlipLong && !emaLong) || (utFlipShort && !emaShort)))
+    label = 'EMA不一致'
   else label = 'SSL未一致'
 
   return {
@@ -320,7 +438,9 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
     sessionOpen: windowOk,
     spreadPips,
     newsLabel: news?.label ?? null,
-    family: p.family,
+    family: APEX_PARAMS.family,
     setup,
+    session: fxSession,
+    sessionLabel: profile ? `${profile.labelJa} (${profile.jst})` : null,
   }
 }

@@ -111,7 +111,10 @@ export function SignalRail({ edge, bid, change, changePct, digits, pair, multi }
             SL {edge.stopDistance.toFixed(digits)} · TP{' '}
             {edge.takeProfitDistance.toFixed(digits)}
             <span className="risk-hint">
-              （{pair.sl}/{pair.tp} {unitLabel(pair)} · 2R）
+              （
+              {(edge.stopDistance / pair.pip).toFixed(1)}/
+              {(edge.takeProfitDistance / pair.pip).toFixed(1)} {unitLabel(pair)} · 2R
+              {edge.sessionLabel ? ` · ${edge.sessionLabel}` : ''}）
             </span>
           </p>
         )}

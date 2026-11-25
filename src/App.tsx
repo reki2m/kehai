@@ -269,9 +269,10 @@ export default function App() {
         lastEntryKey.current = key
         lastSpokenBar.current = bar
         announceEntry(action, bid, {
-          sl: pair.sl,
-          tp: pair.tp,
+          sl: Number((edge.stopDistance / pair.pip).toFixed(1)),
+          tp: Number((edge.takeProfitDistance / pair.pip).toFixed(1)),
           unit: unitLabel(pair),
+          session: edge.sessionLabel ?? undefined,
         })
       }
       return
@@ -335,7 +336,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">UT Bot × SSL — 1m/5m 優勢適用</p>
+          <p className="tagline">Triple Session — 東京 / ロンドン / NY</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -437,7 +438,9 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              {sourceLabel} · 1m/5m同時評価 · 関連市場→ドル円インパクト · 指標重要度1–5
+              {sourceLabel}
+              {edge.sessionLabel ? ` · ${edge.sessionLabel}` : ' · セッション外'}
+              {' · '}1m/5m優勢 · ドル円インパクト · 指標1–5
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />

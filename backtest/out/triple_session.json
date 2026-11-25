@@ -1,0 +1,159 @@
+{
+  "name": "KEHAI Apex Triple Session locked",
+  "spread_pips": 0.2,
+  "locked": {
+    "tokyo": {
+      "session": "tokyo",
+      "ut_key": 1.5,
+      "ut_atr": 7,
+      "ssl_len": 10,
+      "sl_pips": 4,
+      "tp_pips": 8,
+      "max_spread": 0.5,
+      "require_vwap": false,
+      "cooldown": 2,
+      "time_stop": 15,
+      "require_ema": true
+    },
+    "london": {
+      "session": "london",
+      "ut_key": 2.0,
+      "ut_atr": 10,
+      "ssl_len": 10,
+      "sl_pips": 3,
+      "tp_pips": 6,
+      "max_spread": 0.35,
+      "require_vwap": true,
+      "cooldown": 1,
+      "time_stop": 12,
+      "require_ema": false
+    },
+    "ny": {
+      "session": "ny",
+      "ut_key": 3.0,
+      "ut_atr": 7,
+      "ssl_len": 10,
+      "sl_pips": 3,
+      "tp_pips": 6,
+      "max_spread": 0.4,
+      "require_vwap": false,
+      "cooldown": 1,
+      "time_stop": 12,
+      "require_ema": true
+    }
+  },
+  "locked_alt_london_classic": {
+    "session": "london",
+    "ut_key": 2.0,
+    "ut_atr": 7,
+    "ssl_len": 10,
+    "sl_pips": 2.5,
+    "tp_pips": 5,
+    "max_spread": 0.35,
+    "require_vwap": true,
+    "cooldown": 1,
+    "time_stop": 12,
+    "require_ema": false
+  },
+  "combined_with_london_new": {
+    "yahoo": {
+      "year": null,
+      "trades": 114,
+      "wins": 55,
+      "losses": 59,
+      "win_rate": 48.2,
+      "net_pips": 79.4,
+      "net_jpy": 79395,
+      "avg_pips": 0.7,
+      "profit_factor": 1.36,
+      "max_dd_jpy": 38535,
+      "avg_hold_min": 6.8,
+      "tp": 38,
+      "sl": 53,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-10",
+          "pnl_jpy": 18456
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": 60939
+        }
+      ]
+    },
+    "duka": {
+      "year": null,
+      "trades": 66,
+      "wins": 33,
+      "losses": 33,
+      "win_rate": 50.0,
+      "net_pips": 61.1,
+      "net_jpy": 61069,
+      "avg_pips": 0.93,
+      "profit_factor": 1.49,
+      "max_dd_jpy": 33441,
+      "avg_hold_min": 63.3,
+      "tp": 19,
+      "sl": 27,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-11",
+          "pnl_jpy": 61069
+        }
+      ]
+    }
+  },
+  "combined_with_london_classic": {
+    "yahoo": {
+      "year": null,
+      "trades": 113,
+      "wins": 54,
+      "losses": 59,
+      "win_rate": 47.8,
+      "net_pips": 75.3,
+      "net_jpy": 75266,
+      "avg_pips": 0.67,
+      "profit_factor": 1.35,
+      "max_dd_jpy": 34506,
+      "avg_hold_min": 6.5,
+      "tp": 40,
+      "sl": 55,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-10",
+          "pnl_jpy": 19456
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": 55810
+        }
+      ]
+    },
+    "duka": {
+      "year": null,
+      "trades": 67,
+      "wins": 34,
+      "losses": 33,
+      "win_rate": 50.7,
+      "net_pips": 60.6,
+      "net_jpy": 60637,
+      "avg_pips": 0.91,
+      "profit_factor": 1.49,
+      "max_dd_jpy": 32387,
+      "avg_hold_min": 62.4,
+      "tp": 20,
+      "sl": 27,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-11",
+          "pnl_jpy": 60637
+        }
+      ]
+    }
+  },
+  "chosen_london": "new"
+}

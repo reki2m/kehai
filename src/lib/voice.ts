@@ -81,16 +81,18 @@ export function speakRate(pairLabel: string, price: string, action: string): voi
 export function announceEntry(
   action: 'LONG' | 'SHORT',
   price: string,
-  risk?: { sl: number; tp: number; unit: string },
+  risk?: { sl: number; tp: number; unit: string; session?: string },
 ): void {
   if (entrySoundOn) playEntryBeep(action)
   const side = action === 'LONG' ? 'ロング' : 'ショート'
-  const sl = risk?.sl ?? 2.5
-  const tp = risk?.tp ?? 5
+  const sl = risk?.sl ?? 3
+  const tp = risk?.tp ?? 6
   const unit = risk?.unit ?? 'ピプス'
-  speak(`${side}エントリー。価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`, {
-    force: true,
-  })
+  const sess = risk?.session ? `${risk.session}。` : ''
+  speak(
+    `${sess}${side}エントリー。価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`,
+    { force: true },
+  )
 }
 
 export function playEntryBeep(action: 'LONG' | 'SHORT'): void {
