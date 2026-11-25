@@ -379,10 +379,20 @@ export function utBotDirection(
   key = 2,
   atrPeriod = 10,
 ): LinePoint[] {
+  return utBotTrail(candles, key, atrPeriod).direction
+}
+
+/** UT Bot trail line + direction (for proximity / READY warnings). */
+export function utBotTrail(
+  candles: Candle[],
+  key = 2,
+  atrPeriod = 10,
+): { direction: LinePoint[]; trail: LinePoint[] } {
   const atrPts = atr(candles, atrPeriod)
-  if (atrPts.length === 0) return []
+  if (atrPts.length === 0) return { direction: [], trail: [] }
   const atrMap = new Map(atrPts.map((p) => [p.time, p.value]))
-  const out: LinePoint[] = []
+  const direction: LinePoint[] = []
+  const trailPts: LinePoint[] = []
   let prevTrail = NaN
   for (let i = 0; i < candles.length; i++) {
     const a = atrMap.get(candles[i].time)
@@ -401,10 +411,11 @@ export function utBotDirection(
     } else {
       trail = c + nloss
     }
-    out.push({ time: candles[i].time, value: c > trail ? 1 : -1 })
+    direction.push({ time: candles[i].time, value: c > trail ? 1 : -1 })
+    trailPts.push({ time: candles[i].time, value: trail })
     prevTrail = trail
   }
-  return out
+  return { direction, trail: trailPts }
 }
 
 /** LazyBear WaveTrend — returns wt1 series; pair with wavetrendSignal for wt2. */

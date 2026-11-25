@@ -74,7 +74,15 @@ export function speak(text: string, opts?: { force?: boolean }): void {
 export function speakRate(pairLabel: string, price: string, action: string): void {
   if (!rateVoiceOn) return
   const act =
-    action === 'LONG' ? 'ロング候補' : action === 'SHORT' ? 'ショート候補' : '待機'
+    action === 'LONG'
+      ? 'ロング候補'
+      : action === 'SHORT'
+        ? 'ショート候補'
+        : action === 'READY_BUY'
+          ? '買い準備'
+          : action === 'READY_SELL'
+            ? '売り準備'
+            : '待機'
   speak(`${pairLabel}、現在値 ${price}。シグナルは${act}。`)
 }
 
@@ -93,6 +101,47 @@ export function announceEntry(
     `${sess}${side}エントリー。価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`,
     { force: true },
   )
+}
+
+/** Softer pre-warn: confirms aligned, UT trail approaching — do not enter yet. */
+export function announceReady(
+  side: 'BUY' | 'SELL',
+  trailPips: number | null,
+): void {
+  if (entrySoundOn) playReadyBeep(side)
+  const dir = side === 'BUY' ? '買い' : '売り'
+  const dist =
+    trailPips != null && Number.isFinite(trailPips)
+      ? `トレールまであと${trailPips.toFixed(1)}ピプス。`
+      : ''
+  speak(`準備。${dir}寄り。${dist}フリップ待ち。`, { force: true })
+}
+
+export function playReadyBeep(side: 'BUY' | 'SELL'): void {
+  if (!unlocked || !entrySoundOn) return
+  try {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
+    const ctx = new Ctx()
+    void ctx.resume()
+    const now = ctx.currentTime
+    const f = side === 'BUY' ? 740 : 520
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'triangle'
+    osc.frequency.value = f
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.1, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start(now)
+    osc.stop(now + 0.22)
+  } catch {
+    /* ignore */
+  }
 }
 
 export function playEntryBeep(action: 'LONG' | 'SHORT'): void {

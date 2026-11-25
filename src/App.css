@@ -716,6 +716,28 @@
   color: var(--coral);
 }
 
+.simple-action.action-ready-buy {
+  color: var(--sea);
+  opacity: 0.72;
+  animation: ready-pulse 1.4s ease-in-out infinite;
+}
+
+.simple-action.action-ready-sell {
+  color: var(--coral);
+  opacity: 0.72;
+  animation: ready-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ready-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
 .simple-reason {
   margin: 0.35rem 0 0;
   font-size: 0.78rem;

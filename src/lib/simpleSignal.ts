@@ -7,6 +7,7 @@
  *   Sessions: Tokyo / London Mid / NY Mid (session-tuned UT + EMA/VWAP gates)
  *
  * Rules: one position mindset · fixed SL 7 / TP 10 · no auto-trading
+ * READY: SSL/EMA/VWAP already aligned + price within readyPips of UT trail
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -16,7 +17,7 @@ import {
   ema,
   sessionVwap,
   sslDirection,
-  utBotDirection,
+  utBotTrail,
 } from './indicators'
 import type { PairMeta } from './pairs'
 import {
@@ -37,10 +38,12 @@ export const SIMPLE = {
   slPips: 7,
   tpPips: 10,
   maxHoldBars: 45,
+  /** Distance to UT trail that triggers READY (pre-warn). */
+  readyPips: 2,
   pip: 0.01,
 } as const
 
-export type SimpleAction = 'BUY' | 'SELL' | 'WAIT'
+export type SimpleAction = 'BUY' | 'SELL' | 'READY_BUY' | 'READY_SELL' | 'WAIT'
 
 export interface SimpleSignal {
   action: SimpleAction
@@ -54,6 +57,9 @@ export interface SimpleSignal {
   utFlip: boolean
   sslSide: 'buy' | 'sell' | 'flat'
   filtersOk: boolean
+  /** Pips from close to UT trail (positive). */
+  trailDistancePips: number | null
+  readySide: 'BUY' | 'SELL' | null
 }
 
 function last<T>(arr: T[]): T | undefined {
@@ -70,21 +76,31 @@ export function evaluateSimple(
   const price = cur?.close ?? 0
   const t = cur?.time ?? 0
 
+  const empty = (
+    partial: Partial<SimpleSignal> & Pick<SimpleSignal, 'action' | 'label' | 'reason'>,
+  ): SimpleSignal => ({
+    session: null,
+    sessionLabel: null,
+    spreadPips: 0,
+    stopDistance: SIMPLE.slPips * pip,
+    takeProfitDistance: SIMPLE.tpPips * pip,
+    utFlip: false,
+    sslSide: 'flat',
+    filtersOk: false,
+    trailDistancePips: null,
+    readySide: null,
+    ...partial,
+  })
+
   const fxSession = !pair || pair.kind === 'fx' ? detectFxSession(t) : null
   if (fxSession && disabledSessions.includes(fxSession)) {
-    return {
+    return empty({
       action: 'WAIT',
       label: 'WAIT',
       session: fxSession,
       sessionLabel: `${SESSION_PROFILES[fxSession].labelJa}（停止中）`,
       reason: '弱い帯として停止中',
-      spreadPips: 0,
-      stopDistance: SIMPLE.slPips * pip,
-      takeProfitDistance: SIMPLE.tpPips * pip,
-      utFlip: false,
-      sslSide: 'flat',
-      filtersOk: false,
-    }
+    })
   }
   const profile = fxSession ? SESSION_PROFILES[fxSession] : null
 
@@ -106,11 +122,15 @@ export function evaluateSimple(
   const windowOk =
     pair && pair.kind !== 'fx' ? isInstrumentWindow(t, pair) : fxSession != null
 
-  const utSeries = utBotDirection(candles, utKey, utAtr)
-  const sslSeries = sslDirection(candles, sslLen)
+  const { direction: utSeries, trail: trailSeries } = utBotTrail(
+    candles,
+    utKey,
+    utAtr,
+  )
   const ut = last(utSeries)
   const utPrev = utSeries.length >= 2 ? utSeries[utSeries.length - 2] : undefined
-  const ssl = last(sslSeries)
+  const trail = last(trailSeries)
+  const ssl = last(sslDirection(candles, sslLen))
   const vwap = last(sessionVwap(candles))
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
@@ -122,28 +142,64 @@ export function evaluateSimple(
   const emaLong = !requireEma || (!!ema21 && !!ema55 && ema21.value > ema55.value)
   const emaShort = !requireEma || (!!ema21 && !!ema55 && ema21.value < ema55.value)
 
-  let buy = utFlipLong && sslLong && emaLong
-  let sell = utFlipShort && sslShort && emaShort
+  let confirmLong = sslLong && emaLong
+  let confirmShort = sslShort && emaShort
   if (requireVwap && vwap) {
-    buy = buy && price >= vwap.value
-    sell = sell && price <= vwap.value
+    confirmLong = confirmLong && price >= vwap.value
+    confirmShort = confirmShort && price <= vwap.value
   }
+
+  let buy = utFlipLong && confirmLong
+  let sell = utFlipShort && confirmShort
 
   const newsOk = !news
   const spreadOk = spreadPips <= maxSpread
   const filtersOk = windowOk && newsOk && spreadOk
 
+  const trailDistancePips =
+    trail && Number.isFinite(trail.value)
+      ? Math.abs(price - trail.value) / pip
+      : null
+
+  // READY: confirms already set, UT not flipped yet, price near trail
+  const nearTrail =
+    trailDistancePips != null && trailDistancePips <= SIMPLE.readyPips
+  const readyBuy =
+    filtersOk &&
+    !buy &&
+    !sell &&
+    confirmLong &&
+    !!ut &&
+    ut.value < 0 &&
+    nearTrail
+  const readySell =
+    filtersOk &&
+    !buy &&
+    !sell &&
+    confirmShort &&
+    !!ut &&
+    ut.value > 0 &&
+    nearTrail
+
   let action: SimpleAction = 'WAIT'
   if (filtersOk && buy) action = 'BUY'
   else if (filtersOk && sell) action = 'SELL'
+  else if (readyBuy) action = 'READY_BUY'
+  else if (readySell) action = 'READY_SELL'
 
   const sessionLabel = profile
     ? `${profile.labelJa} (${profile.jst})`
     : null
 
   let reason = '待機'
-  if (action === 'BUY') reason = `UT買いフリップ + SSL買い${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''}`
-  else if (action === 'SELL') reason = `UT売りフリップ + SSL売り${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''}`
+  if (action === 'BUY')
+    reason = `UT買いフリップ + SSL買い${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''}`
+  else if (action === 'SELL')
+    reason = `UT売りフリップ + SSL売り${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''}`
+  else if (action === 'READY_BUY')
+    reason = `準備・買い寄り · UTまであと${trailDistancePips?.toFixed(1) ?? '—'}p（エントリーはフリップ後）`
+  else if (action === 'READY_SELL')
+    reason = `準備・売り寄り · UTまであと${trailDistancePips?.toFixed(1) ?? '—'}p（エントリーはフリップ後）`
   else if (!windowOk) reason = 'セッション外'
   else if (!newsOk) reason = `ニュース回避 (${news!.label})`
   else if (!spreadOk) reason = 'スプレッド拡大'
@@ -152,9 +208,16 @@ export function evaluateSimple(
   else if ((utFlipLong && !emaLong) || (utFlipShort && !emaShort)) reason = 'EMA不一致'
   else reason = 'VWAP不一致'
 
-  let label = 'WAIT'
-  if (action === 'BUY') label = 'BUY'
-  else if (action === 'SELL') label = 'SELL'
+  const label =
+    action === 'BUY'
+      ? 'BUY'
+      : action === 'SELL'
+        ? 'SELL'
+        : action === 'READY_BUY'
+          ? 'READY↑'
+          : action === 'READY_SELL'
+            ? 'READY↓'
+            : 'WAIT'
 
   return {
     action,
@@ -168,5 +231,7 @@ export function evaluateSimple(
     utFlip: utFlipLong || utFlipShort,
     sslSide: sslLong ? 'buy' : sslShort ? 'sell' : 'flat',
     filtersOk,
+    trailDistancePips,
+    readySide: readyBuy ? 'BUY' : readySell ? 'SELL' : null,
   }
 }

@@ -33,6 +33,7 @@ import {
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import {
   announceEntry,
+  announceReady,
   getVoicePrefs,
   isVoiceUnlocked,
   requestNotifyPermission,
@@ -72,6 +73,7 @@ export default function App() {
   const [otherPnl, setOtherPnl] = useState('')
   const lastSpokenBar = useRef<number | null>(null)
   const lastEntryKey = useRef<string | null>(null)
+  const lastReadyKey = useRef<string | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -223,15 +225,44 @@ export default function App() {
       }
       return
     }
+    if (
+      !inPosition &&
+      (raw.action === 'READY_BUY' || raw.action === 'READY_SELL')
+    ) {
+      const side = raw.action === 'READY_BUY' ? 'BUY' : 'SELL'
+      // One warn per approach streak (side), not every bar
+      const key = `${side}-${Math.floor(bar / 180)}`
+      if (lastReadyKey.current !== key) {
+        lastReadyKey.current = key
+        lastSpokenBar.current = bar
+        announceReady(side, raw.trailDistancePips)
+      }
+      return
+    }
     if (lastSpokenBar.current !== bar) {
       lastSpokenBar.current = bar
-      speakRate(
-        pair.label,
-        bid,
-        raw.action === 'BUY' ? 'LONG' : raw.action === 'SELL' ? 'SHORT' : 'WAIT',
-      )
+      const rateAct =
+        raw.action === 'BUY'
+          ? 'LONG'
+          : raw.action === 'SELL'
+            ? 'SHORT'
+            : raw.action === 'READY_BUY'
+              ? 'READY_BUY'
+              : raw.action === 'READY_SELL'
+                ? 'READY_SELL'
+                : 'WAIT'
+      speakRate(pair.label, bid, rateAct)
     }
-  }, [last, bid, raw.action, raw.sessionLabel, pair, voiceOn, inPosition])
+  }, [
+    last,
+    bid,
+    raw.action,
+    raw.sessionLabel,
+    raw.trailDistancePips,
+    pair,
+    voiceOn,
+    inPosition,
+  ])
 
   async function handleUnlockVoice() {
     unlockAudio()
@@ -327,7 +358,9 @@ export default function App() {
               <button
                 type="button"
                 className="voice-btn primary"
-                disabled={raw.action === 'WAIT' || !raw.session}
+                disabled={
+                  (raw.action !== 'BUY' && raw.action !== 'SELL') || !raw.session
+                }
                 onClick={handleEntry}
               >
                 エントリーした

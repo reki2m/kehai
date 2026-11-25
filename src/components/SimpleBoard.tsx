@@ -20,7 +20,22 @@ export function SimpleBoard({
   inPosition,
 }: Props) {
   const tone =
-    signal.action === 'BUY' ? 'bull' : signal.action === 'SELL' ? 'bear' : 'neutral'
+    signal.action === 'BUY' || signal.action === 'READY_BUY'
+      ? 'bull'
+      : signal.action === 'SELL' || signal.action === 'READY_SELL'
+        ? 'bear'
+        : 'neutral'
+
+  const actionClass =
+    signal.action === 'BUY'
+      ? 'action-buy'
+      : signal.action === 'SELL'
+        ? 'action-sell'
+        : signal.action === 'READY_BUY'
+          ? 'action-ready-buy'
+          : signal.action === 'READY_SELL'
+            ? 'action-ready-sell'
+            : 'action-wait'
 
   return (
     <aside className="simple-board" aria-label="売買サイン">
@@ -28,8 +43,8 @@ export function SimpleBoard({
         <p className="simple-kicker">
           {SIMPLE.name} · {SIMPLE.stack}
         </p>
-        <p className={`simple-action action-${signal.action.toLowerCase()}`}>
-          {inPosition ? 'IN TRADE' : signal.action}
+        <p className={`simple-action ${actionClass}`}>
+          {inPosition ? 'IN TRADE' : signal.label}
         </p>
         <p className="simple-reason">{signal.reason}</p>
         <div className="simple-quote">
@@ -46,19 +61,29 @@ export function SimpleBoard({
         </p>
         <p className="simple-meta">
           スプレッド見積 {signal.spreadPips.toFixed(2)}p · SSL{' '}
-          {signal.sslSide === 'buy' ? '買い側' : signal.sslSide === 'sell' ? '売り側' : '—'}
+          {signal.sslSide === 'buy'
+            ? '買い側'
+            : signal.sslSide === 'sell'
+              ? '売り側'
+              : '—'}
           {signal.utFlip ? ' · UTフリップ' : ''}
+          {signal.trailDistancePips != null
+            ? ` · UTまで ${signal.trailDistancePips.toFixed(1)}p`
+            : ''}
         </p>
       </div>
 
       <ol className="simple-howto">
-        <li>BUY / SELL が出たときだけ見る</li>
+        <li>
+          READY↑/↓ は準備警告（あと{SIMPLE.readyPips}p以内）· まだ入らない
+        </li>
+        <li>BUY / SELL が出たときだけエントリー</li>
         <li>ポジションは同時に1本だけ</li>
         <li>
-          損切り {SIMPLE.slPips}{unitLabel(pair)} · 利確 {SIMPLE.tpPips}
+          損切り {SIMPLE.slPips}
+          {unitLabel(pair)} · 利確 {SIMPLE.tpPips}
           {unitLabel(pair)} を固定
         </li>
-        <li>自動化しない · サインは補助</li>
       </ol>
     </aside>
   )

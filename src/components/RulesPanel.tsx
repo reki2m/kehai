@@ -15,7 +15,8 @@ export function RulesPanel() {
         <li>
           <strong>サイン</strong>
           <span>
-            UT Bot（TV定番）フリップ ＋ SSL Channel 確認 → BUY または SELL のみ表示
+            UT Bot フリップ ＋ SSL 確認 → BUY / SELL。確認済みでUTまで
+            {SIMPLE.readyPips}p以内なら READY（準備警告・まだ入らない）
           </span>
         </li>
         <li>
