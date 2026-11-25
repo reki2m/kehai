@@ -30,7 +30,8 @@ export function generateCandles(
   timeframe: Timeframe,
   count = 240,
 ): Candle[] {
-  const rand = mulberry32(pair.seed + timeframe.charCodeAt(0) * 97)
+  const tfSeed = [...timeframe].reduce((acc, ch) => acc + ch.charCodeAt(0) * 131, 0)
+  const rand = mulberry32(pair.seed + tfSeed * 97 + count)
   const step = timeframeSeconds(timeframe)
   const now = Math.floor(Date.now() / 1000)
   const aligned = now - (now % step)
@@ -38,7 +39,21 @@ export function generateCandles(
 
   const candles: Candle[] = []
   let price = pair.open
-  const volatility = pair.open * (pair.quote === 'JPY' ? 0.00035 : 0.00055)
+  // Wider bars / higher TFs get slightly larger swings so series look distinct.
+  const tfScale =
+    timeframe === '1m'
+      ? 0.55
+      : timeframe === '5m'
+        ? 0.75
+        : timeframe === '15m'
+          ? 1
+          : timeframe === '1H'
+            ? 1.35
+            : timeframe === '4H'
+              ? 1.8
+              : 2.4
+  const volatility =
+    pair.open * (pair.quote === 'JPY' ? 0.00035 : 0.00055) * tfScale
 
   for (let i = 0; i < count; i++) {
     const drift = (rand() - 0.48) * volatility * 2.2
