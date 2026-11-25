@@ -1,0 +1,122 @@
+{
+  "name": "KEHAI Apex",
+  "thesis": [
+    "ICT-style liquidity sweep + reclaim on M1",
+    "15m EMA bias",
+    "London / NY killzones",
+    "Session VWAP agreement",
+    "Displacement body + tick-volume impulse",
+    "News blackout + spread cap",
+    "SL beyond sweep wick, TP 1.5–2.2R, time-stop"
+  ],
+  "params": {
+    "swing_lookback": 30,
+    "min_body": 0.5,
+    "vol_mult": 1.0,
+    "rr": 1.5,
+    "sl_buffer_pips": 0.5,
+    "time_stop": 12,
+    "max_spread": 1.2,
+    "kz": "ln",
+    "require_vwap": false,
+    "require_vol": true
+  },
+  "yahoo_train": {
+    "year": null,
+    "trades": 29,
+    "wins": 12,
+    "losses": 17,
+    "win_rate": 41.4,
+    "net_pips": -22.6,
+    "net_jpy": -22605,
+    "avg_pips": -0.78,
+    "profit_factor": 0.66,
+    "max_dd_jpy": 34702,
+    "avg_hold_min": 5.8,
+    "tp": 6,
+    "sl": 14,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-10",
+        "pnl_jpy": -14901
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": -7703
+      }
+    ]
+  },
+  "yahoo_holdout": {
+    "year": null,
+    "trades": 14,
+    "wins": 8,
+    "losses": 6,
+    "win_rate": 57.1,
+    "net_pips": -6.2,
+    "net_jpy": -6200,
+    "avg_pips": -0.44,
+    "profit_factor": 0.79,
+    "max_dd_jpy": 12851,
+    "avg_hold_min": 6.9,
+    "tp": 5,
+    "sl": 5,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": -6200
+      }
+    ]
+  },
+  "yahoo_full": {
+    "year": null,
+    "trades": 43,
+    "wins": 20,
+    "losses": 23,
+    "win_rate": 46.5,
+    "net_pips": -28.8,
+    "net_jpy": -28804,
+    "avg_pips": -0.67,
+    "profit_factor": 0.7,
+    "max_dd_jpy": 34702,
+    "avg_hold_min": 6.2,
+    "tp": 11,
+    "sl": 19,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-10",
+        "pnl_jpy": -14901
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": -13903
+      }
+    ]
+  },
+  "dukascopy_confirm": {
+    "year": null,
+    "trades": 13,
+    "wins": 3,
+    "losses": 10,
+    "win_rate": 23.1,
+    "net_pips": -31.4,
+    "net_jpy": -31355,
+    "avg_pips": -2.41,
+    "profit_factor": 0.28,
+    "max_dd_jpy": 27065,
+    "avg_hold_min": 266.3,
+    "tp": 3,
+    "sl": 10,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": -31355
+      }
+    ]
+  },
+  "note": "Designed and selected on real M1 (not synthetic). Still research BT — not live broker results.",
+  "generated_at": "2026-11-25T11:35:25.601037+00:00"
+}

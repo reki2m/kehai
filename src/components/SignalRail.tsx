@@ -1,7 +1,8 @@
-import type { EdgeSignal } from '../lib/edge'
+import type { ApexSignal } from '../lib/apex'
+import { APEX_PARAMS } from '../lib/apex'
 
 interface Props {
-  edge: EdgeSignal
+  edge: ApexSignal
   bid: string
   change: number
   changePct: number
@@ -21,9 +22,9 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
             : 'neutral'
 
   return (
-    <aside className="signal-rail" aria-label="KEHAI Edge シグナル">
+    <aside className="signal-rail" aria-label="KEHAI Apex シグナル">
       <div className={`confluence tone-${tone}`}>
-        <p className="confluence-kicker">KEHAI Edge · スキャル</p>
+        <p className="confluence-kicker">KEHAI Apex · 最高峰スキャル</p>
         <div className="confluence-score">
           <span className="score-value">
             {edge.score > 0 ? '+' : ''}
@@ -68,12 +69,15 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
           <p className="risk-line">
             SL {edge.stopDistance.toFixed(digits)} · TP{' '}
             {edge.takeProfitDistance.toFixed(digits)}
-            <span className="risk-hint">（ATR×1.2 / ×2.0）</span>
+            <span className="risk-hint">
+              （wick+{APEX_PARAMS.slBufferPips}p · {APEX_PARAMS.rr}R）
+            </span>
           </p>
         )}
         <p className="risk-line">
           スプレッド見積 {edge.spreadPips.toFixed(2)} pips
           {edge.newsLabel ? ` · ニュース: ${edge.newsLabel}` : ''}
+          {edge.setup ? ` · ${edge.setup}` : ''}
         </p>
       </div>
 

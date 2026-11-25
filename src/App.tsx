@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { SignalRail } from './components/SignalRail'
-import { evaluateEdge } from './lib/edge'
+import { evaluateApex } from './lib/apex'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
 import { getPair, PAIRS, TIMEFRAMES, type PairId, type Timeframe } from './lib/pairs'
 import './App.css'
@@ -40,7 +40,7 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [pair, timeframe])
 
-  const edge = useMemo(() => evaluateEdge(candles), [candles])
+  const edge = useMemo(() => evaluateApex(candles), [candles])
 
   const first = candles[0]
   const last = candles[candles.length - 1]
@@ -65,7 +65,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">Edge Pro — TV VWAP / Squeeze / ニュース帯対応</p>
+          <p className="tagline">Apex — Killzone / Sweep / VWAP / ORB</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -117,11 +117,11 @@ export default function App() {
             <h1>
               {pair.label}
               <span className="tf-chip">
-                {TIMEFRAMES.find((t) => t.id === timeframe)?.label} · Edge
+                {TIMEFRAMES.find((t) => t.id === timeframe)?.label} · Apex
               </span>
             </h1>
             <p className="sample-note">
-              サンプル気配 · Edge Pro（VWAP/Squeeze/News/Spread）· 実口座API未接続
+              サンプル気配 · Apex（ICT Killzone / Liquidity Sweep / VWAP / News）· 実口座API未接続
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />
