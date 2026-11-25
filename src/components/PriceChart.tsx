@@ -187,8 +187,35 @@ export function PriceChart({ candles, pair, overlays }: Props) {
     }
   }, [pair.digits, pair.pip])
 
+  const prevLen = useRef(0)
+  const prevOverlays = useRef('')
+
   useEffect(() => {
-    if (!candleSeries.current) return
+    if (!candleSeries.current || candles.length === 0) return
+
+    const last = candles[candles.length - 1]
+    const lastBar: CandlestickData<Time> = {
+      time: last.time as UTCTimestamp,
+      open: last.open,
+      high: last.high,
+      low: last.low,
+      close: last.close,
+    }
+
+    const overlayKey = overlays.slice().sort().join(',')
+    // Fast path for 1s ticks: append/update last bar only
+    if (
+      prevLen.current > 0 &&
+      overlayKey === prevOverlays.current &&
+      candles.length >= prevLen.current &&
+      candles.length - prevLen.current <= 1
+    ) {
+      candleSeries.current.update(lastBar)
+      prevLen.current = candles.length
+      chartRef.current?.timeScale().scrollToRealTime()
+      return
+    }
+    prevOverlays.current = overlayKey
 
     const candleData: CandlestickData<Time>[] = candles.map((c) => ({
       time: c.time as UTCTimestamp,
@@ -198,6 +225,8 @@ export function PriceChart({ candles, pair, overlays }: Props) {
       close: c.close,
     }))
     candleSeries.current.setData(candleData)
+    prevLen.current = candles.length
+    prevLastTime.current = last.time
 
     const showEma = overlays.includes('ema')
     const showBb = overlays.includes('bb')

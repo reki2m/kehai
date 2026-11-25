@@ -133,10 +133,13 @@ export default function App() {
     }
   }, [pairId, timeframe, pair])
 
-  // Live tick every 5s so the forming candle actually moves in the browser
+  // Live tick ~1s — scalp needs sub-10s movement
   useEffect(() => {
     let cancelled = false
+    let inFlight = false
     async function tick() {
+      if (inFlight) return
+      inFlight = true
       try {
         const px = await fetchLiveTick(pairId)
         if (cancelled || px == null) return
@@ -144,14 +147,16 @@ export default function App() {
           if (prev.length < 30) return prev
           return applyLiveTick(prev, px, timeframe)
         })
-        setLiveSource('Yahoo履歴 + ライブティック')
+        setLiveSource('ライブ 約1秒更新')
         setLiveError(null)
       } catch {
         /* keep chart; history still shown */
+      } finally {
+        inFlight = false
       }
     }
     void tick()
-    const id = window.setInterval(() => void tick(), 5_000)
+    const id = window.setInterval(() => void tick(), 1_000)
     return () => {
       cancelled = true
       window.clearInterval(id)
