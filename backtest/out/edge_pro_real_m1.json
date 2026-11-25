@@ -84,7 +84,76 @@
         "mtf",
         "±65 cross"
       ]
+    },
+    {
+      "label": "usdjpy_m1_dukascopy_2026nov_session",
+      "source": "usdjpy_m1_dukascopy_2026nov_session.json",
+      "bars": 10380,
+      "avg_spread": 0.396,
+      "skipped": {
+        "news": 26,
+        "spread": 0,
+        "squeeze": 140,
+        "vwap": 24
+      },
+      "all": {
+        "year": null,
+        "trades": 131,
+        "wins": 45,
+        "losses": 86,
+        "win_rate": 34.4,
+        "net_pips": -61.4,
+        "net_jpy": -61391,
+        "avg_pips": -0.47,
+        "profit_factor": 0.75,
+        "max_dd_jpy": 63634,
+        "avg_hold_min": 8.7,
+        "tp": 43,
+        "sl": 68,
+        "signal_exits": 20,
+        "monthly": [
+          {
+            "month": "2026-11",
+            "pnl_jpy": -61391
+          }
+        ]
+      },
+      "by_year": {
+        "2026": {
+          "year": 2026,
+          "trades": 131,
+          "wins": 45,
+          "losses": 86,
+          "win_rate": 34.4,
+          "net_pips": -61.4,
+          "net_jpy": -61391,
+          "avg_pips": -0.47,
+          "profit_factor": 0.75,
+          "max_dd_jpy": 63634,
+          "avg_hold_min": 8.7,
+          "tp": 43,
+          "sl": 68,
+          "signal_exits": 20,
+          "monthly": [
+            {
+              "month": "2026-11",
+              "pnl_jpy": -61391
+            }
+          ]
+        }
+      },
+      "filters": [
+        "session",
+        "news",
+        "spread<=1.4",
+        "no-squeeze",
+        "vwap",
+        "adx",
+        "st",
+        "mtf",
+        "±65 cross"
+      ]
     }
   ],
-  "generated_at": "2026-11-25T09:38:14.182014+00:00"
+  "generated_at": "2026-11-25T11:26:59.819860+00:00"
 }

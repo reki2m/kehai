@@ -1,8 +1,8 @@
-# KEHAI Edge
+# KEHAI Edge Pro
 
 1分足スキャルピング向けの合成インジケータ。定評のある要素をゲート付きで組み合わせています。
 
-## Edge Strict スタック
+## Edge Pro スタック（TradingView由来含む）
 
 - 気配コンフルエンス（EMA / RSI / MACD / Bollinger / Stochastic）
 - ADX(14) ≥ 22（レンジ回避）
