@@ -1,0 +1,516 @@
+{
+  "name": "KEHAI Holy Grail Forward Lock",
+  "horizon_note": "Yahoo M1 ~4 weeks weekly WF + slip stress; Dukascopy confirm",
+  "locked_name": "grail_v1_tp1.1_daycap8",
+  "locked_sessions": {
+    "tokyo": {
+      "session": "tokyo",
+      "ut_key": 1.5,
+      "ut_atr": 7,
+      "ssl_len": 10,
+      "sl_pips": 4,
+      "tp_pips": 8,
+      "max_spread": 0.5,
+      "require_vwap": false,
+      "cooldown": 2,
+      "time_stop": 15,
+      "require_ema": true
+    },
+    "london": {
+      "session": "london",
+      "ut_key": 2.0,
+      "ut_atr": 10,
+      "ssl_len": 10,
+      "sl_pips": 3,
+      "tp_pips": 6,
+      "max_spread": 0.35,
+      "require_vwap": true,
+      "cooldown": 1,
+      "time_stop": 12,
+      "require_ema": false
+    },
+    "ny": {
+      "session": "ny",
+      "ut_key": 3.0,
+      "ut_atr": 7,
+      "ssl_len": 10,
+      "sl_pips": 3,
+      "tp_pips": 6,
+      "max_spread": 0.4,
+      "require_vwap": false,
+      "cooldown": 1,
+      "time_stop": 12,
+      "require_ema": true
+    }
+  },
+  "locked_opts": {
+    "name": "e0_c0_a0_t1.1",
+    "slip_pips": 0.0,
+    "require_htf_ssl": false,
+    "skip_session_edge_min": 0,
+    "min_atr_pips": 0,
+    "daily_loss_cap_pips": 0,
+    "only_sessions": [
+      "tokyo",
+      "london",
+      "ny"
+    ],
+    "tp_mult": 1.1,
+    "sl_mult": 1.0
+  },
+  "forward": {
+    "name": "e0_c0_a0_t1.1",
+    "opts": {
+      "name": "e0_c0_a0_t1.1",
+      "slip_pips": 0.0,
+      "require_htf_ssl": false,
+      "skip_session_edge_min": 0,
+      "min_atr_pips": 0,
+      "daily_loss_cap_pips": 0,
+      "only_sessions": [
+        "tokyo",
+        "london",
+        "ny"
+      ],
+      "tp_mult": 1.1,
+      "sl_mult": 1.0
+    },
+    "weeks": [
+      {
+        "week": "2026-10-28",
+        "year": null,
+        "trades": 10,
+        "wins": 5,
+        "losses": 5,
+        "win_rate": 50.0,
+        "net_pips": 21.5,
+        "net_jpy": 21456,
+        "avg_pips": 2.15,
+        "profit_factor": 2.53,
+        "max_dd_jpy": 13890,
+        "avg_hold_min": 5.6,
+        "tp": 4,
+        "sl": 4,
+        "signal_exits": 0,
+        "monthly": [
+          {
+            "month": "2026-10",
+            "pnl_jpy": 21456
+          }
+        ],
+        "calmar": 1.545
+      },
+      {
+        "week": "2026-11-02",
+        "year": null,
+        "trades": 23,
+        "wins": 12,
+        "losses": 11,
+        "win_rate": 52.2,
+        "net_pips": 32.7,
+        "net_jpy": 32674,
+        "avg_pips": 1.42,
+        "profit_factor": 1.78,
+        "max_dd_jpy": 13325,
+        "avg_hold_min": 6.4,
+        "tp": 9,
+        "sl": 9,
+        "signal_exits": 0,
+        "monthly": [
+          {
+            "month": "2026-11",
+            "pnl_jpy": 32674
+          }
+        ],
+        "calmar": 2.452
+      },
+      {
+        "week": "2026-11-09",
+        "year": null,
+        "trades": 33,
+        "wins": 16,
+        "losses": 17,
+        "win_rate": 48.5,
+        "net_pips": 4.7,
+        "net_jpy": 4662,
+        "avg_pips": 0.14,
+        "profit_factor": 1.07,
+        "max_dd_jpy": 23615,
+        "avg_hold_min": 7.5,
+        "tp": 6,
+        "sl": 16,
+        "signal_exits": 0,
+        "monthly": [
+          {
+            "month": "2026-11",
+            "pnl_jpy": 4662
+          }
+        ],
+        "calmar": 0.197
+      },
+      {
+        "week": "2026-11-16",
+        "year": null,
+        "trades": 30,
+        "wins": 15,
+        "losses": 15,
+        "win_rate": 50.0,
+        "net_pips": 26.1,
+        "net_jpy": 26068,
+        "avg_pips": 0.87,
+        "profit_factor": 1.46,
+        "max_dd_jpy": 22390,
+        "avg_hold_min": 7.7,
+        "tp": 10,
+        "sl": 14,
+        "signal_exits": 0,
+        "monthly": [
+          {
+            "month": "2026-11",
+            "pnl_jpy": 26068
+          }
+        ],
+        "calmar": 1.164
+      },
+      {
+        "week": "2026-11-23",
+        "year": null,
+        "trades": 18,
+        "wins": 7,
+        "losses": 11,
+        "win_rate": 38.9,
+        "net_pips": 10.2,
+        "net_jpy": 10166,
+        "avg_pips": 0.56,
+        "profit_factor": 1.26,
+        "max_dd_jpy": 16340,
+        "avg_hold_min": 7.8,
+        "tp": 5,
+        "sl": 10,
+        "signal_exits": 0,
+        "monthly": [
+          {
+            "month": "2026-11",
+            "pnl_jpy": 10166
+          }
+        ],
+        "calmar": 0.622
+      }
+    ],
+    "full": {
+      "year": null,
+      "trades": 114,
+      "wins": 55,
+      "losses": 59,
+      "win_rate": 48.2,
+      "net_pips": 95.0,
+      "net_jpy": 95026,
+      "avg_pips": 0.83,
+      "profit_factor": 1.44,
+      "max_dd_jpy": 38535,
+      "avg_hold_min": 7.2,
+      "tp": 34,
+      "sl": 53,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-10",
+          "pnl_jpy": 21456
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": 73570
+        }
+      ],
+      "calmar": 2.466
+    },
+    "slip_0.3": {
+      "year": null,
+      "trades": 113,
+      "wins": 48,
+      "losses": 65,
+      "win_rate": 42.5,
+      "net_pips": 26.7,
+      "net_jpy": 26674,
+      "avg_pips": 0.24,
+      "profit_factor": 1.11,
+      "max_dd_jpy": 44394,
+      "avg_hold_min": 6.8,
+      "tp": 30,
+      "sl": 56,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-10",
+          "pnl_jpy": 17856
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": 8819
+        }
+      ],
+      "calmar": 0.601
+    },
+    "slip_0.5": {
+      "year": null,
+      "trades": 113,
+      "wins": 42,
+      "losses": 71,
+      "win_rate": 37.2,
+      "net_pips": -37.4,
+      "net_jpy": -37415,
+      "avg_pips": -0.33,
+      "profit_factor": 0.87,
+      "max_dd_jpy": 66706,
+      "avg_hold_min": 6.4,
+      "tp": 27,
+      "sl": 61,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-10",
+          "pnl_jpy": 2656
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": -40071
+        }
+      ],
+      "calmar": -0.561
+    },
+    "duka": {
+      "year": null,
+      "trades": 66,
+      "wins": 33,
+      "losses": 33,
+      "win_rate": 50.0,
+      "net_pips": 72.0,
+      "net_jpy": 72029,
+      "avg_pips": 1.09,
+      "profit_factor": 1.58,
+      "max_dd_jpy": 33441,
+      "avg_hold_min": 63.6,
+      "tp": 18,
+      "sl": 27,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-11",
+          "pnl_jpy": 72029
+        }
+      ],
+      "calmar": 2.154
+    },
+    "duka_slip_0.3": {
+      "year": null,
+      "trades": 67,
+      "wins": 30,
+      "losses": 37,
+      "win_rate": 44.8,
+      "net_pips": 28.8,
+      "net_jpy": 28838,
+      "avg_pips": 0.43,
+      "profit_factor": 1.19,
+      "max_dd_jpy": 46943,
+      "avg_hold_min": 62.2,
+      "tp": 17,
+      "sl": 31,
+      "signal_exits": 0,
+      "monthly": [
+        {
+          "month": "2026-11",
+          "pnl_jpy": 28838
+        }
+      ],
+      "calmar": 0.614
+    },
+    "score": 161.11874999999998,
+    "green_weeks": 5,
+    "week_count": 5
+  },
+  "leaderboard": [
+    {
+      "name": "e0_c0_a0_t1.1",
+      "score": 161.11874999999998,
+      "net": 95.0,
+      "slip03": 26.7,
+      "slip05": -37.4,
+      "dd_slip03": 44394,
+      "green": "5/5",
+      "duka03": 28.8
+    },
+    {
+      "name": "e0_c0_a0.8_t1.1",
+      "score": 161.11874999999998,
+      "net": 95.0,
+      "slip03": 26.7,
+      "slip05": -37.4,
+      "dd_slip03": 44394,
+      "green": "5/5",
+      "duka03": 28.8
+    },
+    {
+      "name": "e0_c0_a1.0_t1.1",
+      "score": 161.11874999999998,
+      "net": 95.0,
+      "slip03": 26.7,
+      "slip05": -37.4,
+      "dd_slip03": 44394,
+      "green": "5/5",
+      "duka03": 28.8
+    },
+    {
+      "name": "e0_c8_a0_t1.1",
+      "score": 148.02,
+      "net": 68.5,
+      "slip03": 27.8,
+      "slip05": -31.7,
+      "dd_slip03": 35000,
+      "green": "4/5",
+      "duka03": 29.0
+    },
+    {
+      "name": "e0_c8_a0.8_t1.1",
+      "score": 148.02,
+      "net": 68.5,
+      "slip03": 27.8,
+      "slip05": -31.7,
+      "dd_slip03": 35000,
+      "green": "4/5",
+      "duka03": 29.0
+    },
+    {
+      "name": "e0_c8_a1.0_t1.1",
+      "score": 148.02,
+      "net": 68.5,
+      "slip03": 27.8,
+      "slip05": -31.7,
+      "dd_slip03": 35000,
+      "green": "4/5",
+      "duka03": 29.0
+    },
+    {
+      "name": "e0_c8_a0_t1.0",
+      "score": 142.575,
+      "net": 62.2,
+      "slip03": 21.1,
+      "slip05": -35.7,
+      "dd_slip03": 34024,
+      "green": "4/5",
+      "duka03": 18.7
+    },
+    {
+      "name": "e0_c8_a0.8_t1.0",
+      "score": 142.575,
+      "net": 62.2,
+      "slip03": 21.1,
+      "slip05": -35.7,
+      "dd_slip03": 34024,
+      "green": "4/5",
+      "duka03": 18.7
+    },
+    {
+      "name": "e0_c8_a1.0_t1.0",
+      "score": 142.575,
+      "net": 62.2,
+      "slip03": 21.1,
+      "slip05": -35.7,
+      "dd_slip03": 34024,
+      "green": "4/5",
+      "duka03": 18.7
+    },
+    {
+      "name": "e0_c10_a0_t1.1",
+      "score": 131.16875000000005,
+      "net": 74.7,
+      "slip03": 13.4,
+      "slip05": -50.9,
+      "dd_slip03": 40283,
+      "green": "4/5",
+      "duka03": 21.2
+    },
+    {
+      "name": "e0_c10_a0.8_t1.1",
+      "score": 131.16875000000005,
+      "net": 74.7,
+      "slip03": 13.4,
+      "slip05": -50.9,
+      "dd_slip03": 40283,
+      "green": "4/5",
+      "duka03": 21.2
+    },
+    {
+      "name": "e0_c10_a1.0_t1.1",
+      "score": 131.16875000000005,
+      "net": 74.7,
+      "slip03": 13.4,
+      "slip05": -50.9,
+      "dd_slip03": 40283,
+      "green": "4/5",
+      "duka03": 21.2
+    },
+    {
+      "name": "e0_c0_a0_t1.0",
+      "score": 120.32374999999999,
+      "net": 79.4,
+      "slip03": 20.0,
+      "slip05": -43.3,
+      "dd_slip03": 48030,
+      "green": "5/5",
+      "duka03": 16.6
+    },
+    {
+      "name": "e0_c0_a0.8_t1.0",
+      "score": 120.32374999999999,
+      "net": 79.4,
+      "slip03": 20.0,
+      "slip05": -43.3,
+      "dd_slip03": 48030,
+      "green": "5/5",
+      "duka03": 16.6
+    },
+    {
+      "name": "e0_c0_a1.0_t1.0",
+      "score": 120.32374999999999,
+      "net": 79.4,
+      "slip03": 20.0,
+      "slip05": -43.3,
+      "dd_slip03": 48030,
+      "green": "5/5",
+      "duka03": 16.6
+    }
+  ],
+  "monte_carlo_slip03": {
+    "n": 2000,
+    "dd_p50": 46152.24975582532,
+    "dd_p95": 70728.63732902652,
+    "dd_p99": 86839.38342277533,
+    "trades": 113,
+    "net_jpy": 26674.462890831608
+  },
+  "paper_rules": {
+    "sessions": [
+      "tokyo",
+      "london",
+      "ny"
+    ],
+    "assume_slip_pips": 0.3,
+    "max_tolerable_slip_pips": 0.3,
+    "halt_if_slip_exceeds": 0.45,
+    "tp_mult": 1.1,
+    "daily_loss_cap_pips": 8,
+    "demo_lot": 0.01,
+    "require_5m_ssl_agree": false,
+    "verdict": "Grail v1 for demo/micro: survive \u22640.3p slip; stop if \u22650.5p"
+  },
+  "chosen_leaderboard_row": {
+    "name": "e0_c8_a0_t1.1",
+    "score": 148.02,
+    "net": 68.5,
+    "slip03": 27.8,
+    "slip05": -31.7,
+    "dd_slip03": 35000,
+    "green": "4/5",
+    "duka03": 29.0
+  }
+}

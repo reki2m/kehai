@@ -676,6 +676,131 @@
   background: var(--coral);
 }
 
+.grail-panel {
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid rgba(232, 196, 124, 0.35);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+}
+
+.grail-panel h2,
+.grail-paper h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+}
+
+.grail-paper h3 {
+  margin-top: 0.85rem;
+  font-size: 0.82rem;
+  color: var(--sea);
+}
+
+.grail-lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.grail-stats {
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.grail-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  border-bottom: 1px solid rgba(214, 228, 232, 0.06);
+  padding-bottom: 0.3rem;
+}
+
+.grail-stats span {
+  color: var(--muted);
+}
+
+.grail-stats strong {
+  color: var(--ink);
+  text-align: right;
+  font-weight: 600;
+}
+
+.grail-stats strong.up {
+  color: var(--sea);
+}
+
+.grail-stats strong.down {
+  color: var(--coral);
+}
+
+.grail-equity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0.55rem 0;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.grail-slip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.grail-slip input {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  background: rgba(6, 20, 26, 0.45);
+  color: var(--ink);
+  max-width: 8rem;
+}
+
+.grail-close-btns {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.grail-close-btns button {
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.grail-close-btns button:hover {
+  color: var(--ink);
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.grail-entries {
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.68rem;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .confluence {
   padding: 1rem 1rem 1.1rem;
   border: 1px solid var(--line);

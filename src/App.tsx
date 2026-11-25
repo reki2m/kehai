@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { GrailPanel } from './components/GrailPanel'
 import { ImpactPanel } from './components/ImpactPanel'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { RulesPanel } from './components/RulesPanel'
 import { SignalRail } from './components/SignalRail'
+import {
+  applyGrailPaperGate,
+  loadPaper,
+  recordPaperClose,
+  recordPaperEntry,
+  setObservedSlip,
+  type PaperState,
+} from './lib/grail'
 import { fetchLiveCandles } from './lib/liveRates'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
 import { decideMultiTf } from './lib/multiTf'
@@ -82,6 +91,7 @@ export default function App() {
   const [entrySound, setEntrySound] = useState(true)
   const [newsVoice, setNewsVoice] = useState(true)
   const [alertIds, setAlertIds] = useState<Set<string>>(() => new Set())
+  const [paper, setPaper] = useState<PaperState>(() => loadPaper())
   const lastSpokenBar = useRef<number | null>(null)
   const lastEntryKey = useRef<string | null>(null)
   const warnedIds = useRef<Set<string>>(new Set())
@@ -244,9 +254,11 @@ export default function App() {
   )
   const impact = useMemo(() => evaluateUsdJpyImpact(driverSeries, 12), [driverSeries])
   const edge = useMemo(() => {
-    if (pairId !== 'USDJPY') return multi.edge
-    return applyImpactGate(multi.edge, impact)
-  }, [multi.edge, impact, pairId])
+    let e = multi.edge
+    if (pairId === 'USDJPY') e = applyImpactGate(e, impact)
+    e = applyGrailPaperGate(e, paper)
+    return e
+  }, [multi.edge, impact, pairId, paper])
 
   // Chart follows multi-TF winner (1m/5m Apex stack)
   const chartTf: Timeframe = multi.activeTf
@@ -268,12 +280,24 @@ export default function App() {
       if (lastEntryKey.current !== key) {
         lastEntryKey.current = key
         lastSpokenBar.current = bar
+        const sl = Number((edge.stopDistance / pair.pip).toFixed(1))
+        const tp = Number((edge.takeProfitDistance / pair.pip).toFixed(1))
         announceEntry(action, bid, {
-          sl: Number((edge.stopDistance / pair.pip).toFixed(1)),
-          tp: Number((edge.takeProfitDistance / pair.pip).toFixed(1)),
+          sl,
+          tp,
           unit: unitLabel(pair),
           session: edge.sessionLabel ?? undefined,
         })
+        setPaper((prev) =>
+          recordPaperEntry(prev, {
+            ts: Date.now(),
+            session: edge.sessionLabel ?? '—',
+            action,
+            price: bid,
+            sl,
+            tp,
+          }),
+        )
       }
       return
     }
@@ -336,7 +360,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">Triple Session — 東京 / ロンドン / NY</p>
+          <p className="tagline">Grail v1 — 東京 / ロンドン / NY · スリッ耐性0.3p</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -455,6 +479,11 @@ export default function App() {
             digits={pair.digits}
             pair={pair}
             multi={multi}
+          />
+          <GrailPanel
+            paper={paper}
+            onSlip={(v) => setPaper((p) => setObservedSlip(p, v))}
+            onClosePnl={(pips) => setPaper((p) => recordPaperClose(p, pips))}
           />
           <ImpactPanel impact={impact} loading={impactLoading} />
           <RulesPanel />

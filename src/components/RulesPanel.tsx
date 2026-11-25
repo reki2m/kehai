@@ -1,5 +1,6 @@
 import { APEX_PARAMS, SESSION_PROFILES } from '../lib/apex'
 import { BROKER_SPREAD_PIPS } from '../lib/filters'
+import { GRAIL } from '../lib/grail'
 
 export function RulesPanel() {
   const sessions = [SESSION_PROFILES.tokyo, SESSION_PROFILES.london, SESSION_PROFILES.ny]
@@ -7,13 +8,13 @@ export function RulesPanel() {
     <section className="rules-panel" aria-label="売買ルール">
       <h2>売買ルール</h2>
       <p className="rules-lead">
-        Triple Session Apex · UT×SSL · スプレッド {BROKER_SPREAD_PIPS}p 前提 · 実M1検証済み
+        {GRAIL.name} · UT×SSL · スプレッド {BROKER_SPREAD_PIPS}p · スリッ耐性 {GRAIL.assumeSlipPips}p
       </p>
       <ol className="rules-list">
         <li>
           <strong>対象時間帯</strong>
           <span>
-            東京・ロンドン・NYの3帯のみ。それ以外は待機（{APEX_PARAMS.family}）
+            東京・ロンドン・NYの3帯のみ（{APEX_PARAMS.family}）
           </span>
         </li>
         {sessions.map((s) => (
@@ -28,24 +29,21 @@ export function RulesPanel() {
           </li>
         ))}
         <li>
+          <strong>Grailリスク</strong>
+          <span>
+            TP×{GRAIL.tpMult}済 · 日次ロス上限 −{GRAIL.dailyLossCapPips}p · 観測ズレ&gt;
+            {GRAIL.maxSlipPips}pで停止 · デモ{GRAIL.demoLot}lot
+          </span>
+        </li>
+        <li>
           <strong>買い / 売り</strong>
           <span>
-            UT Bot フリップ ＋ SSL同方向 ＋（セッション条件の VWAP / EMA）＋ ニュース帯外
+            UT Bot フリップ ＋ SSL同方向 ＋（VWAP / EMA）＋ ニュース帯外
           </span>
         </li>
         <li>
-          <strong>時間足</strong>
-          <span>1分と5分を同時評価し優勢側を適用。逆方向は衝突で待機</span>
-        </li>
-        <li>
-          <strong>ドル円インパクト</strong>
-          <span>
-            EUR/USD・原油・日経・ダウ・VIXの短期圧力で順風加点 / 逆風見送り
-          </span>
-        </li>
-        <li>
-          <strong>見送り</strong>
-          <span>時間外・ニュース・スプレッド拡大・UT未フリップ・フィルタ不一致・1m/5m衝突</span>
+          <strong>時間足 / インパクト</strong>
+          <span>1m/5m優勢適用 · 関連市場逆風はドル円見送り</span>
         </li>
       </ol>
     </section>

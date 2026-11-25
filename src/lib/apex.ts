@@ -44,6 +44,7 @@ export interface SessionProfile {
   requireEma: boolean
 }
 
+/** Grail v1: session bases × TP×1.1 (slip buffer) from holy_grail_forward lock. */
 export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
   tokyo: {
     id: 'tokyo',
@@ -54,7 +55,7 @@ export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
     utAtr: 7,
     sslLen: 10,
     slPips: 4,
-    tpPips: 8,
+    tpPips: 8.8,
     maxSpread: 0.5,
     requireVwap: false,
     requireEma: true,
@@ -68,7 +69,7 @@ export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
     utAtr: 10,
     sslLen: 10,
     slPips: 3,
-    tpPips: 6,
+    tpPips: 6.6,
     maxSpread: 0.35,
     requireVwap: true,
     requireEma: false,
@@ -82,7 +83,7 @@ export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
     utAtr: 7,
     sslLen: 10,
     slPips: 3,
-    tpPips: 6,
+    tpPips: 6.6,
     maxSpread: 0.4,
     requireVwap: false,
     requireEma: true,
