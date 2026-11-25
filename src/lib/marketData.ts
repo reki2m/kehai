@@ -52,8 +52,7 @@ export function generateCandles(
             : timeframe === '4H'
               ? 1.8
               : 2.4
-  const volatility =
-    pair.open * (pair.quote === 'JPY' ? 0.00035 : 0.00055) * tfScale
+  const volatility = pair.open * pair.volFrac * tfScale
 
   for (let i = 0; i < count; i++) {
     const drift = (rand() - 0.48) * volatility * 2.2

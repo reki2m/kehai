@@ -1,6 +1,6 @@
 import { evaluateApex, type ApexSignal, type TradeAction } from './apex'
 import type { Candle } from './marketData'
-import type { Timeframe } from './pairs'
+import type { PairMeta, Timeframe } from './pairs'
 
 export type ApexTf = '1m' | '5m'
 
@@ -27,8 +27,8 @@ function dominance(edge: ApexSignal): number {
   return d
 }
 
-function reading(tf: ApexTf, candles: Candle[]): TfReading {
-  const edge = evaluateApex(candles)
+function reading(tf: ApexTf, candles: Candle[], pair?: PairMeta): TfReading {
+  const edge = evaluateApex(candles, pair)
   return { tf, edge, dominance: dominance(edge) }
 }
 
@@ -40,9 +40,10 @@ export function decideMultiTf(
   candles1m: Candle[],
   candles5m: Candle[],
   prefer?: ApexTf,
+  pair?: PairMeta,
 ): MultiTfDecision {
-  const m1 = reading('1m', candles1m)
-  const m5 = reading('5m', candles5m)
+  const m1 = reading('1m', candles1m, pair)
+  const m5 = reading('5m', candles5m, pair)
   if (prefer === '1m') m1.dominance += 4
   if (prefer === '5m') m5.dominance += 4
 

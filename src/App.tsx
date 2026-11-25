@@ -13,7 +13,14 @@ import {
   type CalendarEvent,
   type Headline,
 } from './lib/newsFeed'
-import { getPair, PAIRS, TIMEFRAMES, type PairId, type Timeframe } from './lib/pairs'
+import {
+  getPair,
+  PAIRS,
+  TIMEFRAMES,
+  unitLabel,
+  type PairId,
+  type Timeframe,
+} from './lib/pairs'
 import {
   announceEntry,
   announceEventResult,
@@ -184,8 +191,8 @@ export default function App() {
 
   const preferTf = timeframe === '5m' ? '5m' : timeframe === '1m' ? '1m' : undefined
   const multi = useMemo(
-    () => decideMultiTf(candles1m, candles5m, preferTf),
-    [candles1m, candles5m, preferTf],
+    () => decideMultiTf(candles1m, candles5m, preferTf, pair),
+    [candles1m, candles5m, preferTf, pair],
   )
   const edge = multi.edge
 
@@ -209,7 +216,11 @@ export default function App() {
       if (lastEntryKey.current !== key) {
         lastEntryKey.current = key
         lastSpokenBar.current = bar
-        announceEntry(action, bid)
+        announceEntry(action, bid, {
+          sl: pair.sl,
+          tp: pair.tp,
+          unit: unitLabel(pair),
+        })
       }
       return
     }
@@ -217,7 +228,7 @@ export default function App() {
       lastSpokenBar.current = bar
       speakRate(pair.label, bid, edge.action)
     }
-  }, [last, bid, edge.action, pair.label, voiceOn, multi.activeTf])
+  }, [last, bid, edge.action, pair, voiceOn, multi.activeTf])
 
   function toggleOverlay(id: OverlayId) {
     setOverlays((prev) => {
@@ -282,11 +293,20 @@ export default function App() {
               value={pairId}
               onChange={(e) => setPairId(e.target.value as PairId)}
             >
-              {PAIRS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
+              <optgroup label="FX">
+                {PAIRS.filter((p) => p.kind === 'fx').map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="コモディティ・指数">
+                {PAIRS.filter((p) => p.kind !== 'fx').map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </label>
 
@@ -378,6 +398,7 @@ export default function App() {
             change={change}
             changePct={changePct}
             digits={pair.digits}
+            pair={pair}
             multi={multi}
           />
           <RulesPanel />

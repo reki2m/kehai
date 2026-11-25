@@ -7,7 +7,7 @@ export function RulesPanel() {
     <section className="rules-panel" aria-label="売買ルール">
       <h2>売買ルール</h2>
       <p className="rules-lead">
-        UT Bot × SSL · スプレッド {BROKER_SPREAD_PIPS}p 前提 · 研究BTで固定したルール
+        UT Bot × SSL · FXはスプレッド {BROKER_SPREAD_PIPS}p 前提 · 原油・指数・VIXは銘柄別pts
       </p>
       <ol className="rules-list">
         <li>
@@ -34,12 +34,10 @@ export function RulesPanel() {
           </span>
         </li>
         <li>
-          <strong>損切り（SL）</strong>
-          <span>エントリーから {p.slPips} pips</span>
-        </li>
-        <li>
-          <strong>利確（TP）</strong>
-          <span>エントリーから {p.tpPips} pips（2R）</span>
+          <strong>損切り / 利確</strong>
+          <span>
+            FX: SL {p.slPips} / TP {p.tpPips} pips。原油・日経・ダウ・VIXは銘柄ごとのポイント幅（2R）
+          </span>
         </li>
         <li>
           <strong>指標通知</strong>

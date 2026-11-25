@@ -1,7 +1,7 @@
 import type { Candle } from './marketData'
 import type { PairId, Timeframe } from './pairs'
 
-/** Yahoo Finance symbols for each pair. */
+/** Yahoo Finance symbols for each instrument. */
 export const YAHOO_SYMBOLS: Record<PairId, string> = {
   USDJPY: 'USDJPY=X',
   EURUSD: 'EURUSD=X',
@@ -9,6 +9,10 @@ export const YAHOO_SYMBOLS: Record<PairId, string> = {
   EURJPY: 'EURJPY=X',
   AUDUSD: 'AUDUSD=X',
   USDCHF: 'USDCHF=X',
+  USOIL: 'CL=F',
+  NIKKEI: 'NIY=F',
+  DOW: 'YM=F',
+  VIX: '^VIX',
 }
 
 const TF_MAP: Record<Timeframe, string> = {

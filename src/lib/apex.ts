@@ -11,6 +11,7 @@ import {
   utBotDirection,
   wavetrend,
 } from './indicators'
+import type { PairMeta } from './pairs'
 import type { Bias, IndicatorSignal } from './signals'
 
 /**
@@ -80,15 +81,40 @@ export function isEntryWindow(unixSec: number): boolean {
   return hm >= 8 * 60 + 30 && hm < 10 * 60
 }
 
-export function evaluateApex(candles: Candle[]): ApexSignal {
+/** Broader weekday sessions for energy / index / VIX (not London Mid FX). */
+export function isInstrumentWindow(unixSec: number, pair?: PairMeta): boolean {
+  const { weekday, hm } = utcHm(unixSec)
+  if (weekday === 0 || weekday === 6) return false
+  if (!pair || pair.kind === 'fx') return isEntryWindow(unixSec)
+  if (pair.id === 'NIKKEI') {
+    // CME Nikkei / Tokyo-ish active hours (UTC)
+    return hm < 8 * 60 || hm >= 23 * 60 || (hm >= 0 && hm < 7 * 60)
+  }
+  if (pair.id === 'DOW' || pair.id === 'VIX') {
+    return hm >= 13 * 60 && hm < 21 * 60
+  }
+  if (pair.id === 'USOIL') {
+    return hm >= 11 * 60 && hm < 21 * 60
+  }
+  return true
+}
+
+export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
   const p = APEX_PARAMS
+  const pip = pair?.pip ?? p.pip
+  const slPips = pair?.sl ?? p.slPips
+  const tpPips = pair?.tp ?? p.tpPips
   const cur = last(candles)
   const price = cur?.close ?? 0
   const t = cur?.time ?? 0
   const atrVal = last(atr(candles, 14))?.value ?? 0
-  const atrPips = atrVal > 0 ? atrVal / p.pip : 0
-  const spreadPips = estimateSpreadPips(t, atrPips || undefined)
-  const news = newsBlackout(t)
+  const atrPips = atrVal > 0 ? atrVal / pip : 0
+  // Non-FX: skip FX session-spread model; use broker floor scaled lightly by ATR
+  const spreadPips =
+    pair && pair.kind !== 'fx'
+      ? Math.min(p.maxSpread, 0.15 + Math.min(0.2, atrPips * 0.002))
+      : estimateSpreadPips(t, atrPips || undefined)
+  const news = pair?.kind === 'fx' ? newsBlackout(t) : null
   const vwap = last(sessionVwap(candles))
   const utSeries = utBotDirection(candles, p.utKey, p.utAtr)
   const sslSeries = sslDirection(candles, p.sslLen)
@@ -101,7 +127,7 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
 
-  const windowOk = isEntryWindow(t)
+  const windowOk = isInstrumentWindow(t, pair)
   const newsOk = !news
   const spreadOk = spreadPips <= p.maxSpread
 
@@ -120,12 +146,25 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
 
   const signals: IndicatorSignal[] = []
 
+  const windowName =
+    !pair || pair.kind === 'fx'
+      ? 'London Mid'
+      : pair.id === 'NIKKEI'
+        ? '日経帯'
+        : pair.id === 'USOIL'
+          ? '原油帯'
+          : '米株帯'
+
   signals.push({
     id: 'window',
-    name: 'London Mid',
+    name: windowName,
     bias: windowOk ? (longSetup ? 'bull' : shortSetup ? 'bear' : 'neutral') : 'neutral',
     strength: windowOk ? 0.95 : 0.15,
-    detail: windowOk ? '08:30–10:00 UTC' : 'エントリー帯外（08:30–10 UTC）',
+    detail: windowOk
+      ? pair && pair.kind !== 'fx'
+        ? 'アクティブ時間帯'
+        : '08:30–10:00 UTC'
+      : 'エントリー帯外',
   })
 
   signals.push({
@@ -195,9 +234,9 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   const gates: ApexGate[] = [
     {
       id: 'window',
-      name: 'London Mid',
+      name: windowName,
       ok: windowOk,
-      detail: windowOk ? '08:30–10 UTC' : '時間外',
+      detail: windowOk ? '時間帯OK' : '時間外',
     },
     {
       id: 'news',
@@ -264,7 +303,7 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   else if (action === 'SHORT') label = 'APEX ショート · UT×SSL'
   else if (!newsOk) label = `ニュース回避 (${news!.label})`
   else if (!spreadOk) label = 'スプレッド拡大'
-  else if (!windowOk) label = 'London Mid外'
+  else if (!windowOk) label = `${windowName}外`
   else if (!(utFlipLong || utFlipShort)) label = 'UT Bot待ち'
   else label = 'SSL未一致'
 
@@ -276,8 +315,8 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
     action,
     gates,
     atr: atrVal,
-    stopDistance: p.slPips * p.pip,
-    takeProfitDistance: p.tpPips * p.pip,
+    stopDistance: slPips * pip,
+    takeProfitDistance: tpPips * pip,
     sessionOpen: windowOk,
     spreadPips,
     newsLabel: news?.label ?? null,

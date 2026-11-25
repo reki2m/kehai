@@ -1,6 +1,7 @@
 import type { ApexSignal } from '../lib/apex'
-import { APEX_PARAMS } from '../lib/apex'
 import type { ApexTf, MultiTfDecision } from '../lib/multiTf'
+import type { PairMeta } from '../lib/pairs'
+import { unitLabel } from '../lib/pairs'
 
 interface Props {
   edge: ApexSignal
@@ -8,6 +9,7 @@ interface Props {
   change: number
   changePct: number
   digits: number
+  pair: PairMeta
   multi?: MultiTfDecision | null
 }
 
@@ -24,7 +26,7 @@ function TfChip({ tf, active, score, action }: { tf: ApexTf; active: boolean; sc
   )
 }
 
-export function SignalRail({ edge, bid, change, changePct, digits, multi }: Props) {
+export function SignalRail({ edge, bid, change, changePct, digits, pair, multi }: Props) {
   const tone =
     edge.action === 'LONG'
       ? 'bull'
@@ -109,12 +111,14 @@ export function SignalRail({ edge, bid, change, changePct, digits, multi }: Prop
             SL {edge.stopDistance.toFixed(digits)} · TP{' '}
             {edge.takeProfitDistance.toFixed(digits)}
             <span className="risk-hint">
-              （固定 {APEX_PARAMS.slPips}p / {APEX_PARAMS.tpPips}p · 2R）
+              （{pair.sl}/{pair.tp} {unitLabel(pair)} · 2R）
             </span>
           </p>
         )}
         <p className="risk-line">
-          スプレッド見積 {edge.spreadPips.toFixed(2)} pips
+          {pair.kind === 'fx'
+            ? `スプレッド見積 ${edge.spreadPips.toFixed(2)} pips`
+            : `${pair.label} · ${pair.kind}`}
           {edge.newsLabel ? ` · ニュース: ${edge.newsLabel}` : ''}
           {edge.setup ? ` · ${edge.setup}` : ''}
         </p>
