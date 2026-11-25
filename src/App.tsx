@@ -1,9 +1,27 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
+import { RulesPanel } from './components/RulesPanel'
 import { SignalRail } from './components/SignalRail'
 import { evaluateApex } from './lib/apex'
+import { fetchLiveCandles } from './lib/liveRates'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
+import {
+  fetchCalendarEvents,
+  fetchHeadlines,
+  type CalendarEvent,
+  type Headline,
+} from './lib/newsFeed'
 import { getPair, PAIRS, TIMEFRAMES, type PairId, type Timeframe } from './lib/pairs'
+import {
+  announceEntry,
+  getVoicePrefs,
+  isVoiceUnlocked,
+  setEntrySoundOn,
+  setRateVoiceOn,
+  speakRate,
+  unlockAudio,
+} from './lib/voice'
 import './App.css'
 
 const OVERLAYS: { id: OverlayId; label: string }[] = [
@@ -21,24 +39,102 @@ export default function App() {
     generateCandles(getPair('USDJPY'), '1m', 320),
   )
   const [booted, setBooted] = useState(false)
+  const [liveSource, setLiveSource] = useState<string | null>(null)
+  const [liveError, setLiveError] = useState<string | null>(null)
+  const [liveLoading, setLiveLoading] = useState(false)
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [headlines, setHeadlines] = useState<Headline[]>([])
+  const [newsLoading, setNewsLoading] = useState(false)
+  const [newsError, setNewsError] = useState<string | null>(null)
+  const [voiceOn, setVoiceOn] = useState(false)
+  const [rateVoice, setRateVoice] = useState(true)
+  const [entrySound, setEntrySound] = useState(true)
+  const lastSpokenBar = useRef<number | null>(null)
+  const lastEntryKey = useRef<string | null>(null)
 
   const pair = getPair(pairId)
-
-  useEffect(() => {
-    setCandles(generateCandles(pair, timeframe, timeframe === '1m' ? 320 : 240))
-  }, [pair, timeframe])
 
   useEffect(() => {
     const id = window.setTimeout(() => setBooted(true), 40)
     return () => window.clearTimeout(id)
   }, [])
 
+  // Live Yahoo candles — poll every 30s; fallback to synthetic on failure
   useEffect(() => {
+    let cancelled = false
+    let timer: number | undefined
+
+    async function load(initial: boolean) {
+      if (initial) setLiveLoading(true)
+      try {
+        const { candles: live, source } = await fetchLiveCandles(pairId, timeframe)
+        if (cancelled) return
+        if (live.length >= 30) {
+          setCandles(live)
+          setLiveSource(source)
+          setLiveError(null)
+        } else {
+          throw new Error('足が足りません')
+        }
+      } catch (e) {
+        if (cancelled) return
+        setLiveError(e instanceof Error ? e.message : '取得失敗')
+        setLiveSource(null)
+        if (initial) {
+          setCandles(generateCandles(pair, timeframe, timeframe === '1m' ? 320 : 240))
+        }
+      } finally {
+        if (!cancelled && initial) setLiveLoading(false)
+      }
+    }
+
+    void load(true)
+    timer = window.setInterval(() => void load(false), 30_000)
+    return () => {
+      cancelled = true
+      if (timer) window.clearInterval(timer)
+    }
+  }, [pairId, timeframe, pair])
+
+  // Soft tick only when live feed is down (keeps demo alive)
+  useEffect(() => {
+    if (liveSource) return
     const id = window.setInterval(() => {
       setCandles((prev) => advanceCandle(prev, pair, timeframe))
     }, 900)
     return () => window.clearInterval(id)
-  }, [pair, timeframe])
+  }, [pair, timeframe, liveSource])
+
+  // News / speeches
+  useEffect(() => {
+    let cancelled = false
+    async function loadNews() {
+      setNewsLoading(true)
+      setNewsError(null)
+      try {
+        const [cal, head] = await Promise.all([
+          fetchCalendarEvents().catch((e) => {
+            throw e
+          }),
+          fetchHeadlines().catch(() => [] as Headline[]),
+        ])
+        if (cancelled) return
+        setEvents(cal)
+        setHeadlines(head)
+      } catch (e) {
+        if (cancelled) return
+        setNewsError(e instanceof Error ? e.message : 'ニュース取得失敗')
+      } finally {
+        if (!cancelled) setNewsLoading(false)
+      }
+    }
+    void loadNews()
+    const id = window.setInterval(() => void loadNews(), 5 * 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [])
 
   const edge = useMemo(() => evaluateApex(candles), [candles])
 
@@ -48,6 +144,26 @@ export default function App() {
   const changePct = last && first ? (change / first.close) * 100 : 0
   const bid = last ? last.close.toFixed(pair.digits) : '—'
 
+  // 1-minute rate TTS + entry beep/announce
+  useEffect(() => {
+    if (!last || !voiceOn) return
+    const bar = last.time
+    if (edge.action === 'LONG' || edge.action === 'SHORT') {
+      const action = edge.action
+      const key = `${bar}-${action}`
+      if (lastEntryKey.current !== key) {
+        lastEntryKey.current = key
+        lastSpokenBar.current = bar
+        announceEntry(action, bid)
+      }
+      return
+    }
+    if (lastSpokenBar.current !== bar) {
+      lastSpokenBar.current = bar
+      speakRate(pair.label, bid, edge.action)
+    }
+  }, [last, bid, edge.action, pair.label, voiceOn])
+
   function toggleOverlay(id: OverlayId) {
     setOverlays((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id)
@@ -56,6 +172,34 @@ export default function App() {
       return [...prev, id]
     })
   }
+
+  function handleUnlockVoice() {
+    unlockAudio()
+    setVoiceOn(true)
+    const prefs = getVoicePrefs()
+    setRateVoice(prefs.rateVoiceOn)
+    setEntrySound(prefs.entrySoundOn)
+  }
+
+  function toggleRateVoice() {
+    const next = !rateVoice
+    setRateVoice(next)
+    setRateVoiceOn(next)
+  }
+
+  function toggleEntrySound() {
+    const next = !entrySound
+    setEntrySound(next)
+    setEntrySoundOn(next)
+  }
+
+  const sourceLabel = liveSource
+    ? `ライブ ${liveSource}`
+    : liveLoading
+      ? 'レート取得中…'
+      : liveError
+        ? `フォールバック（${liveError}）`
+        : 'サンプル気配'
 
   return (
     <div className={`app ${booted ? 'is-ready' : ''}`}>
@@ -108,6 +252,31 @@ export default function App() {
               </button>
             ))}
           </div>
+
+          <div className="voice-controls" role="group" aria-label="音声">
+            {!isVoiceUnlocked() && !voiceOn ? (
+              <button type="button" className="voice-btn primary" onClick={handleUnlockVoice}>
+                音声オン
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`voice-btn ${rateVoice ? 'active' : ''}`}
+                  onClick={toggleRateVoice}
+                >
+                  1分読上
+                </button>
+                <button
+                  type="button"
+                  className={`voice-btn ${entrySound ? 'active' : ''}`}
+                  onClick={toggleEntrySound}
+                >
+                  エントリー音
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -121,19 +290,28 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              サンプル気配 · UT Bot×SSL（London Mid / VWAP / スプレッド0.2p / 固定2.5·5p）· 実口座API未接続
+              {sourceLabel} · UT Bot×SSL（London Mid / VWAP / スプレッド0.2p / SL2.5·TP5p）
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />
         </section>
 
-        <SignalRail
-          edge={edge}
-          bid={bid}
-          change={change}
-          changePct={changePct}
-          digits={pair.digits}
-        />
+        <div className="side-stack">
+          <SignalRail
+            edge={edge}
+            bid={bid}
+            change={change}
+            changePct={changePct}
+            digits={pair.digits}
+          />
+          <RulesPanel />
+          <NewsPanel
+            events={events}
+            headlines={headlines}
+            loading={newsLoading}
+            error={newsError}
+          />
+        </div>
       </main>
     </div>
   )

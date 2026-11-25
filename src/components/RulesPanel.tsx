@@ -1,0 +1,49 @@
+import { APEX_PARAMS } from '../lib/apex'
+import { BROKER_SPREAD_PIPS } from '../lib/filters'
+
+export function RulesPanel() {
+  const p = APEX_PARAMS
+  return (
+    <section className="rules-panel" aria-label="売買ルール">
+      <h2>売買ルール</h2>
+      <p className="rules-lead">
+        UT Bot × SSL · スプレッド {BROKER_SPREAD_PIPS}p 前提 · 研究BTで固定したルール
+      </p>
+      <ol className="rules-list">
+        <li>
+          <strong>時間帯</strong>
+          <span>London Mid のみ（08:30–10:00 UTC ＝ 17:30–19:00 JST）</span>
+        </li>
+        <li>
+          <strong>買い（LONG）</strong>
+          <span>
+            UT Bot({p.utKey}/{p.utAtr}) が買いフリップ かつ SSLが買い側 かつ 終値 ≥ Session
+            VWAP かつ スプレッド ≤ {p.maxSpread}p かつ ニュース帯外
+          </span>
+        </li>
+        <li>
+          <strong>売り（SHORT）</strong>
+          <span>
+            UT Bot 売りフリップ かつ SSL売り側 かつ 終値 ≤ VWAP かつ同上フィルタ
+          </span>
+        </li>
+        <li>
+          <strong>損切り（SL）</strong>
+          <span>エントリーから {p.slPips} pips</span>
+        </li>
+        <li>
+          <strong>利確（TP）</strong>
+          <span>エントリーから {p.tpPips} pips（2R）</span>
+        </li>
+        <li>
+          <strong>時間切れ</strong>
+          <span>最大おおよそ12本（約12分）で決済</span>
+        </li>
+        <li>
+          <strong>見送り</strong>
+          <span>時間外・ニュース帯・スプレッド拡大・UT未フリップ・SSL不一致</span>
+        </li>
+      </ol>
+    </section>
+  )
+}
