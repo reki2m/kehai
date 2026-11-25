@@ -392,7 +392,7 @@
 
 .news-item {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto auto auto 1fr;
   gap: 0.25rem 0.45rem;
   font-size: 0.72rem;
   line-height: 1.35;
@@ -442,6 +442,116 @@
 
 .news-item.impact-medium .news-ccy {
   color: var(--gold);
+}
+
+.imp-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.imp-badge.imp-5 {
+  color: var(--ink);
+  background: rgba(240, 113, 103, 0.35);
+  border-color: rgba(240, 113, 103, 0.55);
+}
+
+.imp-badge.imp-4 {
+  color: var(--ink);
+  background: rgba(240, 113, 103, 0.18);
+  border-color: rgba(240, 113, 103, 0.4);
+}
+
+.imp-badge.imp-3 {
+  color: var(--ink);
+  background: rgba(232, 196, 124, 0.2);
+  border-color: rgba(232, 196, 124, 0.45);
+}
+
+.imp-badge.imp-2,
+.imp-badge.imp-1 {
+  color: var(--muted);
+}
+
+.news-item.soon {
+  padding: 0.35rem 0.4rem;
+  background: rgba(240, 113, 103, 0.08);
+  border: 1px solid rgba(240, 113, 103, 0.25);
+  animation: soon-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes soon-pulse {
+  0%,
+  100% {
+    border-color: rgba(240, 113, 103, 0.25);
+  }
+  50% {
+    border-color: rgba(240, 113, 103, 0.55);
+  }
+}
+
+.news-soon h3 {
+  color: var(--coral);
+}
+
+.tf-compare {
+  margin: 0.65rem 0 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.tf-chip-row {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid transparent;
+  color: var(--muted);
+}
+
+.tf-chip-row.tf-active {
+  border-color: rgba(94, 234, 212, 0.35);
+  background: rgba(94, 234, 212, 0.08);
+  color: var(--ink);
+}
+
+.tf-name {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.tf-score {
+  font-variant-numeric: tabular-nums;
+}
+
+.tf-act {
+  letter-spacing: 0.04em;
+}
+
+.tf-act.act-long {
+  color: var(--sea);
+}
+
+.tf-act.act-short {
+  color: var(--coral);
+}
+
+.tf-reason {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .confluence {

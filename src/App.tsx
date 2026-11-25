@@ -3,10 +3,11 @@ import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { RulesPanel } from './components/RulesPanel'
 import { SignalRail } from './components/SignalRail'
-import { evaluateApex } from './lib/apex'
 import { fetchLiveCandles } from './lib/liveRates'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
+import { decideMultiTf } from './lib/multiTf'
 import {
+  eventsDueSoon,
   fetchCalendarEvents,
   fetchHeadlines,
   type CalendarEvent,
@@ -15,9 +16,13 @@ import {
 import { getPair, PAIRS, TIMEFRAMES, type PairId, type Timeframe } from './lib/pairs'
 import {
   announceEntry,
+  announceEventResult,
+  announceEventWarning,
   getVoicePrefs,
   isVoiceUnlocked,
+  requestNotifyPermission,
   setEntrySoundOn,
+  setNewsVoiceOn,
   setRateVoiceOn,
   speakRate,
   unlockAudio,
@@ -35,8 +40,11 @@ export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [overlays, setOverlays] = useState<OverlayId[]>(['ema', 'bb'])
-  const [candles, setCandles] = useState<Candle[]>(() =>
+  const [candles1m, setCandles1m] = useState<Candle[]>(() =>
     generateCandles(getPair('USDJPY'), '1m', 320),
+  )
+  const [candles5m, setCandles5m] = useState<Candle[]>(() =>
+    generateCandles(getPair('USDJPY'), '5m', 240),
   )
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
@@ -49,8 +57,13 @@ export default function App() {
   const [voiceOn, setVoiceOn] = useState(false)
   const [rateVoice, setRateVoice] = useState(true)
   const [entrySound, setEntrySound] = useState(true)
+  const [newsVoice, setNewsVoice] = useState(true)
+  const [alertIds, setAlertIds] = useState<Set<string>>(() => new Set())
   const lastSpokenBar = useRef<number | null>(null)
   const lastEntryKey = useRef<string | null>(null)
+  const warnedIds = useRef<Set<string>>(new Set())
+  const resultSpoken = useRef<Set<string>>(new Set())
+  const prevActual = useRef<Map<string, string | undefined>>(new Map())
 
   const pair = getPair(pairId)
 
@@ -59,7 +72,7 @@ export default function App() {
     return () => window.clearTimeout(id)
   }, [])
 
-  // Live Yahoo candles — poll every 30s; fallback to synthetic on failure
+  // Live Yahoo: always keep 1m + 5m for multi-TF; chart follows user TF
   useEffect(() => {
     let cancelled = false
     let timer: number | undefined
@@ -67,11 +80,15 @@ export default function App() {
     async function load(initial: boolean) {
       if (initial) setLiveLoading(true)
       try {
-        const { candles: live, source } = await fetchLiveCandles(pairId, timeframe)
+        const [m1, m5] = await Promise.all([
+          fetchLiveCandles(pairId, '1m'),
+          fetchLiveCandles(pairId, '5m'),
+        ])
         if (cancelled) return
-        if (live.length >= 30) {
-          setCandles(live)
-          setLiveSource(source)
+        if (m1.candles.length >= 30 && m5.candles.length >= 20) {
+          setCandles1m(m1.candles)
+          setCandles5m(m5.candles)
+          setLiveSource(m1.source)
           setLiveError(null)
         } else {
           throw new Error('足が足りません')
@@ -81,7 +98,8 @@ export default function App() {
         setLiveError(e instanceof Error ? e.message : '取得失敗')
         setLiveSource(null)
         if (initial) {
-          setCandles(generateCandles(pair, timeframe, timeframe === '1m' ? 320 : 240))
+          setCandles1m(generateCandles(pair, '1m', 320))
+          setCandles5m(generateCandles(pair, '5m', 240))
         }
       } finally {
         if (!cancelled && initial) setLiveLoading(false)
@@ -94,16 +112,17 @@ export default function App() {
       cancelled = true
       if (timer) window.clearInterval(timer)
     }
-  }, [pairId, timeframe, pair])
+  }, [pairId, pair])
 
-  // Soft tick only when live feed is down (keeps demo alive)
+  // Soft tick only when live feed is down
   useEffect(() => {
     if (liveSource) return
     const id = window.setInterval(() => {
-      setCandles((prev) => advanceCandle(prev, pair, timeframe))
+      setCandles1m((prev) => advanceCandle(prev, pair, '1m'))
+      setCandles5m((prev) => advanceCandle(prev, pair, '5m'))
     }, 900)
     return () => window.clearInterval(id)
-  }, [pair, timeframe, liveSource])
+  }, [pair, liveSource])
 
   // News / speeches
   useEffect(() => {
@@ -113,12 +132,21 @@ export default function App() {
       setNewsError(null)
       try {
         const [cal, head] = await Promise.all([
-          fetchCalendarEvents().catch((e) => {
-            throw e
-          }),
+          fetchCalendarEvents(),
           fetchHeadlines().catch(() => [] as Headline[]),
         ])
         if (cancelled) return
+
+        // Detect newly published actuals for TTS
+        for (const e of cal) {
+          const prev = prevActual.current.get(e.id)
+          if (e.actual && e.actual !== prev && !resultSpoken.current.has(e.id)) {
+            resultSpoken.current.add(e.id)
+            if (voiceOn && newsVoice) announceEventResult(e)
+          }
+          prevActual.current.set(e.id, e.actual)
+        }
+
         setEvents(cal)
         setHeadlines(head)
       } catch (e) {
@@ -129,14 +157,41 @@ export default function App() {
       }
     }
     void loadNews()
-    const id = window.setInterval(() => void loadNews(), 5 * 60_000)
+    const id = window.setInterval(() => void loadNews(), 2 * 60_000)
     return () => {
       cancelled = true
       window.clearInterval(id)
     }
-  }, [])
+  }, [voiceOn, newsVoice])
 
-  const edge = useMemo(() => evaluateApex(candles), [candles])
+  // ~5 min pre-alerts for importance >= 3
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (!voiceOn || !newsVoice) return
+      const due = eventsDueSoon(events, Date.now() / 1000, 5 * 60, 3)
+      let changed = false
+      for (const e of due) {
+        if (warnedIds.current.has(e.id)) continue
+        warnedIds.current.add(e.id)
+        changed = true
+        const mins = (e.time - Date.now() / 1000) / 60
+        announceEventWarning(e, mins)
+      }
+      if (changed) setAlertIds(new Set(warnedIds.current))
+    }, 15_000)
+    return () => window.clearInterval(id)
+  }, [events, voiceOn, newsVoice])
+
+  const preferTf = timeframe === '5m' ? '5m' : timeframe === '1m' ? '1m' : undefined
+  const multi = useMemo(
+    () => decideMultiTf(candles1m, candles5m, preferTf),
+    [candles1m, candles5m, preferTf],
+  )
+  const edge = multi.edge
+
+  // Chart follows multi-TF winner (1m/5m Apex stack)
+  const chartTf: Timeframe = multi.activeTf
+  const candles = multi.activeTf === '5m' ? candles5m : candles1m
 
   const first = candles[0]
   const last = candles[candles.length - 1]
@@ -144,13 +199,13 @@ export default function App() {
   const changePct = last && first ? (change / first.close) * 100 : 0
   const bid = last ? last.close.toFixed(pair.digits) : '—'
 
-  // 1-minute rate TTS + entry beep/announce
+  // Rate TTS + entry (on active TF bar)
   useEffect(() => {
     if (!last || !voiceOn) return
     const bar = last.time
     if (edge.action === 'LONG' || edge.action === 'SHORT') {
       const action = edge.action
-      const key = `${bar}-${action}`
+      const key = `${multi.activeTf}-${bar}-${action}`
       if (lastEntryKey.current !== key) {
         lastEntryKey.current = key
         lastSpokenBar.current = bar
@@ -162,7 +217,7 @@ export default function App() {
       lastSpokenBar.current = bar
       speakRate(pair.label, bid, edge.action)
     }
-  }, [last, bid, edge.action, pair.label, voiceOn])
+  }, [last, bid, edge.action, pair.label, voiceOn, multi.activeTf])
 
   function toggleOverlay(id: OverlayId) {
     setOverlays((prev) => {
@@ -173,12 +228,14 @@ export default function App() {
     })
   }
 
-  function handleUnlockVoice() {
+  async function handleUnlockVoice() {
     unlockAudio()
     setVoiceOn(true)
+    await requestNotifyPermission()
     const prefs = getVoicePrefs()
     setRateVoice(prefs.rateVoiceOn)
     setEntrySound(prefs.entrySoundOn)
+    setNewsVoice(prefs.newsVoiceOn)
   }
 
   function toggleRateVoice() {
@@ -191,6 +248,12 @@ export default function App() {
     const next = !entrySound
     setEntrySound(next)
     setEntrySoundOn(next)
+  }
+
+  function toggleNewsVoice() {
+    const next = !newsVoice
+    setNewsVoice(next)
+    setNewsVoiceOn(next)
   }
 
   const sourceLabel = liveSource
@@ -209,7 +272,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">UT Bot × SSL — TV有名スタック</p>
+          <p className="tagline">UT Bot × SSL — 1m/5m 優勢適用</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -232,7 +295,12 @@ export default function App() {
               <button
                 key={tf.id}
                 type="button"
-                className={timeframe === tf.id ? 'active' : ''}
+                className={
+                  timeframe === tf.id ||
+                  ((timeframe === '1m' || timeframe === '5m') && chartTf === tf.id)
+                    ? 'active'
+                    : ''
+                }
                 onClick={() => setTimeframe(tf.id)}
               >
                 {tf.label}
@@ -255,7 +323,7 @@ export default function App() {
 
           <div className="voice-controls" role="group" aria-label="音声">
             {!isVoiceUnlocked() && !voiceOn ? (
-              <button type="button" className="voice-btn primary" onClick={handleUnlockVoice}>
+              <button type="button" className="voice-btn primary" onClick={() => void handleUnlockVoice()}>
                 音声オン
               </button>
             ) : (
@@ -265,7 +333,7 @@ export default function App() {
                   className={`voice-btn ${rateVoice ? 'active' : ''}`}
                   onClick={toggleRateVoice}
                 >
-                  1分読上
+                  レート読上
                 </button>
                 <button
                   type="button"
@@ -273,6 +341,13 @@ export default function App() {
                   onClick={toggleEntrySound}
                 >
                   エントリー音
+                </button>
+                <button
+                  type="button"
+                  className={`voice-btn ${newsVoice ? 'active' : ''}`}
+                  onClick={toggleNewsVoice}
+                >
+                  指標通知
                 </button>
               </>
             )}
@@ -286,11 +361,11 @@ export default function App() {
             <h1>
               {pair.label}
               <span className="tf-chip">
-                {TIMEFRAMES.find((t) => t.id === timeframe)?.label} · Apex
+                {chartTf} · Apex · 優勢 {multi.activeTf}
               </span>
             </h1>
             <p className="sample-note">
-              {sourceLabel} · UT Bot×SSL（London Mid / VWAP / スプレッド0.2p / SL2.5·TP5p）
+              {sourceLabel} · 1m/5m同時評価 · 指標重要度1–5 · SL2.5·TP5p
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />
@@ -303,6 +378,7 @@ export default function App() {
             change={change}
             changePct={changePct}
             digits={pair.digits}
+            multi={multi}
           />
           <RulesPanel />
           <NewsPanel
@@ -310,6 +386,7 @@ export default function App() {
             headlines={headlines}
             loading={newsLoading}
             error={newsError}
+            alertIds={alertIds}
           />
         </div>
       </main>

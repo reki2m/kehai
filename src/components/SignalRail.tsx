@@ -1,5 +1,6 @@
 import type { ApexSignal } from '../lib/apex'
 import { APEX_PARAMS } from '../lib/apex'
+import type { ApexTf, MultiTfDecision } from '../lib/multiTf'
 
 interface Props {
   edge: ApexSignal
@@ -7,9 +8,23 @@ interface Props {
   change: number
   changePct: number
   digits: number
+  multi?: MultiTfDecision | null
 }
 
-export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
+function TfChip({ tf, active, score, action }: { tf: ApexTf; active: boolean; score: number; action: string }) {
+  return (
+    <div className={`tf-chip-row ${active ? 'tf-active' : ''}`}>
+      <span className="tf-name">{tf}</span>
+      <span className="tf-score">
+        {score > 0 ? '+' : ''}
+        {score}
+      </span>
+      <span className={`tf-act act-${action.toLowerCase()}`}>{action}</span>
+    </div>
+  )
+}
+
+export function SignalRail({ edge, bid, change, changePct, digits, multi }: Props) {
   const tone =
     edge.action === 'LONG'
       ? 'bull'
@@ -24,7 +39,10 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
   return (
     <aside className="signal-rail" aria-label="KEHAI Apex シグナル">
       <div className={`confluence tone-${tone}`}>
-        <p className="confluence-kicker">KEHAI Apex · UT×SSL</p>
+        <p className="confluence-kicker">
+          KEHAI Apex · UT×SSL
+          {multi ? ` · 適用 ${multi.activeTf}` : ''}
+        </p>
         <div className="confluence-score">
           <span className="score-value">
             {edge.score > 0 ? '+' : ''}
@@ -40,6 +58,27 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
               ? 'SHORT ENTRY'
               : 'WAIT'}
         </div>
+
+        {multi && (
+          <div className="tf-compare" aria-label="1分と5分の優勢比較">
+            <TfChip
+              tf="1m"
+              active={multi.activeTf === '1m'}
+              score={multi.m1.edge.score}
+              action={multi.m1.edge.action}
+            />
+            <TfChip
+              tf="5m"
+              active={multi.activeTf === '5m'}
+              score={multi.m5.edge.score}
+              action={multi.m5.edge.action}
+            />
+            <p className="tf-reason">
+              {multi.reason}
+              {multi.agreement ? ' · 一致' : ''}
+            </p>
+          </div>
+        )}
 
         <div className="meter" aria-hidden>
           <div

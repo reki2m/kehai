@@ -1,15 +1,18 @@
 /** Browser TTS + entry beep for KEHAI Apex. */
 
+import type { CalendarEvent } from './newsFeed'
+
 let unlocked = false
 let rateVoiceOn = true
 let entrySoundOn = true
+let newsVoiceOn = true
 
 export function isVoiceUnlocked() {
   return unlocked
 }
 
 export function getVoicePrefs() {
-  return { rateVoiceOn, entrySoundOn, unlocked }
+  return { rateVoiceOn, entrySoundOn, newsVoiceOn, unlocked }
 }
 
 export function setRateVoiceOn(v: boolean) {
@@ -18,6 +21,10 @@ export function setRateVoiceOn(v: boolean) {
 
 export function setEntrySoundOn(v: boolean) {
   entrySoundOn = v
+}
+
+export function setNewsVoiceOn(v: boolean) {
+  newsVoiceOn = v
 }
 
 /** Must be called from a user gesture (click). */
@@ -102,5 +109,82 @@ export function playEntryBeep(action: 'LONG' | 'SHORT'): void {
     })
   } catch {
     /* ignore */
+  }
+}
+
+function playAlertBeep(importance: number): void {
+  if (!unlocked) return
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const ctx = new Ctx()
+    void ctx.resume()
+    const now = ctx.currentTime
+    const base = importance >= 5 ? 988 : importance >= 4 ? 784 : 660
+    ;[0, 0.18, 0.36].forEach((delay, i) => {
+      if (importance < 4 && i > 1) return
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.value = base
+      gain.gain.setValueAtTime(0.0001, now + delay)
+      gain.gain.exponentialRampToValueAtTime(0.16, now + delay + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.14)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(now + delay)
+      osc.stop(now + delay + 0.16)
+    })
+  } catch {
+    /* ignore */
+  }
+}
+
+function figuresLine(e: CalendarEvent): string {
+  const parts: string[] = []
+  if (e.previous) parts.push(`前回 ${e.previous}`)
+  if (e.forecast) parts.push(`予想 ${e.forecast}`)
+  if (e.actual) parts.push(`結果 ${e.actual}`)
+  return parts.length ? parts.join('、') : '数値未掲載'
+}
+
+/** ~5分前アラート: 重要度・前回・予想（結果があれば結果）を読み上げ */
+export function announceEventWarning(e: CalendarEvent, minutesLeft: number): void {
+  if (!newsVoiceOn) return
+  playAlertBeep(e.importance)
+  const mins = Math.max(0, Math.round(minutesLeft))
+  const kind = e.kind === 'speech' ? '要人発言' : '経済指標'
+  speak(
+    `${kind}アラート。重要度${e.importance}。${e.country}、${e.title}。あと約${mins}分。${figuresLine(e)}。`,
+    { force: true },
+  )
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      new Notification(`KEHAI · 重要度${e.importance}`, {
+        body: `${e.country} ${e.title} · あと約${mins}分\n${figuresLine(e)}`,
+        tag: e.id,
+      })
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** 結果反映時の読み上げ（actual が入ったとき） */
+export function announceEventResult(e: CalendarEvent): void {
+  if (!newsVoiceOn) return
+  speak(
+    `指標結果。${e.country}、${e.title}。${figuresLine(e)}。`,
+    { force: true },
+  )
+}
+
+export async function requestNotifyPermission(): Promise<void> {
+  if (typeof Notification === 'undefined') return
+  if (Notification.permission === 'default') {
+    try {
+      await Notification.requestPermission()
+    } catch {
+      /* ignore */
+    }
   }
 }
