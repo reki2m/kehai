@@ -1,0 +1,387 @@
+{
+  "meta": {
+    "title": "KEHAI 1分足スキャル デモ成績",
+    "pair": "USDJPY",
+    "period": "2025-01-01 ～ 2026-11-25",
+    "data": "Yahoo Finance JPY=X の60分足実データから、各時間のOHLC内に1分足を再構成（再現可能なデモBT）",
+    "disclaimer": "実ブローカードモ口座の成績ではない。スプレッド0.8pips・0.1ロット想定（1pip=1,000円）。",
+    "recommended_rules": {
+      "entry": "気配スコアが±60をクロス（新規に閾値超え）",
+      "session": "東京 9–15時 / ロンドン 16–24時（JST）・平日のみ",
+      "exit": "TP 2.0×ATR / SL 1.2×ATR / 逆方向±60",
+      "cooldown": "決済後10本（10分）"
+    }
+  },
+  "naive_ui_threshold": {
+    "label": "UIそのまま（±35で常時エントリー）",
+    "y2025": {
+      "year": 2025,
+      "trades": 88331,
+      "wins": 32423,
+      "losses": 55908,
+      "win_rate": 36.7,
+      "net_pips": -57251.5,
+      "net_jpy": -57251481,
+      "avg_pips": -0.65,
+      "profit_factor": 0.67,
+      "max_dd_jpy": 57258391,
+      "avg_hold_min": 3.3,
+      "tp": 18254,
+      "sl": 27633,
+      "signal_exits": 42444,
+      "monthly": [
+        {
+          "month": "2025-01",
+          "pnl_jpy": -4024800
+        },
+        {
+          "month": "2025-02",
+          "pnl_jpy": -3953505
+        },
+        {
+          "month": "2025-03",
+          "pnl_jpy": -4083255
+        },
+        {
+          "month": "2025-04",
+          "pnl_jpy": -2369251
+        },
+        {
+          "month": "2025-05",
+          "pnl_jpy": -4506248
+        },
+        {
+          "month": "2025-06",
+          "pnl_jpy": -4884444
+        },
+        {
+          "month": "2025-07",
+          "pnl_jpy": -5492328
+        },
+        {
+          "month": "2025-08",
+          "pnl_jpy": -5282128
+        },
+        {
+          "month": "2025-09",
+          "pnl_jpy": -5859940
+        },
+        {
+          "month": "2025-10",
+          "pnl_jpy": -5282224
+        },
+        {
+          "month": "2025-11",
+          "pnl_jpy": -5156497
+        },
+        {
+          "month": "2025-12",
+          "pnl_jpy": -6356861
+        }
+      ]
+    },
+    "y2026": {
+      "year": 2026,
+      "trades": 81942,
+      "wins": 26290,
+      "losses": 55652,
+      "win_rate": 32.1,
+      "net_pips": -64212.5,
+      "net_jpy": -64212510,
+      "avg_pips": -0.78,
+      "profit_factor": 0.54,
+      "max_dd_jpy": 64216039,
+      "avg_hold_min": 3.0,
+      "tp": 15746,
+      "sl": 28336,
+      "signal_exits": 37860,
+      "monthly": [
+        {
+          "month": "2026-01",
+          "pnl_jpy": -5123663
+        },
+        {
+          "month": "2026-02",
+          "pnl_jpy": -4011225
+        },
+        {
+          "month": "2026-03",
+          "pnl_jpy": -5292245
+        },
+        {
+          "month": "2026-04",
+          "pnl_jpy": -5932601
+        },
+        {
+          "month": "2026-05",
+          "pnl_jpy": -6364311
+        },
+        {
+          "month": "2026-06",
+          "pnl_jpy": -7996680
+        },
+        {
+          "month": "2026-07",
+          "pnl_jpy": -6886957
+        },
+        {
+          "month": "2026-08",
+          "pnl_jpy": -6257794
+        },
+        {
+          "month": "2026-09",
+          "pnl_jpy": -5460736
+        },
+        {
+          "month": "2026-10",
+          "pnl_jpy": -6149339
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": -4736957
+        }
+      ]
+    }
+  },
+  "scalp_tuned": {
+    "label": "スキャル最適化（±60クロス＋時間帯）",
+    "y2025": {
+      "year": 2025,
+      "trades": 10137,
+      "wins": 5645,
+      "losses": 4492,
+      "win_rate": 55.7,
+      "net_pips": 14467.9,
+      "net_jpy": 14467906,
+      "avg_pips": 1.43,
+      "profit_factor": 1.79,
+      "max_dd_jpy": 185955,
+      "avg_hold_min": 4.4,
+      "tp": 5535,
+      "sl": 2859,
+      "signal_exits": 1601,
+      "monthly": [
+        {
+          "month": "2025-01",
+          "pnl_jpy": 1380416
+        },
+        {
+          "month": "2025-02",
+          "pnl_jpy": 1088739
+        },
+        {
+          "month": "2025-03",
+          "pnl_jpy": 1237649
+        },
+        {
+          "month": "2025-04",
+          "pnl_jpy": 1294683
+        },
+        {
+          "month": "2025-05",
+          "pnl_jpy": 1453162
+        },
+        {
+          "month": "2025-06",
+          "pnl_jpy": 1602078
+        },
+        {
+          "month": "2025-07",
+          "pnl_jpy": 1418975
+        },
+        {
+          "month": "2025-08",
+          "pnl_jpy": 1054002
+        },
+        {
+          "month": "2025-09",
+          "pnl_jpy": 735733
+        },
+        {
+          "month": "2025-10",
+          "pnl_jpy": 1313129
+        },
+        {
+          "month": "2025-11",
+          "pnl_jpy": 935355
+        },
+        {
+          "month": "2025-12",
+          "pnl_jpy": 953984
+        }
+      ]
+    },
+    "y2026": {
+      "year": 2026,
+      "trades": 9043,
+      "wins": 5032,
+      "losses": 4011,
+      "win_rate": 55.6,
+      "net_pips": 8078.4,
+      "net_jpy": 8078385,
+      "avg_pips": 0.89,
+      "profit_factor": 1.6,
+      "max_dd_jpy": 124307,
+      "avg_hold_min": 4.5,
+      "tp": 4941,
+      "sl": 2680,
+      "signal_exits": 1313,
+      "monthly": [
+        {
+          "month": "2026-01",
+          "pnl_jpy": 1152799
+        },
+        {
+          "month": "2026-02",
+          "pnl_jpy": 916732
+        },
+        {
+          "month": "2026-03",
+          "pnl_jpy": 1119623
+        },
+        {
+          "month": "2026-04",
+          "pnl_jpy": 717246
+        },
+        {
+          "month": "2026-05",
+          "pnl_jpy": 328144
+        },
+        {
+          "month": "2026-06",
+          "pnl_jpy": 93038
+        },
+        {
+          "month": "2026-07",
+          "pnl_jpy": 515650
+        },
+        {
+          "month": "2026-08",
+          "pnl_jpy": 624752
+        },
+        {
+          "month": "2026-09",
+          "pnl_jpy": 1185820
+        },
+        {
+          "month": "2026-10",
+          "pnl_jpy": 875808
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": 548775
+        }
+      ]
+    },
+    "all": {
+      "year": null,
+      "trades": 19180,
+      "wins": 10677,
+      "losses": 8503,
+      "win_rate": 55.7,
+      "net_pips": 22546.3,
+      "net_jpy": 22546291,
+      "avg_pips": 1.18,
+      "profit_factor": 1.71,
+      "max_dd_jpy": 185955,
+      "avg_hold_min": 4.4,
+      "tp": 10476,
+      "sl": 5539,
+      "signal_exits": 2914,
+      "monthly": [
+        {
+          "month": "2025-01",
+          "pnl_jpy": 1380416
+        },
+        {
+          "month": "2025-02",
+          "pnl_jpy": 1088739
+        },
+        {
+          "month": "2025-03",
+          "pnl_jpy": 1237649
+        },
+        {
+          "month": "2025-04",
+          "pnl_jpy": 1294683
+        },
+        {
+          "month": "2025-05",
+          "pnl_jpy": 1453162
+        },
+        {
+          "month": "2025-06",
+          "pnl_jpy": 1602078
+        },
+        {
+          "month": "2025-07",
+          "pnl_jpy": 1418975
+        },
+        {
+          "month": "2025-08",
+          "pnl_jpy": 1054002
+        },
+        {
+          "month": "2025-09",
+          "pnl_jpy": 735733
+        },
+        {
+          "month": "2025-10",
+          "pnl_jpy": 1313129
+        },
+        {
+          "month": "2025-11",
+          "pnl_jpy": 935355
+        },
+        {
+          "month": "2025-12",
+          "pnl_jpy": 953984
+        },
+        {
+          "month": "2026-01",
+          "pnl_jpy": 1152799
+        },
+        {
+          "month": "2026-02",
+          "pnl_jpy": 916732
+        },
+        {
+          "month": "2026-03",
+          "pnl_jpy": 1119623
+        },
+        {
+          "month": "2026-04",
+          "pnl_jpy": 717246
+        },
+        {
+          "month": "2026-05",
+          "pnl_jpy": 328144
+        },
+        {
+          "month": "2026-06",
+          "pnl_jpy": 93038
+        },
+        {
+          "month": "2026-07",
+          "pnl_jpy": 515650
+        },
+        {
+          "month": "2026-08",
+          "pnl_jpy": 624752
+        },
+        {
+          "month": "2026-09",
+          "pnl_jpy": 1185820
+        },
+        {
+          "month": "2026-10",
+          "pnl_jpy": 875808
+        },
+        {
+          "month": "2026-11",
+          "pnl_jpy": 548775
+        }
+      ]
+    }
+  }
+}

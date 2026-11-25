@@ -1,0 +1,255 @@
+{
+  "meta": {
+    "pair": "USDJPY",
+    "timeframe": "1m",
+    "style": "scalping",
+    "source": "Yahoo Finance JPY=X 60m → synthetic M1 inside hourly OHLC",
+    "note": "デモ再現バックテスト。実ブローカードモ口座の成績ではない。",
+    "rules": {
+      "entry": "気配スコア ≥ +35 買い / ≤ -35 売り",
+      "exit": "TP 1.8×ATR / SL 1.2×ATR / スコア中立化・反転",
+      "spread": "0.8 pips",
+      "lot": 0.1,
+      "jpy_per_pip": 1000
+    },
+    "generated_at": "2026-11-25T07:39:14.234501+00:00"
+  },
+  "all": {
+    "year": null,
+    "trades": 170273,
+    "wins": 58713,
+    "losses": 111560,
+    "win_rate": 34.5,
+    "net_pips": -121464.0,
+    "net_jpy": -121463991,
+    "avg_pips": -0.71,
+    "profit_factor": 0.61,
+    "max_dd_jpy": 121466515,
+    "avg_hold_min": 3.2,
+    "tp": 34000,
+    "sl": 55969,
+    "signal_exits": 80304,
+    "monthly": [
+      {
+        "month": "2025-01",
+        "pnl_jpy": -4024800
+      },
+      {
+        "month": "2025-02",
+        "pnl_jpy": -3953505
+      },
+      {
+        "month": "2025-03",
+        "pnl_jpy": -4083255
+      },
+      {
+        "month": "2025-04",
+        "pnl_jpy": -2369251
+      },
+      {
+        "month": "2025-05",
+        "pnl_jpy": -4506248
+      },
+      {
+        "month": "2025-06",
+        "pnl_jpy": -4884444
+      },
+      {
+        "month": "2025-07",
+        "pnl_jpy": -5492328
+      },
+      {
+        "month": "2025-08",
+        "pnl_jpy": -5282128
+      },
+      {
+        "month": "2025-09",
+        "pnl_jpy": -5859940
+      },
+      {
+        "month": "2025-10",
+        "pnl_jpy": -5282224
+      },
+      {
+        "month": "2025-11",
+        "pnl_jpy": -5156497
+      },
+      {
+        "month": "2025-12",
+        "pnl_jpy": -6356861
+      },
+      {
+        "month": "2026-01",
+        "pnl_jpy": -5123663
+      },
+      {
+        "month": "2026-02",
+        "pnl_jpy": -4011225
+      },
+      {
+        "month": "2026-03",
+        "pnl_jpy": -5292245
+      },
+      {
+        "month": "2026-04",
+        "pnl_jpy": -5932601
+      },
+      {
+        "month": "2026-05",
+        "pnl_jpy": -6364311
+      },
+      {
+        "month": "2026-06",
+        "pnl_jpy": -7996680
+      },
+      {
+        "month": "2026-07",
+        "pnl_jpy": -6886957
+      },
+      {
+        "month": "2026-08",
+        "pnl_jpy": -6257794
+      },
+      {
+        "month": "2026-09",
+        "pnl_jpy": -5460736
+      },
+      {
+        "month": "2026-10",
+        "pnl_jpy": -6149339
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": -4736957
+      }
+    ]
+  },
+  "y2025": {
+    "year": 2025,
+    "trades": 88331,
+    "wins": 32423,
+    "losses": 55908,
+    "win_rate": 36.7,
+    "net_pips": -57251.5,
+    "net_jpy": -57251481,
+    "avg_pips": -0.65,
+    "profit_factor": 0.67,
+    "max_dd_jpy": 57258391,
+    "avg_hold_min": 3.3,
+    "tp": 18254,
+    "sl": 27633,
+    "signal_exits": 42444,
+    "monthly": [
+      {
+        "month": "2025-01",
+        "pnl_jpy": -4024800
+      },
+      {
+        "month": "2025-02",
+        "pnl_jpy": -3953505
+      },
+      {
+        "month": "2025-03",
+        "pnl_jpy": -4083255
+      },
+      {
+        "month": "2025-04",
+        "pnl_jpy": -2369251
+      },
+      {
+        "month": "2025-05",
+        "pnl_jpy": -4506248
+      },
+      {
+        "month": "2025-06",
+        "pnl_jpy": -4884444
+      },
+      {
+        "month": "2025-07",
+        "pnl_jpy": -5492328
+      },
+      {
+        "month": "2025-08",
+        "pnl_jpy": -5282128
+      },
+      {
+        "month": "2025-09",
+        "pnl_jpy": -5859940
+      },
+      {
+        "month": "2025-10",
+        "pnl_jpy": -5282224
+      },
+      {
+        "month": "2025-11",
+        "pnl_jpy": -5156497
+      },
+      {
+        "month": "2025-12",
+        "pnl_jpy": -6356861
+      }
+    ]
+  },
+  "y2026": {
+    "year": 2026,
+    "trades": 81942,
+    "wins": 26290,
+    "losses": 55652,
+    "win_rate": 32.1,
+    "net_pips": -64212.5,
+    "net_jpy": -64212510,
+    "avg_pips": -0.78,
+    "profit_factor": 0.54,
+    "max_dd_jpy": 64216039,
+    "avg_hold_min": 3.0,
+    "tp": 15746,
+    "sl": 28336,
+    "signal_exits": 37860,
+    "monthly": [
+      {
+        "month": "2026-01",
+        "pnl_jpy": -5123663
+      },
+      {
+        "month": "2026-02",
+        "pnl_jpy": -4011225
+      },
+      {
+        "month": "2026-03",
+        "pnl_jpy": -5292245
+      },
+      {
+        "month": "2026-04",
+        "pnl_jpy": -5932601
+      },
+      {
+        "month": "2026-05",
+        "pnl_jpy": -6364311
+      },
+      {
+        "month": "2026-06",
+        "pnl_jpy": -7996680
+      },
+      {
+        "month": "2026-07",
+        "pnl_jpy": -6886957
+      },
+      {
+        "month": "2026-08",
+        "pnl_jpy": -6257794
+      },
+      {
+        "month": "2026-09",
+        "pnl_jpy": -5460736
+      },
+      {
+        "month": "2026-10",
+        "pnl_jpy": -6149339
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": -4736957
+      }
+    ]
+  }
+}
