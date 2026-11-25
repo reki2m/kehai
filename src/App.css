@@ -327,6 +327,10 @@
   line-height: 1.4;
 }
 
+.sample-note.err {
+  color: var(--coral);
+}
+
 .news-status.err {
   color: var(--coral);
 }

@@ -6,7 +6,7 @@ import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
 import type { FxSession } from './lib/apex'
 import { fetchLiveCandles } from './lib/liveRates'
-import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
+import type { Candle } from './lib/marketData'
 import {
   eventsDueSoon,
   fetchCalendarEvents,
@@ -60,9 +60,7 @@ export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [overlays, setOverlays] = useState<OverlayId[]>(['ema'])
-  const [candles, setCandles] = useState<Candle[]>(() =>
-    generateCandles(getPair('USDJPY'), '1m', 320),
-  )
+  const [candles, setCandles] = useState<Candle[]>([])
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
@@ -115,31 +113,22 @@ export default function App() {
         if (cancelled) return
         setLiveError(e instanceof Error ? e.message : '取得失敗')
         setLiveSource(null)
-        if (initial) {
-          setCandles(
-            generateCandles(pair, timeframe, timeframe === '1m' ? 320 : 240),
-          )
-        }
+        // Do not paint fake 151-yen sample as if it were live.
+        if (initial) setCandles([])
       } finally {
         if (!cancelled && initial) setLiveLoading(false)
       }
     }
 
     void load(true)
-    timer = window.setInterval(() => void load(false), 30_000)
+    timer = window.setInterval(() => void load(false), 15_000)
     return () => {
       cancelled = true
       if (timer) window.clearInterval(timer)
     }
   }, [pairId, timeframe, pair])
 
-  useEffect(() => {
-    if (liveSource) return
-    const id = window.setInterval(() => {
-      setCandles((prev) => advanceCandle(prev, pair, timeframe))
-    }, 900)
-    return () => window.clearInterval(id)
-  }, [pair, timeframe, liveSource])
+  // Sample tick advance only in local/dev when no live feed — never on Pages fallback.
 
   useEffect(() => {
     let cancelled = false
@@ -368,8 +357,8 @@ export default function App() {
     : liveLoading
       ? 'レート取得中…'
       : liveError
-        ? `フォールバック（${liveError}）`
-        : 'サンプル気配'
+        ? `レート取得失敗（${liveError}）· 再読み込みしてください`
+        : 'レート待機中'
 
   return (
     <div className={`app ${booted ? 'is-ready' : ''}`}>
@@ -521,8 +510,31 @@ export default function App() {
               {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ' · セッション外'}
               {' · '}BUY/SELLのみ · 1本
             </p>
+            {(liveError || !liveSource) && (
+              <p className="sample-note err">
+                古いキャッシュのときは下の「最新を読み込み」を押してください
+              </p>
+            )}
+            <button
+              type="button"
+              className="voice-btn"
+              style={{ marginTop: '0.4rem' }}
+              onClick={() => {
+                const u = new URL(window.location.href)
+                u.searchParams.set('v', String(Date.now()))
+                window.location.replace(u.toString())
+              }}
+            >
+              最新を読み込み
+            </button>
           </div>
-          <PriceChart candles={candles} pair={pair} overlays={overlays} />
+          {candles.length >= 30 ? (
+            <PriceChart candles={candles} pair={pair} overlays={overlays} />
+          ) : (
+            <p className="sample-note err" style={{ padding: '1.2rem' }}>
+              チャート待機中… ライブ足が来るまで表示しません（偽レートは出しません）
+            </p>
+          )}
         </section>
 
         <div className="side-stack">
