@@ -372,3 +372,121 @@ export function supertrendDirection(
   }
   return out
 }
+
+/** UT Bot Alerts style ATR trailing direction (+1 / -1). TV: HPotter / QuantNomad. */
+export function utBotDirection(
+  candles: Candle[],
+  key = 2,
+  atrPeriod = 10,
+): LinePoint[] {
+  const atrPts = atr(candles, atrPeriod)
+  if (atrPts.length === 0) return []
+  const atrMap = new Map(atrPts.map((p) => [p.time, p.value]))
+  const out: LinePoint[] = []
+  let prevTrail = NaN
+  for (let i = 0; i < candles.length; i++) {
+    const a = atrMap.get(candles[i].time)
+    if (a === undefined) continue
+    const c = candles[i].close
+    const nloss = key * a
+    let trail: number
+    if (!Number.isFinite(prevTrail)) {
+      trail = c - nloss
+    } else if (c > prevTrail && candles[i - 1]?.close > prevTrail) {
+      trail = Math.max(prevTrail, c - nloss)
+    } else if (c < prevTrail && candles[i - 1]?.close < prevTrail) {
+      trail = Math.min(prevTrail, c + nloss)
+    } else if (c > prevTrail) {
+      trail = c - nloss
+    } else {
+      trail = c + nloss
+    }
+    out.push({ time: candles[i].time, value: c > trail ? 1 : -1 })
+    prevTrail = trail
+  }
+  return out
+}
+
+/** LazyBear WaveTrend — returns wt1 series; pair with wavetrendSignal for wt2. */
+export function wavetrend(
+  candles: Candle[],
+  channel = 10,
+  average = 21,
+): { wt1: LinePoint[]; wt2: LinePoint[] } {
+  if (candles.length < channel + average) return { wt1: [], wt2: [] }
+  const ap = candles.map((c) => (c.high + c.low + c.close) / 3)
+  // ESA of AP
+  const kCh = 2 / (channel + 1)
+  let esa = ap.slice(0, channel).reduce((s, v) => s + v, 0) / channel
+  const esaArr: number[] = new Array(candles.length).fill(NaN)
+  esaArr[channel - 1] = esa
+  for (let i = channel; i < candles.length; i++) {
+    esa = ap[i] * kCh + esa * (1 - kCh)
+    esaArr[i] = esa
+  }
+  const absDev = ap.map((v, i) =>
+    Number.isFinite(esaArr[i]) ? Math.abs(v - esaArr[i]) : NaN,
+  )
+  let d = absDev.slice(0, channel).reduce((s, v) => s + (v || 0), 0) / channel
+  const dArr: number[] = new Array(candles.length).fill(NaN)
+  dArr[channel - 1] = d
+  for (let i = channel; i < candles.length; i++) {
+    d = absDev[i] * kCh + d * (1 - kCh)
+    dArr[i] = d
+  }
+  const ci = ap.map((v, i) =>
+    Number.isFinite(esaArr[i]) && dArr[i] > 0
+      ? (v - esaArr[i]) / (0.015 * dArr[i])
+      : 0,
+  )
+  const kAvg = 2 / (average + 1)
+  let wt = ci.slice(0, average).reduce((s, v) => s + v, 0) / average
+  const wt1: LinePoint[] = []
+  const wt1Vals: number[] = new Array(candles.length).fill(NaN)
+  wt1Vals[average - 1] = wt
+  wt1.push({ time: candles[average - 1].time, value: wt })
+  for (let i = average; i < candles.length; i++) {
+    wt = ci[i] * kAvg + wt * (1 - kAvg)
+    wt1Vals[i] = wt
+    wt1.push({ time: candles[i].time, value: wt })
+  }
+  const wt2: LinePoint[] = []
+  for (let i = average * 2 - 2; i < candles.length; i++) {
+    let sum = 0
+    let ok = true
+    for (let j = i - average + 1; j <= i; j++) {
+      if (!Number.isFinite(wt1Vals[j])) {
+        ok = false
+        break
+      }
+      sum += wt1Vals[j]
+    }
+    if (ok) wt2.push({ time: candles[i].time, value: sum / average })
+  }
+  return { wt1, wt2 }
+}
+
+/** SSL Channel direction (+1 / -1). */
+export function sslDirection(candles: Candle[], period = 10): LinePoint[] {
+  const hi = ema(
+    candles.map((c) => ({ ...c, close: c.high })),
+    period,
+  )
+  const lo = ema(
+    candles.map((c) => ({ ...c, close: c.low })),
+    period,
+  )
+  const hiMap = new Map(hi.map((p) => [p.time, p.value]))
+  const loMap = new Map(lo.map((p) => [p.time, p.value]))
+  const out: LinePoint[] = []
+  let hlv = 0
+  for (const c of candles) {
+    const mh = hiMap.get(c.time)
+    const ml = loMap.get(c.time)
+    if (mh === undefined || ml === undefined) continue
+    if (c.close > mh) hlv = 1
+    else if (c.close < ml) hlv = -1
+    out.push({ time: c.time, value: hlv })
+  }
+  return out
+}

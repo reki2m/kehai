@@ -3,29 +3,36 @@ import {
   newsBlackout,
 } from './filters'
 import type { Candle } from './marketData'
-import { atr, ema, rsi, sessionVwap } from './indicators'
+import {
+  atr,
+  ema,
+  sessionVwap,
+  sslDirection,
+  utBotDirection,
+  wavetrend,
+} from './indicators'
 import type { Bias, IndicatorSignal } from './signals'
 
 /**
- * KEHAI Apex WinEdge Freq — 1m scalp with higher trade rate.
+ * KEHAI Apex — Famous TV stack locked on real spreads.
  *
- * Locked under: Dukascopy real spread WF both halves > 0,
- * Yahoo full + holdout > 0 (session-spread model).
- * ~2.9 trades/day on Duka session days (was ~1.5 on prior mid-strict lock).
+ * Primary: UT Bot Alerts (key=2, ATR=7) flip + SSL Channel confirm
+ * Session: London Mid 08:30–10 UTC · VWAP side · fixed 2.5/5.0p
+ *
+ * Also surfaces WaveTrend (LazyBear) as confluence readout (not required).
+ * Validated: Dukascopy WF both halves + Yahoo full/holdout > 0.
  */
 export const APEX_PARAMS = {
-  family: 'micro_mom' as const,
+  family: 'ut_ssl' as const,
   kz: 'london' as const,
-  hourMode: 'london_mid' as const, // 08:30–10:00 UTC
+  hourMode: 'london_mid' as const,
   maxSpread: 0.8,
-  slPips: 3.0,
-  tpPips: 6.0,
-  minAtrPips: 1.0,
-  maxAtrPips: 12.0,
-  minMovePips: 3.0,
+  slPips: 2.5,
+  tpPips: 5.0,
+  utKey: 2,
+  utAtr: 7,
+  sslLen: 10,
   requireVwap: true,
-  requireBias: false,
-  rsiFilter: true,
   pip: 0.01,
 } as const
 
@@ -67,23 +74,15 @@ function utcHm(unixSec: number) {
   }
 }
 
-/** Entry window: London mid 08:30–10:00 UTC. */
 export function isEntryWindow(unixSec: number): boolean {
   const { weekday, hm } = utcHm(unixSec)
   if (weekday === 0 || weekday === 6) return false
   return hm >= 8 * 60 + 30 && hm < 10 * 60
 }
 
-export function isKillzone(unixSec: number): boolean {
-  const { weekday, hm } = utcHm(unixSec)
-  if (weekday === 0 || weekday === 6) return false
-  return hm >= 7 * 60 && hm < 10 * 60
-}
-
 export function evaluateApex(candles: Candle[]): ApexSignal {
   const p = APEX_PARAMS
   const cur = last(candles)
-  const prev = candles.length >= 2 ? candles[candles.length - 2] : undefined
   const price = cur?.close ?? 0
   const t = cur?.time ?? 0
   const atrVal = last(atr(candles, 14))?.value ?? 0
@@ -91,75 +90,81 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   const spreadPips = estimateSpreadPips(t, atrPips || undefined)
   const news = newsBlackout(t)
   const vwap = last(sessionVwap(candles))
-  const ema21mtf = last(ema(candles, 105))
-  const ema55mtf = last(ema(candles, 275))
-  const rsi7 = last(rsi(candles, 7))
-  const bias15: Bias =
-    ema21mtf && ema55mtf
-      ? ema21mtf.value > ema55mtf.value
-        ? 'bull'
-        : 'bear'
-      : 'neutral'
+  const utSeries = utBotDirection(candles, p.utKey, p.utAtr)
+  const sslSeries = sslDirection(candles, p.sslLen)
+  const ut = last(utSeries)
+  const utPrev = utSeries.length >= 2 ? utSeries[utSeries.length - 2] : undefined
+  const ssl = last(sslSeries)
+  const { wt1, wt2 } = wavetrend(candles, 10, 21)
+  const w1 = last(wt1)
+  const w2 = last(wt2)
+  const ema21 = last(ema(candles, 21))
+  const ema55 = last(ema(candles, 55))
 
   const windowOk = isEntryWindow(t)
   const newsOk = !news
   const spreadOk = spreadPips <= p.maxSpread
-  const atrOk = atrPips >= p.minAtrPips && atrPips <= p.maxAtrPips
 
-  let longSetup = false
-  let shortSetup = false
-  let setup: string | null = null
-  let movePips = 0
+  const utFlipLong = !!(ut && utPrev && ut.value > 0 && utPrev.value <= 0)
+  const utFlipShort = !!(ut && utPrev && ut.value < 0 && utPrev.value >= 0)
+  const sslLong = !!ssl && ssl.value > 0
+  const sslShort = !!ssl && ssl.value < 0
 
-  if (cur && prev && candles.length >= 4) {
-    const c3 = candles[candles.length - 4]
-    movePips = Math.abs(cur.close - c3.close) / p.pip
-    const upBurst =
-      cur.close > c3.close && cur.close > cur.open && prev.close > prev.open
-    const dnBurst =
-      cur.close < c3.close && cur.close < cur.open && prev.close < prev.open
-    const moveOk = movePips >= p.minMovePips
-    longSetup = !!(upBurst && moveOk)
-    shortSetup = !!(dnBurst && moveOk)
-    if (p.requireVwap && vwap) {
-      longSetup = longSetup && cur.close > vwap.value
-      shortSetup = shortSetup && cur.close < vwap.value
-    }
-    if (p.requireBias) {
-      longSetup = longSetup && bias15 === 'bull'
-      shortSetup = shortSetup && bias15 === 'bear'
-    }
-    if (p.rsiFilter && rsi7) {
-      longSetup = longSetup && rsi7.value > 50
-      shortSetup = shortSetup && rsi7.value < 50
-    }
-    if (longSetup || shortSetup) setup = 'Micro Momentum'
+  let longSetup = utFlipLong && sslLong
+  let shortSetup = utFlipShort && sslShort
+  if (p.requireVwap && vwap) {
+    longSetup = longSetup && price >= vwap.value
+    shortSetup = shortSetup && price <= vwap.value
   }
+  const setup = longSetup || shortSetup ? 'UT Bot × SSL' : null
 
   const signals: IndicatorSignal[] = []
 
   signals.push({
     id: 'window',
     name: 'London Mid',
-    bias: windowOk ? (longSetup ? 'bull' : shortSetup ? 'bear' : bias15) : 'neutral',
+    bias: windowOk ? (longSetup ? 'bull' : shortSetup ? 'bear' : 'neutral') : 'neutral',
     strength: windowOk ? 0.95 : 0.15,
-    detail: windowOk
-      ? '08:30–10:00 UTC · 高頻度帯'
-      : 'エントリー帯外（08:30–10 UTC）',
+    detail: windowOk ? '08:30–10:00 UTC' : 'エントリー帯外（08:30–10 UTC）',
   })
 
   signals.push({
-    id: 'mtf15',
-    name: '15m EMA Bias',
-    bias: bias15,
-    strength: bias15 === 'neutral' ? 0.2 : 0.75,
-    detail:
-      bias15 === 'bull'
-        ? '上位足買い（参考・必須外）'
-        : bias15 === 'bear'
-          ? '上位足売り（参考・必須外）'
-          : 'バイアス未確定',
+    id: 'utbot',
+    name: `UT Bot (${p.utKey}/${p.utAtr})`,
+    bias: ut ? (ut.value > 0 ? 'bull' : 'bear') : 'neutral',
+    strength: utFlipLong || utFlipShort ? 1 : 0.7,
+    detail: utFlipLong
+      ? 'BUY flip'
+      : utFlipShort
+        ? 'SELL flip'
+        : ut
+          ? ut.value > 0
+            ? '上昇トレイル'
+            : '下降トレイル'
+          : '未計算',
   })
+
+  signals.push({
+    id: 'ssl',
+    name: 'SSL Channel',
+    bias: ssl ? (ssl.value > 0 ? 'bull' : 'bear') : 'neutral',
+    strength: 0.85,
+    detail: ssl
+      ? ssl.value > 0
+        ? 'SSL 買い側'
+        : 'SSL 売り側'
+      : '未計算',
+  })
+
+  if (w1 && w2) {
+    signals.push({
+      id: 'wavetrend',
+      name: 'WaveTrend',
+      bias: w1.value > w2.value ? 'bull' : 'bear',
+      strength: Math.min(1, Math.abs(w1.value) / 60),
+      detail: `WT1 ${w1.value.toFixed(1)} / WT2 ${w2.value.toFixed(1)}`,
+    })
+  }
 
   if (vwap) {
     signals.push({
@@ -177,37 +182,15 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
     })
   }
 
-  if (rsi7) {
+  if (ema21 && ema55) {
     signals.push({
-      id: 'rsi7',
-      name: 'RSI(7)',
-      bias: rsi7.value > 55 ? 'bull' : rsi7.value < 45 ? 'bear' : 'neutral',
-      strength: Math.min(1, Math.abs(rsi7.value - 50) / 30),
-      detail: `RSI ${rsi7.value.toFixed(1)}`,
+      id: 'ema',
+      name: 'EMA 21/55',
+      bias: ema21.value > ema55.value ? 'bull' : 'bear',
+      strength: 0.6,
+      detail: ema21.value > ema55.value ? '短期>長期' : '短期<長期',
     })
   }
-
-  signals.push({
-    id: 'micro',
-    name: 'Micro Momentum',
-    bias: longSetup ? 'bull' : shortSetup ? 'bear' : 'neutral',
-    strength:
-      longSetup || shortSetup ? 1 : Math.min(1, movePips / p.minMovePips),
-    detail:
-      longSetup || shortSetup
-        ? `3本バースト ${movePips.toFixed(1)}p`
-        : `バースト待ち（要≥${p.minMovePips}p）`,
-  })
-
-  signals.push({
-    id: 'atr',
-    name: 'ATR Band',
-    bias: atrOk ? bias15 : 'neutral',
-    strength: atrOk ? 0.8 : 0.2,
-    detail: atrOk
-      ? `ATR ${atrPips.toFixed(1)}p ∈ [${p.minAtrPips},${p.maxAtrPips}]`
-      : `ATR ${atrPips.toFixed(1)}p 帯外`,
-  })
 
   const gates: ApexGate[] = [
     {
@@ -229,10 +212,16 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
       detail: `${spreadPips.toFixed(2)} ≤ ${p.maxSpread}`,
     },
     {
-      id: 'atr',
-      name: 'ATR帯',
-      ok: atrOk,
-      detail: `${atrPips.toFixed(1)}p`,
+      id: 'utbot',
+      name: 'UT Bot flip',
+      ok: utFlipLong || utFlipShort,
+      detail: utFlipLong ? 'BUY' : utFlipShort ? 'SELL' : '待ち',
+    },
+    {
+      id: 'ssl',
+      name: 'SSL確認',
+      ok: (utFlipLong && sslLong) || (utFlipShort && sslShort),
+      detail: sslLong ? '買い側' : sslShort ? '売り側' : 'なし',
     },
     {
       id: 'vwap',
@@ -246,36 +235,38 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
     },
     {
       id: 'setup',
-      name: 'Micro Mom',
+      name: 'UT×SSL',
       ok: !!(longSetup || shortSetup),
-      detail: setup ?? `move ${movePips.toFixed(1)}p`,
+      detail: setup ?? '未成立',
     },
   ]
 
-  const baseOk = windowOk && newsOk && spreadOk && atrOk
+  const baseOk = windowOk && newsOk && spreadOk
   let action: TradeAction = 'WAIT'
   if (baseOk && longSetup) action = 'LONG'
   else if (baseOk && shortSetup) action = 'SHORT'
 
   let score = 0
-  if (vwap) score += price >= vwap.value ? 15 : -15
-  if (windowOk) score += 20
-  if (longSetup) score += 45
-  if (shortSetup) score -= 45
-  if (atrOk) score += 10
-  if (rsi7) score += rsi7.value > 50 ? 10 : rsi7.value < 50 ? -10 : 0
+  if (ut) score += ut.value > 0 ? 20 : -20
+  if (ssl) score += ssl.value > 0 ? 15 : -15
+  if (vwap) score += price >= vwap.value ? 10 : -10
+  if (windowOk) score += 15
+  if (longSetup) score += 40
+  if (shortSetup) score -= 40
+  if (w1 && w2) score += w1.value > w2.value ? 8 : -8
   score = Math.max(-100, Math.min(100, Math.round(score)))
 
   const bias: Bias =
-    action === 'LONG' ? 'bull' : action === 'SHORT' ? 'bear' : bias15
+    action === 'LONG' ? 'bull' : action === 'SHORT' ? 'bear' : ut && ut.value > 0 ? 'bull' : ut && ut.value < 0 ? 'bear' : 'neutral'
+
   let label = 'APEX 待機'
-  if (action === 'LONG') label = 'APEX ロング · Micro Mom'
-  else if (action === 'SHORT') label = 'APEX ショート · Micro Mom'
+  if (action === 'LONG') label = 'APEX ロング · UT×SSL'
+  else if (action === 'SHORT') label = 'APEX ショート · UT×SSL'
   else if (!newsOk) label = `ニュース回避 (${news!.label})`
   else if (!spreadOk) label = 'スプレッド拡大'
   else if (!windowOk) label = 'London Mid外'
-  else if (!atrOk) label = 'ATR帯外'
-  else if (!(longSetup || shortSetup)) label = 'バースト待ち'
+  else if (!(utFlipLong || utFlipShort)) label = 'UT Bot待ち'
+  else label = 'SSL未一致'
 
   return {
     score,
