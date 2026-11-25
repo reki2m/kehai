@@ -161,3 +161,68 @@ def cross_up(a, b, i):
 
 def cross_dn(a, b, i):
     return np.isfinite(a[i]) and np.isfinite(b[i]) and np.isfinite(a[i - 1]) and np.isfinite(b[i - 1]) and a[i] < b[i] and a[i - 1] >= b[i - 1]
+
+
+def supertrend_dir(h, l, c, period=10, mult=3.0):
+    """Classic Supertrend direction (+1 / -1). Popular on TV blogs / BacktestingMax."""
+    a = atr(h, l, c, period)
+    n = len(c)
+    direction = np.zeros(n)
+    st = np.full(n, np.nan)
+    dir_ = 1
+    prev = np.nan
+    for i in range(period, n):
+        if not np.isfinite(a[i]):
+            continue
+        hl2 = (h[i] + l[i]) / 2.0
+        upper = hl2 + mult * a[i]
+        lower = hl2 - mult * a[i]
+        if not np.isfinite(prev):
+            prev = lower
+            dir_ = 1
+        if dir_ >= 0:
+            lower = max(lower, prev)
+            if c[i] < lower:
+                dir_ = -1
+                prev = upper
+            else:
+                dir_ = 1
+                prev = lower
+        else:
+            upper = min(upper, prev)
+            if c[i] > upper:
+                dir_ = 1
+                prev = lower
+            else:
+                dir_ = -1
+                prev = upper
+        direction[i] = dir_
+        st[i] = prev
+    return direction, st
+
+
+def range_filter_dir(c, qty=14, mult=2.618):
+    """DonovanWall-style Range Filter direction (smoothed range band)."""
+    n = len(c)
+    # smooth abs change
+    abs_chg = np.abs(np.diff(c, prepend=c[0]))
+    # EMA of abs change * mult = range
+    rng = ema(abs_chg, qty) * mult
+    filt = np.full(n, np.nan)
+    direction = np.zeros(n)
+    f = c[0]
+    d = 0
+    for i in range(1, n):
+        r = rng[i] if np.isfinite(rng[i]) else 0.0
+        if c[i] > f + r:
+            f = c[i]
+        elif c[i] < f - r:
+            f = c[i]
+        # twin-style: update only when outside
+        if c[i] > f:
+            d = 1
+        elif c[i] < f:
+            d = -1
+        filt[i] = f
+        direction[i] = d
+    return direction, filt

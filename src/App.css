@@ -676,6 +676,84 @@
   background: var(--coral);
 }
 
+.simple-board {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.simple-hero {
+  padding: 1.1rem 1rem 1.15rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.simple-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.simple-action {
+  margin: 0.55rem 0 0.2rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.simple-action.action-buy {
+  color: var(--sea);
+}
+
+.simple-action.action-sell {
+  color: var(--coral);
+}
+
+.simple-reason {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.simple-quote {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.simple-risk,
+.simple-meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.simple-howto {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  list-style: decimal;
+  list-style-position: inside;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 0.74rem;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.simple-howto li + li {
+  margin-top: 0.25rem;
+}
+
 .grail-panel {
   padding: 0.9rem 1rem 1rem;
   border: 1px solid rgba(232, 196, 124, 0.35);

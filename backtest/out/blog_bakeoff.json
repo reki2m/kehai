@@ -1,0 +1,60 @@
+{
+  "best": "ut_ssl",
+  "sl": 7.0,
+  "tp": 10.0,
+  "yahoo": {
+    "year": null,
+    "trades": 92,
+    "wins": 53,
+    "losses": 39,
+    "win_rate": 57.6,
+    "net_pips": 131.6,
+    "net_jpy": 131623,
+    "avg_pips": 1.43,
+    "profit_factor": 1.49,
+    "max_dd_jpy": 48344,
+    "avg_hold_min": 22.9,
+    "tp": 37,
+    "sl": 32,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-10",
+        "pnl_jpy": 15778
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": 115845
+      }
+    ]
+  },
+  "duka": {
+    "year": null,
+    "trades": 54,
+    "wins": 33,
+    "losses": 21,
+    "win_rate": 61.1,
+    "net_pips": 85.5,
+    "net_jpy": 85484,
+    "avg_pips": 1.58,
+    "profit_factor": 1.54,
+    "max_dd_jpy": 51981,
+    "avg_hold_min": 93.2,
+    "tp": 21,
+    "sl": 16,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 85484
+      }
+    ]
+  },
+  "stack_meaning": {
+    "ut_ssl": "UT Bot (TV QuantNomad) flip + SSL Channel confirm + session filters",
+    "st_ssl": "Supertrend flip + SSL",
+    "ut_st_ssl": "UT flip + SSL + Supertrend same side",
+    "rf_ssl": "Range Filter flip + SSL"
+  },
+  "picked": "UT Bot \u00d7 SSL (world TV blogs) with Tokyo/London/NY filters; SL7 TP10; manual one trade"
+}

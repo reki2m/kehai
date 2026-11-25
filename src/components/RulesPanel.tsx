@@ -1,49 +1,46 @@
-import { APEX_PARAMS, SESSION_PROFILES } from '../lib/apex'
+import { SESSION_PROFILES } from '../lib/apex'
 import { BROKER_SPREAD_PIPS } from '../lib/filters'
-import { GRAIL } from '../lib/grail'
+import { SIMPLE } from '../lib/simpleSignal'
 
 export function RulesPanel() {
   const sessions = [SESSION_PROFILES.tokyo, SESSION_PROFILES.london, SESSION_PROFILES.ny]
   return (
-    <section className="rules-panel" aria-label="売買ルール">
-      <h2>売買ルール</h2>
+    <section className="rules-panel" aria-label="ルール">
+      <h2>ルール</h2>
       <p className="rules-lead">
-        {GRAIL.name} · UT×SSL · スプレッド {BROKER_SPREAD_PIPS}p · スリッ耐性 {GRAIL.assumeSlipPips}p
+        {SIMPLE.stack} · 手動 · 1本のみ · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips} · スプレッド
+        前提 {BROKER_SPREAD_PIPS}p
       </p>
       <ol className="rules-list">
         <li>
-          <strong>対象時間帯</strong>
+          <strong>サイン</strong>
           <span>
-            東京・ロンドン・NYの3帯のみ（{APEX_PARAMS.family}）
+            UT Bot（TV定番）フリップ ＋ SSL Channel 確認 → BUY または SELL のみ表示
           </span>
+        </li>
+        <li>
+          <strong>決済</strong>
+          <span>
+            損切り {SIMPLE.slPips} pips · 利確 {SIMPLE.tpPips} pips（固定）
+          </span>
+        </li>
+        <li>
+          <strong>重複禁止</strong>
+          <span>建玉中は新しいサインを無視</span>
         </li>
         {sessions.map((s) => (
           <li key={s.id}>
             <strong>{s.labelJa}</strong>
             <span>
-              {s.jst} · UT {s.utKey}/{s.utAtr} · SL {s.slPips} / TP {s.tpPips}p
-              {s.requireVwap ? ' · VWAP必須' : ''}
-              {s.requireEma ? ' · EMA21/55必須' : ''}
-              · スプレッド≤{s.maxSpread}p
+              {s.jst} · UT {s.utKey}/{s.utAtr}
+              {s.requireVwap ? ' · VWAP' : ''}
+              {s.requireEma ? ' · EMA' : ''}
             </span>
           </li>
         ))}
         <li>
-          <strong>Grailリスク</strong>
-          <span>
-            TP×{GRAIL.tpMult}済 · 日次ロス上限 −{GRAIL.dailyLossCapPips}p · 観測ズレ&gt;
-            {GRAIL.maxSlipPips}pで停止 · デモ{GRAIL.demoLot}lot
-          </span>
-        </li>
-        <li>
-          <strong>買い / 売り</strong>
-          <span>
-            UT Bot フリップ ＋ SSL同方向 ＋（VWAP / EMA）＋ ニュース帯外
-          </span>
-        </li>
-        <li>
-          <strong>時間足 / インパクト</strong>
-          <span>1m/5m優勢適用 · 関連市場逆風はドル円見送り</span>
+          <strong>出典</strong>
+          <span>{SIMPLE.sources.join(' / ')}</span>
         </li>
       </ol>
     </section>
