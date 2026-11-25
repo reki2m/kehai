@@ -26,7 +26,7 @@ export const APEX_PARAMS = {
   family: 'ut_ssl' as const,
   kz: 'london' as const,
   hourMode: 'london_mid' as const,
-  maxSpread: 0.8,
+  maxSpread: 0.35,
   slPips: 2.5,
   tpPips: 5.0,
   utKey: 2,

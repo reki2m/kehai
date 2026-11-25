@@ -121,7 +121,7 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              サンプル気配 · UT Bot×SSL（London Mid / VWAP / 固定2.5·5p）· WaveTrend表示 · 実口座API未接続
+              サンプル気配 · UT Bot×SSL（London Mid / VWAP / スプレッド0.2p / 固定2.5·5p）· 実口座API未接続
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />

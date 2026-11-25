@@ -97,22 +97,19 @@ export function newsBlackout(unixSec: number): NewsWindow | null {
   return null
 }
 
+/** User broker USDJPY scalp spread (pips). */
+export const BROKER_SPREAD_PIPS = 0.2
+
 /**
- * Estimated USDJPY spread in pips by UTC hour + news.
- * Real Dukascopy mean ~0.6–1.2; spikes near rollover / news.
+ * Estimated USDJPY spread in pips.
+ * Default = broker 0.2; widen only on news / thin ATR.
  */
 export function estimateSpreadPips(unixSec: number, atrPips?: number): number {
-  const hour = new Date(unixSec * 1000).getUTCHours()
-  let spread = 0.7
-  // Tokyo open quiet → London/NY more liquid
-  if (hour >= 0 && hour < 7) spread = 1.1
-  if (hour >= 21 || hour < 1) spread = 1.6 // rollover
-  if (hour >= 7 && hour < 16) spread = 0.6
-  if (hour >= 12 && hour < 17) spread = 0.55 // London–NY overlap
-  if (newsBlackout(unixSec)) spread = Math.max(spread, 2.5)
-  if (atrPips !== undefined && atrPips < 1.5) spread += 0.2 // thin range
+  let spread = BROKER_SPREAD_PIPS
+  if (newsBlackout(unixSec)) spread = Math.max(spread, 1.5)
+  if (atrPips !== undefined && atrPips < 1.2) spread = Math.max(spread, 0.35)
   return spread
 }
 
 /** Skip entry when spread too wide for scalping. */
-export const MAX_ENTRY_SPREAD_PIPS = 1.4
+export const MAX_ENTRY_SPREAD_PIPS = 0.35

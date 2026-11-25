@@ -1,274 +1,135 @@
 {
-  "name": "Famous TV Indicator Search",
-  "hits": 16,
-  "top": {
-    "score": 109.69176470588235,
-    "trades_per_day": 1.9411764705882353,
-    "params": {
-      "family": "ut_ssl",
-      "kz": "london",
-      "hour_mode": "mid",
-      "max_spread": 0.8,
-      "sl_pips": 2.5,
-      "tp_pips": 5.0,
-      "cooldown": 1,
-      "time_stop": 12,
-      "require_vwap": true,
-      "ut_key": 2.0,
-      "ut_atr": 7,
-      "wt_ch": 10,
-      "wt_avg": 21,
-      "ssl_len": 10,
-      "ht_amp": 2
-    },
-    "dukascopy_full": {
-      "year": null,
-      "trades": 33,
-      "wins": 19,
-      "losses": 14,
-      "win_rate": 57.6,
-      "net_pips": 34.6,
-      "net_jpy": 34625,
-      "avg_pips": 1.05,
-      "profit_factor": 1.94,
-      "max_dd_jpy": 9646,
-      "avg_hold_min": 4.6,
-      "tp": 13,
-      "sl": 11,
-      "signal_exits": 0,
-      "monthly": [
-        {
-          "month": "2026-11",
-          "pnl_jpy": 34625
-        }
-      ]
-    },
-    "dukascopy_first60": {
-      "year": null,
-      "trades": 18,
-      "wins": 10,
-      "losses": 8,
-      "win_rate": 55.6,
-      "net_pips": 17.9,
-      "net_jpy": 17871,
-      "avg_pips": 0.99,
-      "profit_factor": 1.78,
-      "max_dd_jpy": 5753,
-      "avg_hold_min": 4.1,
-      "tp": 7,
-      "sl": 8,
-      "signal_exits": 0,
-      "monthly": [
-        {
-          "month": "2026-11",
-          "pnl_jpy": 17871
-        }
-      ]
-    },
-    "dukascopy_last40": {
-      "year": null,
-      "trades": 15,
-      "wins": 9,
-      "losses": 6,
-      "win_rate": 60.0,
-      "net_pips": 16.8,
-      "net_jpy": 16754,
-      "avg_pips": 1.12,
-      "profit_factor": 2.19,
-      "max_dd_jpy": 9646,
-      "avg_hold_min": 5.3,
-      "tp": 6,
-      "sl": 3,
-      "signal_exits": 0,
-      "monthly": [
-        {
-          "month": "2026-11",
-          "pnl_jpy": 16754
-        }
-      ]
-    },
-    "yahoo_full": {
-      "year": null,
-      "trades": 29,
-      "wins": 12,
-      "losses": 17,
-      "win_rate": 41.4,
-      "net_pips": 7.4,
-      "net_jpy": 7399,
-      "avg_pips": 0.26,
-      "profit_factor": 1.17,
-      "max_dd_jpy": 16500,
-      "avg_hold_min": 5.3,
-      "tp": 11,
-      "sl": 14,
-      "signal_exits": 0,
-      "monthly": [
-        {
-          "month": "2026-10",
-          "pnl_jpy": -6550
-        },
-        {
-          "month": "2026-11",
-          "pnl_jpy": 13949
-        }
-      ]
-    },
-    "yahoo_holdout": {
-      "year": null,
-      "trades": 12,
-      "wins": 6,
-      "losses": 6,
-      "win_rate": 50.0,
-      "net_pips": 9.0,
-      "net_jpy": 9000,
-      "avg_pips": 0.75,
-      "profit_factor": 1.5,
-      "max_dd_jpy": 9000,
-      "avg_hold_min": 5.3,
-      "tp": 6,
-      "sl": 6,
-      "signal_exits": 0,
-      "monthly": [
-        {
-          "month": "2026-11",
-          "pnl_jpy": 9000
-        }
-      ]
-    }
+  "name": "KEHAI Apex UT×SSL",
+  "spread_pips": 0.2,
+  "params": {
+    "family": "ut_ssl",
+    "kz": "london",
+    "hour_mode": "mid",
+    "max_spread": 0.25,
+    "sl_pips": 2.5,
+    "tp_pips": 5.0,
+    "cooldown": 1,
+    "time_stop": 12,
+    "require_vwap": true,
+    "ut_key": 2.0,
+    "ut_atr": 7,
+    "ssl_len": 10
   },
-  "best_duka_only": {
-    "ut_bot": {
-      "stats": {
-        "year": null,
-        "trades": 36,
-        "wins": 21,
-        "losses": 15,
-        "win_rate": 58.3,
-        "net_pips": 35.7,
-        "net_jpy": 35699,
-        "avg_pips": 0.99,
-        "profit_factor": 1.72,
-        "max_dd_jpy": 13681,
-        "avg_hold_min": 6.2,
-        "tp": 13,
-        "sl": 14,
-        "signal_exits": 0,
-        "monthly": [
-          {
-            "month": "2026-11",
-            "pnl_jpy": 35699
-          }
-        ]
-      },
-      "params": {
-        "family": "ut_bot",
-        "kz": "london",
-        "hour_mode": "kz",
-        "max_spread": 0.8,
-        "sl_pips": 3.0,
-        "tp_pips": 6.0,
-        "cooldown": 1,
-        "time_stop": 12,
-        "require_vwap": true,
-        "ut_key": 3.0,
-        "ut_atr": 7,
-        "wt_ch": 10,
-        "wt_avg": 21,
-        "ssl_len": 10,
-        "ht_amp": 2
+  "dukascopy_full": {
+    "year": null,
+    "trades": 33,
+    "wins": 19,
+    "losses": 14,
+    "win_rate": 57.6,
+    "net_pips": 41.0,
+    "net_jpy": 41000,
+    "avg_pips": 1.24,
+    "profit_factor": 2.19,
+    "max_dd_jpy": 9000,
+    "avg_hold_min": 4.6,
+    "tp": 13,
+    "sl": 11,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 41000
       }
-    },
-    "ssl": {
-      "stats": {
-        "year": null,
-        "trades": 98,
-        "wins": 35,
-        "losses": 63,
-        "win_rate": 35.7,
-        "net_pips": -5.1,
-        "net_jpy": -5110,
-        "avg_pips": -0.05,
-        "profit_factor": 0.97,
-        "max_dd_jpy": 21741,
-        "avg_hold_min": 10.7,
-        "tp": 27,
-        "sl": 57,
-        "signal_exits": 0,
-        "monthly": [
-          {
-            "month": "2026-11",
-            "pnl_jpy": -5110
-          }
-        ]
-      },
-      "params": {
-        "family": "ssl",
-        "kz": "ln",
-        "hour_mode": "mid",
-        "max_spread": 0.8,
-        "sl_pips": 2.5,
-        "tp_pips": 5.0,
-        "cooldown": 3,
-        "time_stop": 12,
-        "require_vwap": false,
-        "ut_key": 2.0,
-        "ut_atr": 10,
-        "wt_ch": 10,
-        "wt_avg": 21,
-        "ssl_len": 10,
-        "ht_amp": 2
-      }
-    },
-    "ut_ssl": {
-      "stats": {
-        "year": null,
-        "trades": 72,
-        "wins": 38,
-        "losses": 34,
-        "win_rate": 52.8,
-        "net_pips": 47.5,
-        "net_jpy": 47479,
-        "avg_pips": 0.66,
-        "profit_factor": 1.5,
-        "max_dd_jpy": 20928,
-        "avg_hold_min": 4.4,
-        "tp": 26,
-        "sl": 31,
-        "signal_exits": 0,
-        "monthly": [
-          {
-            "month": "2026-11",
-            "pnl_jpy": 47479
-          }
-        ]
-      },
-      "params": {
-        "family": "ut_ssl",
-        "kz": "london",
-        "hour_mode": "kz",
-        "max_spread": 0.8,
-        "sl_pips": 2.5,
-        "tp_pips": 5.0,
-        "cooldown": 3,
-        "time_stop": 12,
-        "require_vwap": true,
-        "ut_key": 2.0,
-        "ut_atr": 7,
-        "wt_ch": 10,
-        "wt_avg": 21,
-        "ssl_len": 10,
-        "ht_amp": 2
-      }
-    }
+    ]
   },
-  "sources": [
-    "UT Bot Alerts (HPotter/QuantNomad)",
-    "WaveTrend (LazyBear)",
-    "SSL Channel",
-    "HalfTrend",
-    "QQE Mod (simplified)",
-    "Stacks: UT+SSL, UT+WaveTrend"
-  ],
-  "generated_at": "2026-11-25T14:07:03.689102+00:00",
-  "verdict": "famous_stack_confirmed"
+  "dukascopy_first60": {
+    "year": null,
+    "trades": 18,
+    "wins": 10,
+    "losses": 8,
+    "win_rate": 55.6,
+    "net_pips": 21.3,
+    "net_jpy": 21300,
+    "avg_pips": 1.18,
+    "profit_factor": 1.99,
+    "max_dd_jpy": 5400,
+    "avg_hold_min": 4.1,
+    "tp": 7,
+    "sl": 8,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 21300
+      }
+    ]
+  },
+  "dukascopy_last40": {
+    "year": null,
+    "trades": 15,
+    "wins": 9,
+    "losses": 6,
+    "win_rate": 60.0,
+    "net_pips": 19.7,
+    "net_jpy": 19700,
+    "avg_pips": 1.31,
+    "profit_factor": 2.54,
+    "max_dd_jpy": 9000,
+    "avg_hold_min": 5.3,
+    "tp": 6,
+    "sl": 3,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 19700
+      }
+    ]
+  },
+  "yahoo_full": {
+    "year": null,
+    "trades": 29,
+    "wins": 14,
+    "losses": 15,
+    "win_rate": 48.3,
+    "net_pips": 21.3,
+    "net_jpy": 21300,
+    "avg_pips": 0.73,
+    "profit_factor": 1.56,
+    "max_dd_jpy": 14100,
+    "avg_hold_min": 5.2,
+    "tp": 12,
+    "sl": 14,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-10",
+        "pnl_jpy": -5500
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": 26800
+      }
+    ]
+  },
+  "yahoo_holdout": {
+    "year": null,
+    "trades": 12,
+    "wins": 6,
+    "losses": 6,
+    "win_rate": 50.0,
+    "net_pips": 12.6,
+    "net_jpy": 12600,
+    "avg_pips": 1.05,
+    "profit_factor": 1.78,
+    "max_dd_jpy": 8100,
+    "avg_hold_min": 5.5,
+    "tp": 6,
+    "sl": 6,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 12600
+      }
+    ]
+  },
+  "trades_per_day": 1.94,
+  "note": "User broker spread fixed at 0.2 pips for cost + gate.",
+  "generated_at": "2026-11-25T14:09:24.292005+00:00"
 }
