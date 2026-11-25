@@ -206,8 +206,15 @@ export default function App() {
   const last = candles[candles.length - 1]
   const change = last && first ? last.close - first.close : 0
   const changePct = last && first ? (change / first.close) * 100 : 0
-  const bid = last ? last.close.toFixed(pair.digits) : '—'
+  const mid = last ? last.close : NaN
+  const halfSpread = ((raw.spreadPips || 0.2) * pair.pip) / 2
+  const bidNum = Number.isFinite(mid) ? mid - halfSpread : NaN
+  const askNum = Number.isFinite(mid) ? mid + halfSpread : NaN
+  const bid = Number.isFinite(bidNum) ? bidNum.toFixed(pair.digits) : '—'
+  const ask = Number.isFinite(askNum) ? askNum.toFixed(pair.digits) : '—'
+  const midText = Number.isFinite(mid) ? mid.toFixed(pair.digits) : '—'
 
+  // Entry / READY alerts on signal change
   useEffect(() => {
     if (!last || !voiceOn) return
     const bar = last.time
@@ -215,8 +222,7 @@ export default function App() {
       const key = `${bar}-${raw.action}`
       if (lastEntryKey.current !== key) {
         lastEntryKey.current = key
-        lastSpokenBar.current = bar
-        announceEntry(raw.action === 'BUY' ? 'LONG' : 'SHORT', bid, {
+        announceEntry(raw.action === 'BUY' ? 'LONG' : 'SHORT', midText, {
           sl: SIMPLE.slPips,
           tp: SIMPLE.tpPips,
           unit: unitLabel(pair),
@@ -230,17 +236,28 @@ export default function App() {
       (raw.action === 'READY_BUY' || raw.action === 'READY_SELL')
     ) {
       const side = raw.action === 'READY_BUY' ? 'BUY' : 'SELL'
-      // One warn per approach streak (side), not every bar
       const key = `${side}-${Math.floor(bar / 180)}`
       if (lastReadyKey.current !== key) {
         lastReadyKey.current = key
-        lastSpokenBar.current = bar
         announceReady(side, raw.trailDistancePips)
       }
-      return
     }
-    if (lastSpokenBar.current !== bar) {
-      lastSpokenBar.current = bar
+  }, [
+    last,
+    midText,
+    raw.action,
+    raw.sessionLabel,
+    raw.trailDistancePips,
+    pair,
+    voiceOn,
+    inPosition,
+  ])
+
+  // Exactly every 1 minute: read bid / ask numbers
+  useEffect(() => {
+    if (!voiceOn) return
+    const speakNow = () => {
+      if (bid === '—' || ask === '—') return
       const rateAct =
         raw.action === 'BUY'
           ? 'LONG'
@@ -251,18 +268,15 @@ export default function App() {
               : raw.action === 'READY_SELL'
                 ? 'READY_SELL'
                 : 'WAIT'
-      speakRate(pair.label, bid, rateAct)
+      const minuteKey = Math.floor(Date.now() / 60_000)
+      if (lastSpokenBar.current === minuteKey) return
+      lastSpokenBar.current = minuteKey
+      speakRate(pair.label, midText, rateAct, { bid, ask })
     }
-  }, [
-    last,
-    bid,
-    raw.action,
-    raw.sessionLabel,
-    raw.trailDistancePips,
-    pair,
-    voiceOn,
-    inPosition,
-  ])
+    speakNow()
+    const id = window.setInterval(speakNow, 60_000)
+    return () => window.clearInterval(id)
+  }, [voiceOn, bid, ask, midText, pair.label, raw.action, rateVoice])
 
   async function handleUnlockVoice() {
     unlockAudio()
@@ -428,6 +442,8 @@ export default function App() {
           <SimpleBoard
             signal={signal}
             bid={bid}
+            ask={ask}
+            mid={midText}
             change={change}
             changePct={changePct}
             pair={pair}

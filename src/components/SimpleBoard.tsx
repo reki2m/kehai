@@ -4,7 +4,11 @@ import { unitLabel } from '../lib/pairs'
 
 interface Props {
   signal: SimpleSignal
+  /** 売値 (BID) */
   bid: string
+  /** 買値 (ASK) */
+  ask: string
+  mid: string
   change: number
   changePct: number
   pair: PairMeta
@@ -14,6 +18,8 @@ interface Props {
 export function SimpleBoard({
   signal,
   bid,
+  ask,
+  mid,
   change,
   changePct,
   pair,
@@ -47,14 +53,28 @@ export function SimpleBoard({
           {inPosition ? 'IN TRADE' : signal.label}
         </p>
         <p className="simple-reason">{signal.reason}</p>
-        <div className="simple-quote">
-          <span className="quote-bid">{bid}</span>
+
+        <div className="rate-board" aria-label="売値と買値">
+          <div className="rate-side rate-bid">
+            <span className="rate-label">売</span>
+            <span className="rate-num">{bid}</span>
+          </div>
+          <div className="rate-divider" aria-hidden />
+          <div className="rate-side rate-ask">
+            <span className="rate-label">買</span>
+            <span className="rate-num">{ask}</span>
+          </div>
+        </div>
+        <p className="rate-mid">
+          仲値 {mid}
           <span className={`quote-chg ${change >= 0 ? 'up' : 'down'}`}>
+            {' '}
             {change >= 0 ? '+' : ''}
             {change.toFixed(pair.digits)} ({changePct >= 0 ? '+' : ''}
             {changePct.toFixed(3)}%)
           </span>
-        </div>
+        </p>
+
         <p className="simple-risk">
           SL {SIMPLE.slPips} / TP {SIMPLE.tpPips} {unitLabel(pair)}
           {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ''}
@@ -84,6 +104,7 @@ export function SimpleBoard({
           {unitLabel(pair)} · 利確 {SIMPLE.tpPips}
           {unitLabel(pair)} を固定
         </li>
+        <li>音声オンで1分ごとに売値・買値を読み上げ</li>
       </ol>
     </aside>
   )

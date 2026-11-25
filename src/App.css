@@ -753,6 +753,61 @@
   align-items: center;
 }
 
+.rate-board {
+  margin-top: 0.95rem;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.65rem 0.4rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.rate-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.rate-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.rate-num {
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+  font-size: clamp(1.55rem, 6.5vw, 2.35rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.rate-bid .rate-num {
+  color: var(--sea);
+}
+
+.rate-ask .rate-num {
+  color: var(--coral);
+}
+
+.rate-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+}
+
+.rate-mid {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .simple-risk,
 .simple-meta {
   margin: 0.45rem 0 0;

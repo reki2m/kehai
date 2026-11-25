@@ -71,7 +71,12 @@ export function speak(text: string, opts?: { force?: boolean }): void {
   }
 }
 
-export function speakRate(pairLabel: string, price: string, action: string): void {
+export function speakRate(
+  pairLabel: string,
+  price: string,
+  action: string,
+  quote?: { bid: string; ask: string },
+): void {
   if (!rateVoiceOn) return
   const act =
     action === 'LONG'
@@ -83,7 +88,10 @@ export function speakRate(pairLabel: string, price: string, action: string): voi
           : action === 'READY_SELL'
             ? '売り準備'
             : '待機'
-  speak(`${pairLabel}、現在値 ${price}。シグナルは${act}。`)
+  const rates = quote
+    ? `売値 ${quote.bid}、買値 ${quote.ask}`
+    : `現在値 ${price}`
+  speak(`${pairLabel}、${rates}。シグナルは${act}。`)
 }
 
 export function announceEntry(
