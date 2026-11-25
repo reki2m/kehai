@@ -1,6 +1,6 @@
 import type { Candle } from './marketData'
 import type { PairId, Timeframe } from './pairs'
-import { apiUrl } from './http'
+import { apiUrl, liveSnapshotUrl } from './http'
 
 /** Yahoo Finance symbols for each instrument. */
 export const YAHOO_SYMBOLS: Record<PairId, string> = {
@@ -53,7 +53,40 @@ interface YahooChart {
   }
 }
 
-export async function fetchLiveCandles(
+interface LiveSnapshot {
+  candles?: Candle[]
+  lastPrice?: number | null
+  source?: string
+  fetchedAt?: number
+}
+
+async function fetchSnapshot(
+  pairId: PairId,
+  timeframe: Timeframe,
+): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
+  const snapTf = timeframe === '4H' ? '1H' : timeframe
+  const res = await fetch(liveSnapshotUrl(pairId, snapTf))
+  if (!res.ok) throw new Error(`live ${res.status}`)
+  const data = (await res.json()) as LiveSnapshot
+  if (!data.candles || data.candles.length < 30) throw new Error('live empty')
+  let out = data.candles
+  if (timeframe === '4H') out = resample(out, 4)
+  const ageMin =
+    data.fetchedAt != null
+      ? Math.max(0, Math.round((Date.now() / 1000 - data.fetchedAt) / 60))
+      : null
+  const source =
+    ageMin != null
+      ? `Yahoo更新 ${ageMin}分前`
+      : (data.source ?? 'Yahoo更新')
+  return {
+    candles: out.slice(-360),
+    lastPrice: data.lastPrice ?? out[out.length - 1]?.close ?? null,
+    source,
+  }
+}
+
+async function fetchYahooDirect(
   pairId: PairId,
   timeframe: Timeframe,
 ): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
@@ -89,7 +122,6 @@ export async function fetchLiveCandles(
     })
   }
 
-  // 4H: resample from 60m
   let out = candles
   if (timeframe === '4H') out = resample(candles, 4)
 
@@ -98,6 +130,27 @@ export async function fetchLiveCandles(
     (out.length ? out[out.length - 1].close : null)
 
   return { candles: out.slice(-360), lastPrice, source: 'Yahoo Finance' }
+}
+
+export async function fetchLiveCandles(
+  pairId: PairId,
+  timeframe: Timeframe,
+): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
+  // Production (GitHub Pages): same-origin snapshots from Actions.
+  // Dev: Vite proxy to Yahoo.
+  if (!import.meta.env.DEV) {
+    try {
+      return await fetchSnapshot(pairId, timeframe)
+    } catch (e) {
+      // last resort: unlikely to work in browser
+      try {
+        return await fetchYahooDirect(pairId, timeframe)
+      } catch {
+        throw e instanceof Error ? e : new Error(String(e))
+      }
+    }
+  }
+  return fetchYahooDirect(pairId, timeframe)
 }
 
 function resample(candles: Candle[], group: number): Candle[] {

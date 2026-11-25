@@ -46,7 +46,7 @@ export const PAIRS: PairMeta[] = [
     tp: 10,
     unit: 'pips',
     seed: 1542,
-    open: 151.25,
+    open: 158.93,
     volFrac: 0.00035,
   },
   {

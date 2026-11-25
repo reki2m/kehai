@@ -3,6 +3,9 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    # Refresh live Yahoo snapshots ~every 5 minutes
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +27,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Fetch live Yahoo snapshots
+        run: node scripts/fetch_live.mjs
       - run: npm run build
         env:
           GITHUB_PAGES: '1'
