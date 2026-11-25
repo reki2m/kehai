@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+backtest/__pycache__/
+backtest/node_modules/
+backtest/out/scalp_trades.json
