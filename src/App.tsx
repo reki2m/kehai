@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { RulesPanel } from './components/RulesPanel'
+import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
+import type { FxSession } from './lib/apex'
 import { fetchLiveCandles } from './lib/liveRates'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
 import {
@@ -19,6 +21,15 @@ import {
   type PairId,
   type Timeframe,
 } from './lib/pairs'
+import {
+  cancelOpen,
+  clearSessionStats,
+  closeTradeWithSlip,
+  loadSessionStats,
+  openTrade,
+  toggleSessionDisabled,
+  type SessionStatsState,
+} from './lib/sessionStats'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import {
   announceEntry,
@@ -55,12 +66,15 @@ export default function App() {
   const [voiceOn, setVoiceOn] = useState(false)
   const [rateVoice, setRateVoice] = useState(true)
   const [entrySound, setEntrySound] = useState(true)
-  /** Manual: one open trade — blocks new signals until cleared */
-  const [inPosition, setInPosition] = useState(false)
+  const [stats, setStats] = useState<SessionStatsState>(() => loadSessionStats())
+  const [statsRange, setStatsRange] = useState<14 | 0>(14)
+  const [slipInput, setSlipInput] = useState('0.2')
+  const [otherPnl, setOtherPnl] = useState('')
   const lastSpokenBar = useRef<number | null>(null)
   const lastEntryKey = useRef<string | null>(null)
 
   const pair = getPair(pairId)
+  const inPosition = !!stats.open
 
   useEffect(() => {
     const id = window.setTimeout(() => setBooted(true), 40)
@@ -139,7 +153,10 @@ export default function App() {
     }
   }, [])
 
-  const raw = useMemo(() => evaluateSimple(candles, pair), [candles, pair])
+  const raw = useMemo(
+    () => evaluateSimple(candles, pair, stats.disabledSessions),
+    [candles, pair, stats.disabledSessions],
+  )
   const signal = useMemo(() => {
     if (!inPosition) return raw
     return {
@@ -149,6 +166,39 @@ export default function App() {
       reason: '建玉中 · 新規サイン無視',
     }
   }, [raw, inPosition])
+
+  function handleEntry() {
+    if (raw.action !== 'BUY' && raw.action !== 'SELL') return
+    if (!raw.session) return
+    const expected = Number(bid)
+    if (!Number.isFinite(expected)) return
+    setStats((s) =>
+      openTrade(s, {
+        session: raw.session as FxSession,
+        side: raw.action as 'BUY' | 'SELL',
+        expectedEntry: expected,
+        pairId,
+      }),
+    )
+  }
+
+  function handleClose(kind: 'TP' | 'SL' | 'OTHER') {
+    const slip = Math.max(0, Number(slipInput) || 0)
+    let pnl =
+      kind === 'TP' ? SIMPLE.tpPips : kind === 'SL' ? -SIMPLE.slPips : Number(otherPnl)
+    if (kind === 'OTHER' && !Number.isFinite(pnl)) return
+    // Adverse slip reduces net for winners / worsens losers slightly on entry
+    if (kind === 'TP') pnl = Math.max(0, pnl - slip)
+    if (kind === 'SL') pnl = pnl - slip
+    setStats((s) =>
+      closeTradeWithSlip(s, {
+        exit: kind,
+        pnlPips: Math.round(pnl * 10) / 10,
+        slipPips: slip,
+      }),
+    )
+    setOtherPnl('')
+  }
 
   const first = candles[0]
   const last = candles[candles.length - 1]
@@ -220,7 +270,7 @@ export default function App() {
               value={pairId}
               onChange={(e) => {
                 setPairId(e.target.value as PairId)
-                setInPosition(false)
+                setStats((s) => cancelOpen(s))
               }}
             >
               <optgroup label="FX">
@@ -277,19 +327,13 @@ export default function App() {
               <button
                 type="button"
                 className="voice-btn primary"
-                disabled={raw.action === 'WAIT'}
-                onClick={() => setInPosition(true)}
+                disabled={raw.action === 'WAIT' || !raw.session}
+                onClick={handleEntry}
               >
                 エントリーした
               </button>
             ) : (
-              <button
-                type="button"
-                className="voice-btn active"
-                onClick={() => setInPosition(false)}
-              >
-                決済した
-              </button>
+              <span className="voice-btn active">建玉中 → 右の成績で決済</span>
             )}
             {!isVoiceUnlocked() && !voiceOn ? (
               <button
@@ -355,6 +399,22 @@ export default function App() {
             changePct={changePct}
             pair={pair}
             inPosition={inPosition}
+          />
+          <SessionStatsPanel
+            stats={stats}
+            rangeDays={statsRange}
+            onRange={setStatsRange}
+            onToggleSession={(s) => setStats((st) => toggleSessionDisabled(st, s))}
+            onClear={() => {
+              if (window.confirm('成績記録をすべて消しますか？')) {
+                setStats(clearSessionStats())
+              }
+            }}
+            slipInput={slipInput}
+            onSlipInput={setSlipInput}
+            onClose={handleClose}
+            otherPnl={otherPnl}
+            onOtherPnl={setOtherPnl}
           />
           <RulesPanel />
           <NewsPanel

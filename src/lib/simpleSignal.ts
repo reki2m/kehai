@@ -63,6 +63,7 @@ function last<T>(arr: T[]): T | undefined {
 export function evaluateSimple(
   candles: Candle[],
   pair?: PairMeta,
+  disabledSessions: FxSession[] = [],
 ): SimpleSignal {
   const pip = pair?.pip ?? SIMPLE.pip
   const cur = last(candles)
@@ -70,6 +71,21 @@ export function evaluateSimple(
   const t = cur?.time ?? 0
 
   const fxSession = !pair || pair.kind === 'fx' ? detectFxSession(t) : null
+  if (fxSession && disabledSessions.includes(fxSession)) {
+    return {
+      action: 'WAIT',
+      label: 'WAIT',
+      session: fxSession,
+      sessionLabel: `${SESSION_PROFILES[fxSession].labelJa}（停止中）`,
+      reason: '弱い帯として停止中',
+      spreadPips: 0,
+      stopDistance: SIMPLE.slPips * pip,
+      takeProfitDistance: SIMPLE.tpPips * pip,
+      utFlip: false,
+      sslSide: 'flat',
+      filtersOk: false,
+    }
+  }
   const profile = fxSession ? SESSION_PROFILES[fxSession] : null
 
   const utKey = profile?.utKey ?? 2
