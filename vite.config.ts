@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // GitHub Pages project site: https://reki2m.github.io/kehai/
+  base: process.env.GITHUB_PAGES === '1' ? '/kehai/' : '/',
   server: {
     proxy: {
       // Live FX rates — Yahoo Finance chart API

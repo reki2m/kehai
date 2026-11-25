@@ -1,3 +1,5 @@
+import { apiUrl } from './http'
+
 export type NewsImpact = 'High' | 'Medium' | 'Low' | 'Holiday' | string
 
 /** 1 = ほぼ無視 … 5 = 必須回避級 */
@@ -63,7 +65,7 @@ export function impactToImportance(
 
 /** Forex Factory calendar (USD/JPY focus) via faireconomy mirror. */
 export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
-  const res = await fetch('/api/ff/ff_calendar_thisweek.json')
+  const res = await fetch(apiUrl('/api/ff/ff_calendar_thisweek.json'))
   if (!res.ok) throw new Error(`calendar ${res.status}`)
   const rows = (await res.json()) as FfRow[]
   const out: CalendarEvent[] = []
@@ -114,7 +116,7 @@ export function eventsDueSoon(
 
 /** Investing.com FX news headlines (RSS). */
 export async function fetchHeadlines(): Promise<Headline[]> {
-  const res = await fetch('/api/investing-rss/rss/news_25.rss')
+  const res = await fetch(apiUrl('/api/investing-rss/rss/news_25.rss'))
   if (!res.ok) throw new Error(`rss ${res.status}`)
   const xml = await res.text()
   const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 20)

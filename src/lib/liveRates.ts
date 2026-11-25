@@ -1,5 +1,6 @@
 import type { Candle } from './marketData'
 import type { PairId, Timeframe } from './pairs'
+import { apiUrl } from './http'
 
 /** Yahoo Finance symbols for each instrument. */
 export const YAHOO_SYMBOLS: Record<PairId, string> = {
@@ -59,7 +60,9 @@ export async function fetchLiveCandles(
   const symbol = encodeURIComponent(YAHOO_SYMBOLS[pairId])
   const interval = TF_MAP[timeframe]
   const range = RANGE_MAP[timeframe]
-  const url = `/api/yahoo/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`
+  const url = apiUrl(
+    `/api/yahoo/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`,
+  )
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Yahoo ${res.status}`)
   const data = (await res.json()) as YahooChart
