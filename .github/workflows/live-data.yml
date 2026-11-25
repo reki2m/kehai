@@ -1,0 +1,42 @@
+name: Refresh live data
+
+on:
+  schedule:
+    # GitHub may delay cron; still much fresher than Pages CDN (10m cache)
+    - cron: '* * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fetch_live.mjs'
+      - 'scripts/fetch_news.mjs'
+      - '.github/workflows/live-data.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-data
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch Yahoo + news
+        run: |
+          mkdir -p public/live
+          node scripts/fetch_live.mjs
+          node scripts/fetch_news.mjs
+      - name: Publish to live-data branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public/live
+          publish_branch: live-data
+          force_orphan: true
+          commit_message: 'live data ${{ github.run_id }}'

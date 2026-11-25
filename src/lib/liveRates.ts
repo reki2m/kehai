@@ -65,23 +65,37 @@ async function fetchSnapshot(
   timeframe: Timeframe,
 ): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
   const snapTf = timeframe === '4H' ? '1H' : timeframe
-  const res = await fetch(liveSnapshotUrl(pairId, snapTf))
+  let res = await fetch(liveSnapshotUrl(pairId, snapTf))
+  // First deploy: live-data branch may not exist yet → Pages copy
+  if (!res.ok && !import.meta.env.DEV) {
+    const base = import.meta.env.BASE_URL || '/'
+    res = await fetch(`${base}live/${pairId}_${snapTf}.json?t=${Date.now()}`)
+  }
   if (!res.ok) throw new Error(`live ${res.status}`)
   const data = (await res.json()) as LiveSnapshot
   if (!data.candles || data.candles.length < 30) throw new Error('live empty')
-  let out = data.candles
+  let out = data.candles.map((c) => ({ ...c }))
   if (timeframe === '4H') out = resample(out, 4)
-  const ageMin =
+  const lastPrice =
+    data.lastPrice ?? (out.length ? out[out.length - 1].close : null)
+  // Keep forming bar in sync with lastPrice so the chart visibly updates
+  if (out.length && lastPrice != null) {
+    const last = out[out.length - 1]
+    last.close = lastPrice
+    last.high = Math.max(last.high, lastPrice)
+    last.low = Math.min(last.low, lastPrice)
+  }
+  const ageSec =
     data.fetchedAt != null
-      ? Math.max(0, Math.round((Date.now() / 1000 - data.fetchedAt) / 60))
+      ? Math.max(0, Math.round(Date.now() / 1000 - data.fetchedAt))
       : null
   const source =
-    ageMin != null
-      ? `Yahoo更新 ${ageMin}分前`
+    ageSec != null
+      ? `Yahoo更新 ${ageSec < 90 ? `${ageSec}秒前` : `${Math.round(ageSec / 60)}分前`}`
       : (data.source ?? 'Yahoo更新')
   return {
     candles: out.slice(-360),
-    lastPrice: data.lastPrice ?? out[out.length - 1]?.close ?? null,
+    lastPrice,
     source,
   }
 }

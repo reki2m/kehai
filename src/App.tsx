@@ -121,7 +121,7 @@ export default function App() {
     }
 
     void load(true)
-    timer = window.setInterval(() => void load(false), 15_000)
+    timer = window.setInterval(() => void load(false), 10_000)
     return () => {
       cancelled = true
       if (timer) window.clearInterval(timer)

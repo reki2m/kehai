@@ -1,4 +1,4 @@
-import { apiUrl } from './http'
+import { apiUrl, liveNewsUrl } from './http'
 
 export type NewsImpact = 'High' | 'Medium' | 'Low' | 'Holiday' | string
 
@@ -94,16 +94,10 @@ function parseCalendarRows(rows: FfRow[]): CalendarEvent[] {
   return out
 }
 
-function liveJson(name: string): string {
-  const base = import.meta.env.BASE_URL || '/'
-  const bust = Math.floor(Date.now() / 60_000)
-  return `${base}live/${name}.json?t=${bust}`
-}
-
 /** Forex Factory calendar (USD/JPY focus) via faireconomy mirror / CI snapshot. */
 export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
   if (!import.meta.env.DEV) {
-    const res = await fetch(liveJson('calendar'))
+    const res = await fetch(liveNewsUrl('calendar'))
     if (!res.ok) throw new Error(`calendar snapshot ${res.status}`)
     const data = (await res.json()) as { events?: CalendarEvent[] }
     if (!data.events?.length) throw new Error('calendar empty')
@@ -133,7 +127,7 @@ export function eventsDueSoon(
 /** Investing.com FX news headlines (RSS) / CI snapshot. */
 export async function fetchHeadlines(): Promise<Headline[]> {
   if (!import.meta.env.DEV) {
-    const res = await fetch(liveJson('headlines'))
+    const res = await fetch(liveNewsUrl('headlines'))
     if (!res.ok) throw new Error(`headlines snapshot ${res.status}`)
     const data = (await res.json()) as { headlines?: Headline[] }
     return data.headlines ?? []
