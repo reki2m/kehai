@@ -1,0 +1,279 @@
+{
+  "yahoo": {
+    "0.0": {
+      "trades": 94,
+      "win_rate": 58.5,
+      "net_pips": 184.0,
+      "pf": 1.73,
+      "avg_month_pips": 91.98701171874612,
+      "median_month_pips": 91.98701171874612,
+      "months": {
+        "2026-10": 19.57886474609244,
+        "2026-11": 164.39515869139979
+      },
+      "max_dd_pips": -40.84364501952729,
+      "pips_per_day": 6.5953596507167624,
+      "neg_weeks": 0,
+      "n_weeks": 5
+    },
+    "0.2": {
+      "trades": 94,
+      "win_rate": 56.4,
+      "net_pips": 145.6,
+      "pf": 1.54,
+      "avg_month_pips": 72.78676147454976,
+      "median_month_pips": 72.78676147454976,
+      "months": {
+        "2026-10": 16.77886474607907,
+        "2026-11": 128.79465820302045
+      },
+      "max_dd_pips": -45.84364501955116,
+      "pips_per_day": 5.218936767088916,
+      "neg_weeks": 0,
+      "n_weeks": 5
+    },
+    "0.3": {
+      "trades": 93,
+      "win_rate": 57.0,
+      "net_pips": 131.2,
+      "pf": 1.49,
+      "avg_month_pips": 65.61177368172011,
+      "median_month_pips": 65.61177368172011,
+      "months": {
+        "2026-10": 15.378864746112177,
+        "2026-11": 115.84468261732805
+      },
+      "max_dd_pips": -48.343645019492044,
+      "pips_per_day": 4.702778185728474,
+      "neg_weeks": 0,
+      "n_weeks": 5
+    },
+    "0.4": {
+      "trades": 94,
+      "win_rate": 53.2,
+      "net_pips": 77.9,
+      "pf": 1.26,
+      "avg_month_pips": 38.936773681694234,
+      "median_month_pips": 38.936773681694234,
+      "months": {
+        "2026-10": 13.978864746105492,
+        "2026-11": 63.89468261728298
+      },
+      "max_dd_pips": -70.20969482416115,
+      "pips_per_day": 2.7922745477762816,
+      "neg_weeks": 2,
+      "n_weeks": 5
+    },
+    "0.5": {
+      "trades": 96,
+      "win_rate": 49.0,
+      "net_pips": 34.3,
+      "pf": 1.11,
+      "avg_month_pips": 17.143699951198617,
+      "median_month_pips": 17.143699951198617,
+      "months": {
+        "2026-10": 12.578864746098807,
+        "2026-11": 21.708535156298424
+      },
+      "max_dd_pips": -75.70969482418742,
+      "pips_per_day": 1.2294610653238311,
+      "neg_weeks": 2,
+      "n_weeks": 5
+    }
+  },
+  "duka": {
+    "0.2": {
+      "trades": 55,
+      "win_rate": 61.8,
+      "net_pips": 102.0,
+      "pf": 1.65,
+      "avg_month_pips": 101.99978358972294,
+      "max_dd_pips": -50.680546851057784,
+      "days": 22.457638888888887,
+      "pips_per_day": 4.541884412010266,
+      "annualized_month_pips": 90.83768824020532
+    },
+    "0.3": {
+      "trades": 54,
+      "win_rate": 61.1,
+      "net_pips": 85.5,
+      "pf": 1.54,
+      "avg_month_pips": 85.48365852787481,
+      "max_dd_pips": -51.98054685102704,
+      "days": 22.457638888888887,
+      "pips_per_day": 3.807167815949782,
+      "annualized_month_pips": 76.14335631899564
+    },
+    "0.5": {
+      "trades": 54,
+      "win_rate": 59.3,
+      "net_pips": 70.9,
+      "pf": 1.43,
+      "avg_month_pips": 70.90087532224476,
+      "max_dd_pips": -54.55010903082484,
+      "days": 22.457638888888887,
+      "pips_per_day": 3.1570549491326267,
+      "annualized_month_pips": 63.14109898265254
+    }
+  },
+  "lot_plan": {
+    "50": {
+      "pessimistic_slip0.5_cal": {
+        "yen": 184419,
+        "hit_50_70万": "False"
+      },
+      "base_slip0.3_cal": {
+        "yen": 705417,
+        "hit_50_70万": "True"
+      },
+      "optimistic_slip0.2_cal": {
+        "yen": 782841,
+        "hit_50_70万": "True"
+      },
+      "duka_slip0.3_x20": {
+        "yen": 380717,
+        "hit_50_70万": "False"
+      },
+      "sample_max_dd_yen": 241718,
+      "sl_one_yen": 35000
+    },
+    "60": {
+      "pessimistic_slip0.5_cal": {
+        "yen": 221303,
+        "hit_50_70万": "False"
+      },
+      "base_slip0.3_cal": {
+        "yen": 846500,
+        "hit_50_70万": "True"
+      },
+      "optimistic_slip0.2_cal": {
+        "yen": 939409,
+        "hit_50_70万": "True"
+      },
+      "duka_slip0.3_x20": {
+        "yen": 456860,
+        "hit_50_70万": "False"
+      },
+      "sample_max_dd_yen": 290062,
+      "sl_one_yen": 42000
+    },
+    "70": {
+      "pessimistic_slip0.5_cal": {
+        "yen": 258187,
+        "hit_50_70万": "False"
+      },
+      "base_slip0.3_cal": {
+        "yen": 987583,
+        "hit_50_70万": "True"
+      },
+      "optimistic_slip0.2_cal": {
+        "yen": 1095977,
+        "hit_50_70万": "True"
+      },
+      "duka_slip0.3_x20": {
+        "yen": 533003,
+        "hit_50_70万": "True"
+      },
+      "sample_max_dd_yen": 338406,
+      "sl_one_yen": 49000
+    }
+  },
+  "scale_rule": {
+    "start_mai": 50,
+    "cap_mai": 70,
+    "step_mai": [
+      8,
+      12
+    ],
+    "gate_month_yen": 500000,
+    "logic": "固定ルールで1ヶ月実測。月≥50万なら+8〜12枚（上限70）。未達・DD悪化なら据え置き/減枚。",
+    "paths": {
+      "50→58→70": "月ゲート2回クリアで上限",
+      "50→62": "一回+12で上限近く"
+    }
+  },
+  "sessions": {
+    "tokyo": {
+      "pips": 34.1753784180735,
+      "n": 58
+    },
+    "london": {
+      "pips": 69.14888916019238,
+      "n": 23
+    },
+    "ny": {
+      "pips": 27.899279785174354,
+      "n": 12
+    }
+  },
+  "drop_worst": {
+    "dropped": "ny",
+    "keep": [
+      "tokyo",
+      "london"
+    ],
+    "net_pips": 103.3,
+    "trades": 81,
+    "pf": 1.44,
+    "win_rate": 56.8
+  },
+  "sltp": {
+    "5/8": {
+      "net_pips": 35.5,
+      "trades": 107,
+      "pf": 1.11,
+      "win_rate": 46.7,
+      "dd": -58.299694824173955
+    },
+    "6/9": {
+      "net_pips": 80.6,
+      "trades": 102,
+      "pf": 1.26,
+      "win_rate": 52.0,
+      "dd": -58.653352050745696
+    },
+    "7/10": {
+      "net_pips": 131.2,
+      "trades": 93,
+      "pf": 1.49,
+      "win_rate": 57.0,
+      "dd": -48.343645019492044
+    },
+    "7/12": {
+      "net_pips": 67.3,
+      "trades": 93,
+      "pf": 1.22,
+      "win_rate": 48.4,
+      "dd": -80.45479248037125
+    },
+    "7/15": {
+      "net_pips": 77.0,
+      "trades": 89,
+      "pf": 1.26,
+      "win_rate": 48.3,
+      "dd": -80.809328613222
+    },
+    "8/12": {
+      "net_pips": 88.5,
+      "trades": 89,
+      "pf": 1.31,
+      "win_rate": 51.7,
+      "dd": -64.88480468744994
+    }
+  },
+  "month_est_pips": {
+    "pessimistic_slip0.5_cal": 36.88383195971493,
+    "base_slip0.3_cal": 141.0833455718542,
+    "optimistic_slip0.2_cal": 156.56810301266748,
+    "duka_slip0.3_x20": 76.14335631899564
+  },
+  "verdict": {
+    "logic_still_best_sltp": true,
+    "yahoo_slip03_50mai_yen": 705417,
+    "yahoo_slip03_70mai_yen": 987583,
+    "yahoo_slip05_50mai_yen": 184419,
+    "duka_slip03_50mai_yen": 380717,
+    "target_50_70万_at_50_70mai": true,
+    "recommendation": "50枚では月50万がギリギリ〜未達の月あり得る。70枚なら基準シナリオで到達。まず50枚で実測、安定後に上限まで段階上げ。"
+  }
+}
