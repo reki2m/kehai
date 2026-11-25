@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ImpactPanel } from './components/ImpactPanel'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { RulesPanel } from './components/RulesPanel'
@@ -21,6 +22,11 @@ import {
   type PairId,
   type Timeframe,
 } from './lib/pairs'
+import {
+  applyImpactGate,
+  evaluateUsdJpyImpact,
+  IMPACT_DRIVERS,
+} from './lib/usdjpyImpact'
 import {
   announceEntry,
   announceEventResult,
@@ -53,6 +59,16 @@ export default function App() {
   const [candles5m, setCandles5m] = useState<Candle[]>(() =>
     generateCandles(getPair('USDJPY'), '5m', 240),
   )
+  const [driverSeries, setDriverSeries] = useState<Partial<Record<PairId, Candle[]>>>(
+    () => {
+      const init: Partial<Record<PairId, Candle[]>> = {}
+      for (const id of IMPACT_DRIVERS) {
+        init[id] = generateCandles(getPair(id), '5m', 80)
+      }
+      return init
+    },
+  )
+  const [impactLoading, setImpactLoading] = useState(false)
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
@@ -120,6 +136,38 @@ export default function App() {
       if (timer) window.clearInterval(timer)
     }
   }, [pairId, pair])
+
+  // Related markets → USD/JPY impact (5m)
+  useEffect(() => {
+    let cancelled = false
+    let timer: number | undefined
+
+    async function loadDrivers(initial: boolean) {
+      if (initial) setImpactLoading(true)
+      const next: Partial<Record<PairId, Candle[]>> = {}
+      await Promise.all(
+        IMPACT_DRIVERS.map(async (id) => {
+          try {
+            const { candles } = await fetchLiveCandles(id, '5m')
+            if (candles.length >= 20) next[id] = candles
+            else next[id] = generateCandles(getPair(id), '5m', 80)
+          } catch {
+            next[id] = generateCandles(getPair(id), '5m', 80)
+          }
+        }),
+      )
+      if (cancelled) return
+      setDriverSeries((prev) => ({ ...prev, ...next }))
+      if (initial) setImpactLoading(false)
+    }
+
+    void loadDrivers(true)
+    timer = window.setInterval(() => void loadDrivers(false), 60_000)
+    return () => {
+      cancelled = true
+      if (timer) window.clearInterval(timer)
+    }
+  }, [])
 
   // Soft tick only when live feed is down
   useEffect(() => {
@@ -194,7 +242,11 @@ export default function App() {
     () => decideMultiTf(candles1m, candles5m, preferTf, pair),
     [candles1m, candles5m, preferTf, pair],
   )
-  const edge = multi.edge
+  const impact = useMemo(() => evaluateUsdJpyImpact(driverSeries, 12), [driverSeries])
+  const edge = useMemo(() => {
+    if (pairId !== 'USDJPY') return multi.edge
+    return applyImpactGate(multi.edge, impact)
+  }, [multi.edge, impact, pairId])
 
   // Chart follows multi-TF winner (1m/5m Apex stack)
   const chartTf: Timeframe = multi.activeTf
@@ -385,7 +437,7 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              {sourceLabel} · 1m/5m同時評価 · 指標重要度1–5 · SL2.5·TP5p
+              {sourceLabel} · 1m/5m同時評価 · 関連市場→ドル円インパクト · 指標重要度1–5
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />
@@ -401,6 +453,7 @@ export default function App() {
             pair={pair}
             multi={multi}
           />
+          <ImpactPanel impact={impact} loading={impactLoading} />
           <RulesPanel />
           <NewsPanel
             events={events}

@@ -21,6 +21,12 @@ export function RulesPanel() {
           </span>
         </li>
         <li>
+          <strong>ドル円インパクト</strong>
+          <span>
+            EUR/USD・原油・日経・ダウ・VIXの短期変化からドル円圧力を採点。USD/JPY取引時は逆風なら見送り、順風ならスコア加算
+          </span>
+        </li>
+        <li>
           <strong>買い（LONG）</strong>
           <span>
             UT Bot({p.utKey}/{p.utAtr}) が買いフリップ かつ SSLが買い側 かつ 終値 ≥ Session
