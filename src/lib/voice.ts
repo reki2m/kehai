@@ -244,6 +244,40 @@ export function announceEventResult(e: CalendarEvent): void {
   )
 }
 
+/** 最新ヘッドライン */
+export function announceHeadline(title: string): void {
+  if (!newsVoiceOn) return
+  speak(`最新ニュース。${title}。`, { force: true })
+}
+
+/** 要人発言の予告（当日〜直近） */
+export function announceSpeech(e: CalendarEvent, minutesLeft: number): void {
+  if (!newsVoiceOn) return
+  playAlertBeep(e.importance)
+  const mins = Math.max(0, Math.round(minutesLeft))
+  const when =
+    mins <= 5
+      ? `あと約${mins}分`
+      : mins <= 60
+        ? `約${mins}分後`
+        : `約${Math.round(mins / 60)}時間後`
+  speak(
+    `要人発言。重要度${e.importance}。${e.country}、${e.title}。${when}。`,
+    { force: true },
+  )
+}
+
+/** 直近の高重要度指標をまとめて読み上げ */
+export function announceUpcomingBrief(events: CalendarEvent[]): void {
+  if (!newsVoiceOn || events.length === 0) return
+  const lines = events.slice(0, 4).map((e) => {
+    const mins = Math.max(0, Math.round((e.time - Date.now() / 1000) / 60))
+    const kind = e.kind === 'speech' ? '発言' : '指標'
+    return `${kind}、${e.country}、${e.title}、重要度${e.importance}、あと約${mins}分`
+  })
+  speak(`経済指標まとめ。${lines.join('。')}。`, { force: true })
+}
+
 export async function requestNotifyPermission(): Promise<void> {
   if (typeof Notification === 'undefined') return
   if (Notification.permission === 'default') {

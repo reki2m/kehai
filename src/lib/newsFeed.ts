@@ -63,11 +63,7 @@ export function impactToImportance(
   return 2
 }
 
-/** Forex Factory calendar (USD/JPY focus) via faireconomy mirror. */
-export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
-  const res = await fetch(apiUrl('/api/ff/ff_calendar_thisweek.json'))
-  if (!res.ok) throw new Error(`calendar ${res.status}`)
-  const rows = (await res.json()) as FfRow[]
+function parseCalendarRows(rows: FfRow[]): CalendarEvent[] {
   const out: CalendarEvent[] = []
   for (const r of rows) {
     const country = (r.country ?? '').toUpperCase()
@@ -80,10 +76,9 @@ export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
     const speech = SPEECH_RE.test(title)
     const kind = speech ? 'speech' : 'calendar'
     const importance = impactToImportance(impact, title, kind)
-    // Keep Low (2+) for display; UI filters further
     if (importance < 2 && impact === 'Low' && !speech) continue
     out.push({
-      id: `${t}-${country}-${title}`,
+      id: `${Math.floor(t / 1000)}-${country}-${title}`,
       time: Math.floor(t / 1000),
       country,
       title,
@@ -97,6 +92,27 @@ export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
   }
   out.sort((a, b) => a.time - b.time || b.importance - a.importance)
   return out
+}
+
+function liveJson(name: string): string {
+  const base = import.meta.env.BASE_URL || '/'
+  const bust = Math.floor(Date.now() / 60_000)
+  return `${base}live/${name}.json?t=${bust}`
+}
+
+/** Forex Factory calendar (USD/JPY focus) via faireconomy mirror / CI snapshot. */
+export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
+  if (!import.meta.env.DEV) {
+    const res = await fetch(liveJson('calendar'))
+    if (!res.ok) throw new Error(`calendar snapshot ${res.status}`)
+    const data = (await res.json()) as { events?: CalendarEvent[] }
+    if (!data.events?.length) throw new Error('calendar empty')
+    return data.events
+  }
+  const res = await fetch(apiUrl('/api/ff/ff_calendar_thisweek.json'))
+  if (!res.ok) throw new Error(`calendar ${res.status}`)
+  const rows = (await res.json()) as FfRow[]
+  return parseCalendarRows(rows)
 }
 
 /** Events due within leadSec that meet minImportance (default 3). */
@@ -114,8 +130,14 @@ export function eventsDueSoon(
   )
 }
 
-/** Investing.com FX news headlines (RSS). */
+/** Investing.com FX news headlines (RSS) / CI snapshot. */
 export async function fetchHeadlines(): Promise<Headline[]> {
+  if (!import.meta.env.DEV) {
+    const res = await fetch(liveJson('headlines'))
+    if (!res.ok) throw new Error(`headlines snapshot ${res.status}`)
+    const data = (await res.json()) as { headlines?: Headline[] }
+    return data.headlines ?? []
+  }
   const res = await fetch(apiUrl('/api/investing-rss/rss/news_25.rss'))
   if (!res.ok) throw new Error(`rss ${res.status}`)
   const xml = await res.text()

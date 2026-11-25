@@ -8,6 +8,7 @@ import type { FxSession } from './lib/apex'
 import { fetchLiveCandles } from './lib/liveRates'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
 import {
+  eventsDueSoon,
   fetchCalendarEvents,
   fetchHeadlines,
   type CalendarEvent,
@@ -33,11 +34,17 @@ import {
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import {
   announceEntry,
+  announceEventResult,
+  announceEventWarning,
+  announceHeadline,
   announceReady,
+  announceSpeech,
+  announceUpcomingBrief,
   getVoicePrefs,
   isVoiceUnlocked,
   requestNotifyPermission,
   setEntrySoundOn,
+  setNewsVoiceOn,
   setRateVoiceOn,
   speakRate,
   unlockAudio,
@@ -67,6 +74,8 @@ export default function App() {
   const [voiceOn, setVoiceOn] = useState(false)
   const [rateVoice, setRateVoice] = useState(true)
   const [entrySound, setEntrySound] = useState(true)
+  const [newsVoice, setNewsVoice] = useState(true)
+  const [alertIds, setAlertIds] = useState<Set<string>>(() => new Set())
   const [stats, setStats] = useState<SessionStatsState>(() => loadSessionStats())
   const [statsRange, setStatsRange] = useState<14 | 0>(14)
   const [slipInput, setSlipInput] = useState('0.2')
@@ -74,6 +83,11 @@ export default function App() {
   const lastSpokenBar = useRef<number | null>(null)
   const lastEntryKey = useRef<string | null>(null)
   const lastReadyKey = useRef<string | null>(null)
+  const warnedEvents = useRef<Set<string>>(new Set())
+  const spokenResults = useRef<Set<string>>(new Set())
+  const spokenHeadlines = useRef<Set<string>>(new Set())
+  const spokenSpeeches = useRef<Set<string>>(new Set())
+  const briefDone = useRef(false)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -285,7 +299,69 @@ export default function App() {
     const prefs = getVoicePrefs()
     setRateVoice(prefs.rateVoiceOn)
     setEntrySound(prefs.entrySoundOn)
+    setNewsVoice(prefs.newsVoiceOn)
+    setNewsVoiceOn(prefs.newsVoiceOn)
+    briefDone.current = false
   }
+
+  // 指標5分前・結果・要人・新着ニュースの読み上げ
+  useEffect(() => {
+    if (!voiceOn || !newsVoice) return
+    const now = Date.now() / 1000
+
+    const due = eventsDueSoon(events, now, 5 * 60, 3)
+    for (const e of due) {
+      if (warnedEvents.current.has(e.id)) continue
+      warnedEvents.current.add(e.id)
+      announceEventWarning(e, (e.time - now) / 60)
+      setAlertIds((prev) => new Set(prev).add(e.id))
+    }
+
+    for (const e of events) {
+      if (!e.actual) continue
+      const key = `${e.id}|${e.actual}`
+      if (spokenResults.current.has(key)) continue
+      // only announce if event is recent (within 2h)
+      if (e.time < now - 2 * 3600 || e.time > now + 60) continue
+      spokenResults.current.add(key)
+      announceEventResult(e)
+    }
+
+    for (const e of events) {
+      if (e.kind !== 'speech') continue
+      if (e.importance < 3) continue
+      if (spokenSpeeches.current.has(e.id)) continue
+      const mins = (e.time - now) / 60
+      // announce once when within 60 minutes (or just started)
+      if (mins > 60 || mins < -15) continue
+      spokenSpeeches.current.add(e.id)
+      announceSpeech(e, mins)
+    }
+
+    // New headlines (skip first paint flood — mark existing, then speak new)
+    if (spokenHeadlines.current.size === 0 && headlines.length > 0) {
+      for (const h of headlines.slice(0, 12)) spokenHeadlines.current.add(h.id)
+    } else {
+      for (const h of headlines.slice(0, 8)) {
+        if (spokenHeadlines.current.has(h.id)) continue
+        spokenHeadlines.current.add(h.id)
+        announceHeadline(h.title)
+        break // one at a time
+      }
+    }
+
+    if (!briefDone.current && events.length > 0) {
+      const upcoming = events
+        .filter((e) => e.importance >= 4 && e.time >= now - 60 && e.time <= now + 6 * 3600)
+        .slice(0, 4)
+      if (upcoming.length) {
+        briefDone.current = true
+        window.setTimeout(() => announceUpcomingBrief(upcoming), 2500)
+      } else {
+        briefDone.current = true
+      }
+    }
+  }, [events, headlines, voiceOn, newsVoice])
 
   const sourceLabel = liveSource
     ? `ライブ ${liveSource}`
@@ -414,6 +490,17 @@ export default function App() {
                 >
                   音
                 </button>
+                <button
+                  type="button"
+                  className={`voice-btn ${newsVoice ? 'active' : ''}`}
+                  onClick={() => {
+                    const n = !newsVoice
+                    setNewsVoice(n)
+                    setNewsVoiceOn(n)
+                  }}
+                >
+                  ニュース
+                </button>
               </>
             )}
           </div>
@@ -471,6 +558,7 @@ export default function App() {
             headlines={headlines}
             loading={newsLoading}
             error={newsError}
+            alertIds={alertIds}
           />
         </div>
       </main>

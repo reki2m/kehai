@@ -27,8 +27,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Fetch live Yahoo snapshots
-        run: node scripts/fetch_live.mjs
+      - name: Fetch live Yahoo + news snapshots
+        run: |
+          node scripts/fetch_live.mjs
+          node scripts/fetch_news.mjs
       - run: npm run build
         env:
           GITHUB_PAGES: '1'

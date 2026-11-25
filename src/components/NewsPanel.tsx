@@ -43,7 +43,7 @@ export function NewsPanel({ events, headlines, loading, error, alertIds }: Props
       <div className="news-head">
         <h2>News / Speeches</h2>
         <p className="news-source">
-          重要度1–5 · 5分前通知 · FFカレンダー · Investing · Asia/Tokyo
+          重要度1–5 · 5分前/結果/要人/新着を読み上げ · FF · Investing · JST
         </p>
       </div>
 
