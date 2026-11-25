@@ -226,7 +226,6 @@ export function PriceChart({ candles, pair, overlays }: Props) {
     }))
     candleSeries.current.setData(candleData)
     prevLen.current = candles.length
-    prevLastTime.current = last.time
 
     const showEma = overlays.includes('ema')
     const showBb = overlays.includes('bb')
