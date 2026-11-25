@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NewsPanel } from './components/NewsPanel'
-import type { OverlayId } from './components/PriceChart'
 import { TradingViewChart } from './components/TradingViewChart'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
@@ -56,15 +55,9 @@ import {
 } from './lib/voice'
 import './App.css'
 
-const OVERLAYS: { id: OverlayId; label: string }[] = [
-  { id: 'ema', label: 'EMA' },
-  { id: 'bb', label: 'BB' },
-]
-
 export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
-  const [overlays, setOverlays] = useState<OverlayId[]>(['ema'])
   const [candles, setCandles] = useState<Candle[]>([])
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
