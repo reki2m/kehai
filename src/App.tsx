@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NewsPanel } from './components/NewsPanel'
-import { PriceChart, type OverlayId } from './components/PriceChart'
+import type { OverlayId } from './components/PriceChart'
+import { TradingViewChart } from './components/TradingViewChart'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
@@ -446,24 +447,6 @@ export default function App() {
             ))}
           </div>
 
-          <div className="segmented overlays" role="group" aria-label="表示">
-            {OVERLAYS.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                className={overlays.includes(o.id) ? 'active' : ''}
-                onClick={() =>
-                  setOverlays((prev) =>
-                    prev.includes(o.id)
-                      ? prev.filter((x) => x !== o.id)
-                      : [...prev, o.id],
-                  )
-                }
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
 
           <div className="voice-controls" role="group" aria-label="ポジション">
             {!inPosition ? (
@@ -561,13 +544,10 @@ export default function App() {
               最新を読み込み
             </button>
           </div>
-          {candles.length >= 30 ? (
-            <PriceChart candles={candles} pair={pair} overlays={overlays} />
-          ) : (
-            <p className="sample-note err" style={{ padding: '1.2rem' }}>
-              チャート待機中… ライブ足が来るまで表示しません（偽レートは出しません）
-            </p>
-          )}
+          <TradingViewChart pairId={pairId} timeframe={timeframe} />
+          <p className="sample-note" style={{ marginTop: '0.35rem' }}>
+            チャートは TradingView リアルタイム配信 · サイン計算は別フィード
+          </p>
         </section>
 
         <div className="side-stack">

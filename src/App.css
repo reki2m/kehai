@@ -331,6 +331,15 @@
   color: var(--coral);
 }
 
+.tv-host {
+  min-height: min(62vh, 560px);
+}
+
+.tv-host iframe {
+  width: 100%;
+  height: 100%;
+}
+
 .news-status.err {
   color: var(--coral);
 }
