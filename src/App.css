@@ -329,6 +329,87 @@
   transition: width 400ms var(--ease), margin-left 400ms var(--ease);
 }
 
+.action-badge {
+  margin-top: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.action-long {
+  color: var(--ink);
+  background: var(--sea);
+  border-color: var(--sea);
+}
+
+.action-short {
+  color: var(--ink);
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+.action-wait {
+  color: var(--muted);
+  background: rgba(6, 20, 26, 0.5);
+}
+
+.risk-line {
+  margin: 0.7rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--mist);
+}
+
+.risk-hint {
+  color: var(--muted);
+  margin-left: 0.35rem;
+}
+
+.gate-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gate-list li {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 0.15rem 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  background: rgba(6, 20, 26, 0.35);
+  font-size: 0.72rem;
+}
+
+.gate-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--coral);
+  grid-row: span 2;
+}
+
+.gate-ok .gate-dot {
+  background: var(--sea);
+}
+
+.gate-name {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.gate-detail {
+  color: var(--muted);
+  grid-column: 2;
+}
+
 .live-quote {
   display: flex;
   flex-direction: column;

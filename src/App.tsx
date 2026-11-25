@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { SignalRail } from './components/SignalRail'
+import { evaluateEdge } from './lib/edge'
 import { advanceCandle, generateCandles, type Candle } from './lib/marketData'
 import { getPair, PAIRS, TIMEFRAMES, type PairId, type Timeframe } from './lib/pairs'
-import { evaluateConfluence } from './lib/signals'
 import './App.css'
 
 const OVERLAYS: { id: OverlayId; label: string }[] = [
@@ -15,17 +15,17 @@ const OVERLAYS: { id: OverlayId; label: string }[] = [
 
 export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
-  const [timeframe, setTimeframe] = useState<Timeframe>('15m')
-  const [overlays, setOverlays] = useState<OverlayId[]>(['ema', 'macd'])
+  const [timeframe, setTimeframe] = useState<Timeframe>('1m')
+  const [overlays, setOverlays] = useState<OverlayId[]>(['ema', 'bb'])
   const [candles, setCandles] = useState<Candle[]>(() =>
-    generateCandles(getPair('USDJPY'), '15m'),
+    generateCandles(getPair('USDJPY'), '1m', 320),
   )
   const [booted, setBooted] = useState(false)
 
   const pair = getPair(pairId)
 
   useEffect(() => {
-    setCandles(generateCandles(pair, timeframe))
+    setCandles(generateCandles(pair, timeframe, timeframe === '1m' ? 320 : 240))
   }, [pair, timeframe])
 
   useEffect(() => {
@@ -40,7 +40,8 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [pair, timeframe])
 
-  const confluence = useMemo(() => evaluateConfluence(candles), [candles])
+  const edge = useMemo(() => evaluateEdge(candles), [candles])
+
   const first = candles[0]
   const last = candles[candles.length - 1]
   const change = last && first ? last.close - first.close : 0
@@ -64,7 +65,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">気配を読み、コンフルエンスで判断する</p>
+          <p className="tagline">Edge Strict — 最強スキャル合成インジケータ</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -115,18 +116,23 @@ export default function App() {
           <div className="chart-meta">
             <h1>
               {pair.label}
-              <span className="tf-chip">{TIMEFRAMES.find((t) => t.id === timeframe)?.label}</span>
+              <span className="tf-chip">
+                {TIMEFRAMES.find((t) => t.id === timeframe)?.label} · Edge
+              </span>
             </h1>
-            <p className="sample-note">サンプル気配データで動作中 · 実口座API未接続</p>
+            <p className="sample-note">
+              サンプル気配 · Edge Strict（ADX/ST/MTFゲート）· 実口座API未接続
+            </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />
         </section>
 
         <SignalRail
-          confluence={confluence}
+          edge={edge}
           bid={bid}
           change={change}
           changePct={changePct}
+          digits={pair.digits}
         />
       </main>
     </div>

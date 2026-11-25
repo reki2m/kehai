@@ -206,3 +206,119 @@ export function atr(candles: Candle[], period = 14): LinePoint[] {
   }
   return out
 }
+
+export interface AdxPoint {
+  time: number
+  adx: number
+  plusDi: number
+  minusDi: number
+}
+
+export function adx(candles: Candle[], period = 14): AdxPoint[] {
+  if (candles.length <= period + 1) return []
+  const plusDm: number[] = [0]
+  const minusDm: number[] = [0]
+  const tr: number[] = [0]
+  for (let i = 1; i < candles.length; i++) {
+    const up = candles[i].high - candles[i - 1].high
+    const down = candles[i - 1].low - candles[i].low
+    plusDm.push(up > down && up > 0 ? up : 0)
+    minusDm.push(down > up && down > 0 ? down : 0)
+    tr.push(
+      Math.max(
+        candles[i].high - candles[i].low,
+        Math.abs(candles[i].high - candles[i - 1].close),
+        Math.abs(candles[i].low - candles[i - 1].close),
+      ),
+    )
+  }
+
+  let atrW = 0
+  let plus = 0
+  let minus = 0
+  for (let i = 1; i <= period; i++) {
+    atrW += tr[i]
+    plus += plusDm[i]
+    minus += minusDm[i]
+  }
+
+  const out: AdxPoint[] = []
+  const dxSeries: number[] = []
+  for (let i = period; i < candles.length; i++) {
+    if (i > period) {
+      atrW = atrW - atrW / period + tr[i]
+      plus = plus - plus / period + plusDm[i]
+      minus = minus - minus / period + minusDm[i]
+    }
+    const pdi = atrW > 0 ? (100 * plus) / atrW : 0
+    const mdi = atrW > 0 ? (100 * minus) / atrW : 0
+    const dx = pdi + mdi > 0 ? (100 * Math.abs(pdi - mdi)) / (pdi + mdi) : 0
+    dxSeries.push(dx)
+    if (dxSeries.length < period) continue
+    let adxVal: number
+    if (dxSeries.length === period) {
+      adxVal = dxSeries.reduce((a, b) => a + b, 0) / period
+    } else {
+      const prev = out[out.length - 1].adx
+      adxVal = (prev * (period - 1) + dx) / period
+    }
+    out.push({
+      time: candles[i].time,
+      adx: adxVal,
+      plusDi: pdi,
+      minusDi: mdi,
+    })
+  }
+  return out
+}
+
+/** ATR Supertrend direction: +1 uptrend, -1 downtrend */
+export function supertrendDirection(
+  candles: Candle[],
+  period = 10,
+  mult = 2,
+): LinePoint[] {
+  const atrPts = atr(candles, period)
+  if (atrPts.length === 0) return []
+  const atrMap = new Map(atrPts.map((p) => [p.time, p.value]))
+  const out: LinePoint[] = []
+  let prevSt = 0
+  let prevDir = 1
+
+  for (let i = 0; i < candles.length; i++) {
+    const a = atrMap.get(candles[i].time)
+    if (a === undefined) continue
+    const hl2 = (candles[i].high + candles[i].low) / 2
+    let upper = hl2 + mult * a
+    let lower = hl2 - mult * a
+    let dir = prevDir
+    let st = prevSt
+
+    if (out.length === 0) {
+      st = lower
+      dir = 1
+    } else if (prevDir >= 0) {
+      lower = Math.max(lower, prevSt)
+      if (candles[i].close < lower) {
+        dir = -1
+        st = upper
+      } else {
+        dir = 1
+        st = lower
+      }
+    } else {
+      upper = Math.min(upper, prevSt)
+      if (candles[i].close > upper) {
+        dir = 1
+        st = lower
+      } else {
+        dir = -1
+        st = upper
+      }
+    }
+    out.push({ time: candles[i].time, value: dir })
+    prevSt = st
+    prevDir = dir
+  }
+  return out
+}

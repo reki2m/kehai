@@ -1,62 +1,94 @@
-import type { Confluence } from '../lib/signals'
+import type { EdgeSignal } from '../lib/edge'
 
 interface Props {
-  confluence: Confluence
+  edge: EdgeSignal
   bid: string
   change: number
   changePct: number
+  digits: number
 }
 
-export function SignalRail({ confluence, bid, change, changePct }: Props) {
+export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
   const tone =
-    confluence.bias === 'bull'
+    edge.action === 'LONG'
       ? 'bull'
-      : confluence.bias === 'bear'
+      : edge.action === 'SHORT'
         ? 'bear'
-        : 'neutral'
+        : edge.bias === 'bull'
+          ? 'bull'
+          : edge.bias === 'bear'
+            ? 'bear'
+            : 'neutral'
 
   return (
-    <aside className="signal-rail" aria-label="インジケータ・シグナル">
+    <aside className="signal-rail" aria-label="KEHAI Edge シグナル">
       <div className={`confluence tone-${tone}`}>
-        <p className="confluence-kicker">気配スコア</p>
+        <p className="confluence-kicker">KEHAI Edge · スキャル</p>
         <div className="confluence-score">
           <span className="score-value">
-            {confluence.score > 0 ? '+' : ''}
-            {confluence.score}
+            {edge.score > 0 ? '+' : ''}
+            {edge.score}
           </span>
-          <span className="score-label">{confluence.label}</span>
+          <span className="score-label">{edge.label}</span>
         </div>
+
+        <div className={`action-badge action-${edge.action.toLowerCase()}`}>
+          {edge.action === 'LONG'
+            ? 'LONG ENTRY'
+            : edge.action === 'SHORT'
+              ? 'SHORT ENTRY'
+              : 'WAIT'}
+        </div>
+
         <div className="meter" aria-hidden>
           <div
             className="meter-fill"
             style={{
-              width: `${Math.min(100, Math.abs(confluence.score))}%`,
+              width: `${Math.min(100, Math.abs(edge.score))}%`,
               marginLeft:
-                confluence.score < 0
-                  ? `${50 - Math.min(50, Math.abs(confluence.score) / 2)}%`
+                edge.score < 0
+                  ? `${50 - Math.min(50, Math.abs(edge.score) / 2)}%`
                   : '50%',
-              transform: confluence.score < 0 ? 'translateX(-100%)' : undefined,
+              transform: edge.score < 0 ? 'translateX(-100%)' : undefined,
             }}
           />
           <div className="meter-mid" />
         </div>
+
         <div className="live-quote">
           <span className="quote-bid">{bid}</span>
           <span className={`quote-chg ${change >= 0 ? 'up' : 'down'}`}>
             {change >= 0 ? '+' : ''}
-            {change.toFixed(Math.max(3, bid.includes('.') ? bid.split('.')[1]?.length ?? 3 : 3))}{' '}
-            ({changePct >= 0 ? '+' : ''}
+            {change.toFixed(digits)} ({changePct >= 0 ? '+' : ''}
             {changePct.toFixed(3)}%)
           </span>
         </div>
+
+        {edge.atr > 0 && (
+          <p className="risk-line">
+            SL {edge.stopDistance.toFixed(digits)} · TP{' '}
+            {edge.takeProfitDistance.toFixed(digits)}
+            <span className="risk-hint">（ATR×1.2 / ×2.0）</span>
+          </p>
+        )}
       </div>
 
+      <ul className="gate-list" aria-label="エントリーゲート">
+        {edge.gates.map((g) => (
+          <li key={g.id} className={g.ok ? 'gate-ok' : 'gate-off'}>
+            <span className="gate-dot" aria-hidden />
+            <span className="gate-name">{g.name}</span>
+            <span className="gate-detail">{g.detail}</span>
+          </li>
+        ))}
+      </ul>
+
       <ul className="signal-list">
-        {confluence.signals.map((s, i) => (
+        {edge.signals.map((s, i) => (
           <li
-            key={s.id}
+            key={`${s.id}-${i}`}
             className={`signal-item bias-${s.bias}`}
-            style={{ animationDelay: `${80 + i * 60}ms` }}
+            style={{ animationDelay: `${80 + i * 40}ms` }}
           >
             <div className="signal-head">
               <span className="signal-name">{s.name}</span>

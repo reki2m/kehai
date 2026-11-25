@@ -1,0 +1,153 @@
+{
+  "name": "KEHAI Edge Strict",
+  "params": {
+    "entry": 65,
+    "adx_min": 22,
+    "sl_atr": 1.2,
+    "tp_atr": 2.0,
+    "cooldown": 12,
+    "gates": [
+      "session",
+      "adx",
+      "supertrend",
+      "mtf"
+    ]
+  },
+  "y2025": {
+    "year": 2025,
+    "trades": 4152,
+    "wins": 2550,
+    "losses": 1602,
+    "win_rate": 61.4,
+    "net_pips": 8815.8,
+    "net_jpy": 8815776,
+    "avg_pips": 2.12,
+    "profit_factor": 2.34,
+    "max_dd_jpy": 45794,
+    "avg_hold_min": 5.3,
+    "tp": 2464,
+    "sl": 1105,
+    "signal_exits": 492,
+    "monthly": [
+      {
+        "month": "2025-01",
+        "pnl_jpy": 941870
+      },
+      {
+        "month": "2025-02",
+        "pnl_jpy": 654096
+      },
+      {
+        "month": "2025-03",
+        "pnl_jpy": 813129
+      },
+      {
+        "month": "2025-04",
+        "pnl_jpy": 980779
+      },
+      {
+        "month": "2025-05",
+        "pnl_jpy": 1200573
+      },
+      {
+        "month": "2025-06",
+        "pnl_jpy": 597520
+      },
+      {
+        "month": "2025-07",
+        "pnl_jpy": 840411
+      },
+      {
+        "month": "2025-08",
+        "pnl_jpy": 659654
+      },
+      {
+        "month": "2025-09",
+        "pnl_jpy": 473608
+      },
+      {
+        "month": "2025-10",
+        "pnl_jpy": 703347
+      },
+      {
+        "month": "2025-11",
+        "pnl_jpy": 461690
+      },
+      {
+        "month": "2025-12",
+        "pnl_jpy": 489101
+      }
+    ]
+  },
+  "y2026": {
+    "year": 2026,
+    "trades": 3659,
+    "wins": 2211,
+    "losses": 1448,
+    "win_rate": 60.4,
+    "net_pips": 5570.4,
+    "net_jpy": 5570434,
+    "avg_pips": 1.52,
+    "profit_factor": 2.18,
+    "max_dd_jpy": 67285,
+    "avg_hold_min": 5.2,
+    "tp": 2175,
+    "sl": 1005,
+    "signal_exits": 416,
+    "monthly": [
+      {
+        "month": "2026-01",
+        "pnl_jpy": 550287
+      },
+      {
+        "month": "2026-02",
+        "pnl_jpy": 676854
+      },
+      {
+        "month": "2026-03",
+        "pnl_jpy": 570730
+      },
+      {
+        "month": "2026-04",
+        "pnl_jpy": 633075
+      },
+      {
+        "month": "2026-05",
+        "pnl_jpy": 246233
+      },
+      {
+        "month": "2026-06",
+        "pnl_jpy": 56252
+      },
+      {
+        "month": "2026-07",
+        "pnl_jpy": 517196
+      },
+      {
+        "month": "2026-08",
+        "pnl_jpy": 673876
+      },
+      {
+        "month": "2026-09",
+        "pnl_jpy": 723897
+      },
+      {
+        "month": "2026-10",
+        "pnl_jpy": 528229
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": 393805
+      }
+    ]
+  },
+  "stack": [
+    "EMA/RSI/MACD/BB/Stoch confluence",
+    "ADX>=22",
+    "Supertrend align",
+    "MTF EMA105/275",
+    "Tokyo/London",
+    "±65 cross",
+    "TP2.0/SL1.2 ATR"
+  ]
+}
