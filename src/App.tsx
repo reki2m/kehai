@@ -5,7 +5,11 @@ import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
 import type { FxSession } from './lib/apex'
-import { fetchLiveCandles } from './lib/liveRates'
+import {
+  applyLiveTick,
+  fetchLiveCandles,
+  fetchLiveTick,
+} from './lib/liveRates'
 import type { Candle } from './lib/marketData'
 import {
   eventsDueSoon,
@@ -121,14 +125,38 @@ export default function App() {
     }
 
     void load(true)
-    timer = window.setInterval(() => void load(false), 10_000)
+    // History refresh (Actions snapshot) — CDN/cron can be slow
+    timer = window.setInterval(() => void load(false), 60_000)
     return () => {
       cancelled = true
       if (timer) window.clearInterval(timer)
     }
   }, [pairId, timeframe, pair])
 
-  // Sample tick advance only in local/dev when no live feed — never on Pages fallback.
+  // Live tick every 5s so the forming candle actually moves in the browser
+  useEffect(() => {
+    let cancelled = false
+    async function tick() {
+      try {
+        const px = await fetchLiveTick(pairId)
+        if (cancelled || px == null) return
+        setCandles((prev) => {
+          if (prev.length < 30) return prev
+          return applyLiveTick(prev, px, timeframe)
+        })
+        setLiveSource('Yahoo履歴 + ライブティック')
+        setLiveError(null)
+      } catch {
+        /* keep chart; history still shown */
+      }
+    }
+    void tick()
+    const id = window.setInterval(() => void tick(), 5_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [pairId, timeframe])
 
   useEffect(() => {
     let cancelled = false

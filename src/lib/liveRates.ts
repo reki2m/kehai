@@ -1,5 +1,6 @@
 import type { Candle } from './marketData'
 import type { PairId, Timeframe } from './pairs'
+import { TIMEFRAMES } from './pairs'
 import { apiUrl, liveSnapshotUrl } from './http'
 
 /** Yahoo Finance symbols for each instrument. */
@@ -14,6 +15,16 @@ export const YAHOO_SYMBOLS: Record<PairId, string> = {
   NIKKEI: 'NIY=F',
   DOW: 'YM=F',
   VIX: '^VIX',
+}
+
+/** Twelve Data symbols (browser CORS OK, demo key). */
+export const TWELVE_SYMBOLS: Partial<Record<PairId, string>> = {
+  USDJPY: 'USD/JPY',
+  EURUSD: 'EUR/USD',
+  GBPJPY: 'GBP/JPY',
+  EURJPY: 'EUR/JPY',
+  AUDUSD: 'AUD/USD',
+  USDCHF: 'USD/CHF',
 }
 
 const TF_MAP: Record<Timeframe, string> = {
@@ -60,13 +71,16 @@ interface LiveSnapshot {
   fetchedAt?: number
 }
 
+function tfSeconds(tf: Timeframe): number {
+  return TIMEFRAMES.find((t) => t.id === tf)?.seconds ?? 60
+}
+
 async function fetchSnapshot(
   pairId: PairId,
   timeframe: Timeframe,
 ): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
   const snapTf = timeframe === '4H' ? '1H' : timeframe
   let res = await fetch(liveSnapshotUrl(pairId, snapTf))
-  // First deploy: live-data branch may not exist yet → Pages copy
   if (!res.ok && !import.meta.env.DEV) {
     const base = import.meta.env.BASE_URL || '/'
     res = await fetch(`${base}live/${pairId}_${snapTf}.json?t=${Date.now()}`)
@@ -78,7 +92,6 @@ async function fetchSnapshot(
   if (timeframe === '4H') out = resample(out, 4)
   const lastPrice =
     data.lastPrice ?? (out.length ? out[out.length - 1].close : null)
-  // Keep forming bar in sync with lastPrice so the chart visibly updates
   if (out.length && lastPrice != null) {
     const last = out[out.length - 1]
     last.close = lastPrice
@@ -91,8 +104,8 @@ async function fetchSnapshot(
       : null
   const source =
     ageSec != null
-      ? `Yahoo更新 ${ageSec < 90 ? `${ageSec}秒前` : `${Math.round(ageSec / 60)}分前`}`
-      : (data.source ?? 'Yahoo更新')
+      ? `Yahoo履歴 ${ageSec < 90 ? `${ageSec}秒前` : `${Math.round(ageSec / 60)}分前`}`
+      : (data.source ?? 'Yahoo履歴')
   return {
     candles: out.slice(-360),
     lastPrice,
@@ -146,17 +159,60 @@ async function fetchYahooDirect(
   return { candles: out.slice(-360), lastPrice, source: 'Yahoo Finance' }
 }
 
+/** Browser-live tick (CORS). Used to move the forming candle every few seconds. */
+export async function fetchLiveTick(pairId: PairId): Promise<number | null> {
+  const symbol = TWELVE_SYMBOLS[pairId]
+  if (!symbol) return null
+  const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=demo`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`tick ${res.status}`)
+  const data = (await res.json()) as { close?: string; code?: number; message?: string }
+  if (data.code && data.code !== 200) throw new Error(data.message ?? 'tick error')
+  const px = Number(data.close)
+  return Number.isFinite(px) ? px : null
+}
+
+/** Apply a live price onto the current timeframe bar (opens a new bar when needed). */
+export function applyLiveTick(
+  candles: Candle[],
+  price: number,
+  timeframe: Timeframe,
+): Candle[] {
+  if (!candles.length || !Number.isFinite(price)) return candles
+  const step = tfSeconds(timeframe)
+  const now = Math.floor(Date.now() / 1000)
+  const barTime = now - (now % step)
+  const out = candles.map((c) => ({ ...c }))
+  const last = out[out.length - 1]
+  if (last.time < barTime) {
+    out.push({
+      time: barTime,
+      open: price,
+      high: price,
+      low: price,
+      close: price,
+      volume: 0,
+    })
+    return out.slice(-360)
+  }
+  // Align weird Yahoo partial timestamps to the minute bucket
+  if (last.time > barTime) {
+    last.time = barTime
+  }
+  last.close = price
+  last.high = Math.max(last.high, price)
+  last.low = Math.min(last.low, price)
+  return out
+}
+
 export async function fetchLiveCandles(
   pairId: PairId,
   timeframe: Timeframe,
 ): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
-  // Production (GitHub Pages): same-origin snapshots from Actions.
-  // Dev: Vite proxy to Yahoo.
   if (!import.meta.env.DEV) {
     try {
       return await fetchSnapshot(pairId, timeframe)
     } catch (e) {
-      // last resort: unlikely to work in browser
       try {
         return await fetchYahooDirect(pairId, timeframe)
       } catch {
