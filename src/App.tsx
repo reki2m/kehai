@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NewsPanel } from './components/NewsPanel'
-import { TradingViewChart } from './components/TradingViewChart'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
@@ -396,7 +395,7 @@ export default function App() {
         <div className="brand-block">
           <p className="brand">KEHAI</p>
           <p className="tagline">
-            {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
+            {SIMPLE.stack} · GMO併用サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
           </p>
         </div>
 
@@ -505,8 +504,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className="workspace">
-        <section className="hero-chart">
+      <main className="workspace workspace-signal">
+        <section className="hero-signal">
           <div className="chart-meta">
             <h1>
               {pair.label}
@@ -515,35 +514,14 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              {sourceLabel}
+              レート・チャートはGMOで見る · ここはBUY/SELLサインと読み上げ
               {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ' · セッション外'}
-              {' · '}BUY/SELLのみ · 1本
             </p>
-            {(liveError || !liveSource) && (
-              <p className="sample-note err">
-                古いキャッシュのときは下の「最新を読み込み」を押してください
-              </p>
-            )}
-            <button
-              type="button"
-              className="voice-btn"
-              style={{ marginTop: '0.4rem' }}
-              onClick={() => {
-                const u = new URL(window.location.href)
-                u.searchParams.set('v', String(Date.now()))
-                window.location.replace(u.toString())
-              }}
-            >
-              最新を読み込み
-            </button>
+            <p className="sample-note">
+              参考フィード {sourceLabel}
+              {liveError ? ` · ${liveError}` : ''}
+            </p>
           </div>
-          <TradingViewChart pairId={pairId} timeframe={timeframe} />
-          <p className="sample-note" style={{ marginTop: '0.35rem' }}>
-            チャートは TradingView リアルタイム配信 · サイン計算は別フィード
-          </p>
-        </section>
-
-        <div className="side-stack">
           <SimpleBoard
             signal={signal}
             bid={bid}
@@ -554,6 +532,9 @@ export default function App() {
             pair={pair}
             inPosition={inPosition}
           />
+        </section>
+
+        <div className="side-stack">
           <SessionStatsPanel
             stats={stats}
             rangeDays={statsRange}

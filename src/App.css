@@ -186,6 +186,31 @@
   padding: 0.5rem 1rem 1rem;
 }
 
+.workspace-signal {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 360px);
+}
+
+.hero-signal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: clamp(360px, 58vh, 680px);
+  padding: 0.25rem;
+  animation: chart-rise 1000ms var(--ease) 160ms both;
+}
+
+.hero-signal .simple-board {
+  flex: 1;
+}
+
+.hero-signal .simple-hero {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .hero-chart {
   position: relative;
   min-height: clamp(420px, 68vh, 760px);
