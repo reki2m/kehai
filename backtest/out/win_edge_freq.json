@@ -1,0 +1,138 @@
+{
+  "name": "KEHAI Apex WinEdge Freq",
+  "verdict": "higher_frequency_yahoo_full_confirmed",
+  "params": {
+    "kz": "london",
+    "max_spread": 0.8,
+    "sl_pips": 3.0,
+    "tp_pips": 6.0,
+    "cooldown": 1,
+    "time_stop": 12,
+    "min_atr_pips": 1.0,
+    "max_atr_pips": 12.0,
+    "min_move": 3.0,
+    "require_vwap": true,
+    "require_bias": false,
+    "rsi_filter": true,
+    "hour_mode": "mid",
+    "family": "micro_mom"
+  },
+  "trades_per_day_duka": 2.94,
+  "prev_trades_per_day": 1.53,
+  "dukascopy_full": {
+    "year": null,
+    "trades": 50,
+    "wins": 25,
+    "losses": 25,
+    "win_rate": 50.0,
+    "net_pips": 17.3,
+    "net_jpy": 17273,
+    "avg_pips": 0.35,
+    "profit_factor": 1.2,
+    "max_dd_jpy": 20302,
+    "avg_hold_min": 8.1,
+    "tp": 14,
+    "sl": 23,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 17273
+      }
+    ]
+  },
+  "dukascopy_first60": {
+    "year": null,
+    "trades": 28,
+    "wins": 13,
+    "losses": 15,
+    "win_rate": 46.4,
+    "net_pips": 3.1,
+    "net_jpy": 3062,
+    "avg_pips": 0.11,
+    "profit_factor": 1.06,
+    "max_dd_jpy": 20302,
+    "avg_hold_min": 5.9,
+    "tp": 6,
+    "sl": 15,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 3062
+      }
+    ]
+  },
+  "dukascopy_last40": {
+    "year": null,
+    "trades": 22,
+    "wins": 12,
+    "losses": 10,
+    "win_rate": 54.5,
+    "net_pips": 14.2,
+    "net_jpy": 14211,
+    "avg_pips": 0.65,
+    "profit_factor": 1.39,
+    "max_dd_jpy": 10491,
+    "avg_hold_min": 10.8,
+    "tp": 8,
+    "sl": 8,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 14211
+      }
+    ]
+  },
+  "yahoo_full": {
+    "year": null,
+    "trades": 85,
+    "wins": 38,
+    "losses": 47,
+    "win_rate": 44.7,
+    "net_pips": 24.3,
+    "net_jpy": 24300,
+    "avg_pips": 0.29,
+    "profit_factor": 1.16,
+    "max_dd_jpy": 38350,
+    "avg_hold_min": 4.6,
+    "tp": 28,
+    "sl": 39,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-10",
+        "pnl_jpy": -1898
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": 26198
+      }
+    ]
+  },
+  "yahoo_holdout": {
+    "year": null,
+    "trades": 24,
+    "wins": 13,
+    "losses": 11,
+    "win_rate": 54.2,
+    "net_pips": 33.1,
+    "net_jpy": 33098,
+    "avg_pips": 1.38,
+    "profit_factor": 2.06,
+    "max_dd_jpy": 7651,
+    "avg_hold_min": 5.5,
+    "tp": 11,
+    "sl": 7,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 33098
+      }
+    ]
+  },
+  "frequency_note": "~1.5→~2.9 trades/day. 4+/day configs lose Yahoo-full confirmation.",
+  "generated_at": "2026-11-25T13:47:58.915587+00:00"
+}

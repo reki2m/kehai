@@ -7,23 +7,24 @@ import { atr, ema, rsi, sessionVwap } from './indicators'
 import type { Bias, IndicatorSignal } from './signals'
 
 /**
- * KEHAI Apex WinEdge — scalp edge locked on real spreads.
+ * KEHAI Apex WinEdge Freq — 1m scalp with higher trade rate.
  *
- * Dukascopy tick bid/ask (walk-forward both halves > 0) + Yahoo session-spread confirm.
- * London mid 08:30–10 UTC · 3-bar micro-momentum · VWAP + 15m bias · RSI · fixed 2.5/5.0p
+ * Locked under: Dukascopy real spread WF both halves > 0,
+ * Yahoo full + holdout > 0 (session-spread model).
+ * ~2.9 trades/day on Duka session days (was ~1.5 on prior mid-strict lock).
  */
 export const APEX_PARAMS = {
   family: 'micro_mom' as const,
   kz: 'london' as const,
   hourMode: 'london_mid' as const, // 08:30–10:00 UTC
   maxSpread: 0.8,
-  slPips: 2.5,
-  tpPips: 5.0,
-  minAtrPips: 2.0,
-  maxAtrPips: 8.0,
+  slPips: 3.0,
+  tpPips: 6.0,
+  minAtrPips: 1.0,
+  maxAtrPips: 12.0,
   minMovePips: 3.0,
   requireVwap: true,
-  requireBias: true,
+  requireBias: false,
   rsiFilter: true,
   pip: 0.01,
 } as const
@@ -62,17 +63,8 @@ function utcHm(unixSec: number) {
   const d = new Date(unixSec * 1000)
   return {
     weekday: d.getUTCDay(),
-    hour: d.getUTCHours(),
-    minute: d.getUTCMinutes(),
     hm: d.getUTCHours() * 60 + d.getUTCMinutes(),
   }
-}
-
-/** London killzone shell 07–10 UTC. */
-export function isKillzone(unixSec: number): boolean {
-  const { weekday, hm } = utcHm(unixSec)
-  if (weekday === 0 || weekday === 6) return false
-  return hm >= 7 * 60 && hm < 10 * 60
 }
 
 /** Entry window: London mid 08:30–10:00 UTC. */
@@ -80,6 +72,12 @@ export function isEntryWindow(unixSec: number): boolean {
   const { weekday, hm } = utcHm(unixSec)
   if (weekday === 0 || weekday === 6) return false
   return hm >= 8 * 60 + 30 && hm < 10 * 60
+}
+
+export function isKillzone(unixSec: number): boolean {
+  const { weekday, hm } = utcHm(unixSec)
+  if (weekday === 0 || weekday === 6) return false
+  return hm >= 7 * 60 && hm < 10 * 60
 }
 
 export function evaluateApex(candles: Candle[]): ApexSignal {
@@ -143,23 +141,23 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   signals.push({
     id: 'window',
     name: 'London Mid',
-    bias: windowOk ? bias15 : 'neutral',
+    bias: windowOk ? (longSetup ? 'bull' : shortSetup ? 'bear' : bias15) : 'neutral',
     strength: windowOk ? 0.95 : 0.15,
     detail: windowOk
-      ? '08:30–10:00 UTC エントリー帯'
-      : 'エントリー帯外（08:30–10 UTCのみ）',
+      ? '08:30–10:00 UTC · 高頻度帯'
+      : 'エントリー帯外（08:30–10 UTC）',
   })
 
   signals.push({
     id: 'mtf15',
     name: '15m EMA Bias',
     bias: bias15,
-    strength: bias15 === 'neutral' ? 0.2 : 0.9,
+    strength: bias15 === 'neutral' ? 0.2 : 0.75,
     detail:
       bias15 === 'bull'
-        ? '上位足買いバイアス'
+        ? '上位足買い（参考・必須外）'
         : bias15 === 'bear'
-          ? '上位足売りバイアス'
+          ? '上位足売り（参考・必須外）'
           : 'バイアス未確定',
   })
 
@@ -183,8 +181,7 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
     signals.push({
       id: 'rsi7',
       name: 'RSI(7)',
-      bias:
-        rsi7.value > 55 ? 'bull' : rsi7.value < 45 ? 'bear' : 'neutral',
+      bias: rsi7.value > 55 ? 'bull' : rsi7.value < 45 ? 'bear' : 'neutral',
       strength: Math.min(1, Math.abs(rsi7.value - 50) / 30),
       detail: `RSI ${rsi7.value.toFixed(1)}`,
     })
@@ -194,7 +191,8 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
     id: 'micro',
     name: 'Micro Momentum',
     bias: longSetup ? 'bull' : shortSetup ? 'bear' : 'neutral',
-    strength: longSetup || shortSetup ? 1 : Math.min(1, movePips / p.minMovePips),
+    strength:
+      longSetup || shortSetup ? 1 : Math.min(1, movePips / p.minMovePips),
     detail:
       longSetup || shortSetup
         ? `3本バースト ${movePips.toFixed(1)}p`
@@ -237,11 +235,14 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
       detail: `${atrPips.toFixed(1)}p`,
     },
     {
-      id: 'bias',
-      name: '15m Bias',
-      ok: bias15 !== 'neutral',
-      detail:
-        bias15 === 'bull' ? '買い優位' : bias15 === 'bear' ? '売り優位' : 'なし',
+      id: 'vwap',
+      name: 'VWAP側',
+      ok: !!vwap,
+      detail: vwap
+        ? price >= vwap.value
+          ? '価格≥VWAP'
+          : '価格<VWAP'
+        : '未計算',
     },
     {
       id: 'setup',
@@ -257,13 +258,12 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   else if (baseOk && shortSetup) action = 'SHORT'
 
   let score = 0
-  if (bias15 === 'bull') score += 20
-  if (bias15 === 'bear') score -= 20
   if (vwap) score += price >= vwap.value ? 15 : -15
-  if (windowOk) score += 15
-  if (longSetup) score += 40
-  if (shortSetup) score -= 40
+  if (windowOk) score += 20
+  if (longSetup) score += 45
+  if (shortSetup) score -= 45
   if (atrOk) score += 10
+  if (rsi7) score += rsi7.value > 50 ? 10 : rsi7.value < 50 ? -10 : 0
   score = Math.max(-100, Math.min(100, Math.round(score)))
 
   const bias: Bias =
@@ -277,9 +277,6 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
   else if (!atrOk) label = 'ATR帯外'
   else if (!(longSetup || shortSetup)) label = 'バースト待ち'
 
-  const stopDistance = p.slPips * p.pip
-  const takeProfitDistance = p.tpPips * p.pip
-
   return {
     score,
     bias,
@@ -288,8 +285,8 @@ export function evaluateApex(candles: Candle[]): ApexSignal {
     action,
     gates,
     atr: atrVal,
-    stopDistance,
-    takeProfitDistance,
+    stopDistance: p.slPips * p.pip,
+    takeProfitDistance: p.tpPips * p.pip,
     sessionOpen: windowOk,
     spreadPips,
     newsLabel: news?.label ?? null,

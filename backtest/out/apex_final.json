@@ -1,148 +1,138 @@
 {
-  "name": "KEHAI Apex WinEdge",
-  "verdict": "real_spread_wf_yahoo_confirmed",
+  "name": "KEHAI Apex WinEdge Freq",
+  "verdict": "higher_frequency_yahoo_full_confirmed",
   "params": {
     "kz": "london",
     "max_spread": 0.8,
-    "sl_pips": 2.5,
-    "tp_pips": 5.0,
-    "cooldown": 5,
+    "sl_pips": 3.0,
+    "tp_pips": 6.0,
+    "cooldown": 1,
     "time_stop": 12,
-    "min_atr_pips": 2.0,
-    "max_atr_pips": 8.0,
+    "min_atr_pips": 1.0,
+    "max_atr_pips": 12.0,
     "min_move": 3.0,
-    "require_vwap_side": true,
-    "require_bias": true,
-    "hour_mode": "london_mid_0830_1000_utc",
+    "require_vwap": true,
+    "require_bias": false,
     "rsi_filter": true,
+    "hour_mode": "mid",
     "family": "micro_mom"
   },
-  "thesis": [
-    "London mid-session micro-momentum (08:30–10 UTC)",
-    "3-bar burst ≥ 3 pips + displacement candles",
-    "15m EMA bias + VWAP side",
-    "RSI(7) side confirmation",
-    "ATR 2–8 pips band (skip dead/chaotic)",
-    "Fixed SL 2.5p / TP 5.0p (2R)",
-    "Max spread 0.8 + news blackout",
-    "Cooldown 5 / time-stop 12"
-  ],
+  "trades_per_day_duka": 2.94,
+  "prev_trades_per_day": 1.53,
   "dukascopy_full": {
     "year": null,
-    "trades": 26,
-    "wins": 14,
-    "losses": 12,
-    "win_rate": 53.8,
-    "net_pips": 31.3,
-    "net_jpy": 31348,
-    "avg_pips": 1.21,
-    "profit_factor": 1.95,
-    "max_dd_jpy": 6880,
-    "avg_hold_min": 3.0,
+    "trades": 50,
+    "wins": 25,
+    "losses": 25,
+    "win_rate": 50.0,
+    "net_pips": 17.3,
+    "net_jpy": 17273,
+    "avg_pips": 0.35,
+    "profit_factor": 1.2,
+    "max_dd_jpy": 20302,
+    "avg_hold_min": 8.1,
     "tp": 14,
-    "sl": 11,
+    "sl": 23,
     "signal_exits": 0,
     "monthly": [
       {
         "month": "2026-11",
-        "pnl_jpy": 31348
+        "pnl_jpy": 17273
       }
     ]
   },
   "dukascopy_first60": {
     "year": null,
-    "trades": 11,
-    "wins": 5,
-    "losses": 6,
-    "win_rate": 45.5,
-    "net_pips": 5.5,
-    "net_jpy": 5531,
-    "avg_pips": 0.5,
-    "profit_factor": 1.32,
-    "max_dd_jpy": 6880,
-    "avg_hold_min": 3.4,
-    "tp": 5,
-    "sl": 6,
+    "trades": 28,
+    "wins": 13,
+    "losses": 15,
+    "win_rate": 46.4,
+    "net_pips": 3.1,
+    "net_jpy": 3062,
+    "avg_pips": 0.11,
+    "profit_factor": 1.06,
+    "max_dd_jpy": 20302,
+    "avg_hold_min": 5.9,
+    "tp": 6,
+    "sl": 15,
     "signal_exits": 0,
     "monthly": [
       {
         "month": "2026-11",
-        "pnl_jpy": 5531
+        "pnl_jpy": 3062
       }
     ]
   },
   "dukascopy_last40": {
     "year": null,
-    "trades": 15,
-    "wins": 9,
-    "losses": 6,
-    "win_rate": 60.0,
-    "net_pips": 25.8,
-    "net_jpy": 25816,
-    "avg_pips": 1.72,
-    "profit_factor": 2.64,
-    "max_dd_jpy": 4271,
-    "avg_hold_min": 2.8,
-    "tp": 9,
-    "sl": 5,
-    "signal_exits": 0,
-    "monthly": [
-      {
-        "month": "2026-11",
-        "pnl_jpy": 25816
-      }
-    ]
-  },
-  "yahoo_full_session_spread": {
-    "year": null,
-    "trades": 53,
-    "wins": 24,
-    "losses": 29,
-    "win_rate": 45.3,
-    "net_pips": 7.9,
-    "net_jpy": 7949,
-    "avg_pips": 0.15,
-    "profit_factor": 1.09,
-    "max_dd_jpy": 14699,
-    "avg_hold_min": 3.0,
-    "tp": 20,
-    "sl": 26,
-    "signal_exits": 0,
-    "monthly": [
-      {
-        "month": "2026-10",
-        "pnl_jpy": -10500
-      },
-      {
-        "month": "2026-11",
-        "pnl_jpy": 18449
-      }
-    ]
-  },
-  "yahoo_holdout_session_spread": {
-    "year": null,
     "trades": 22,
     "wins": 12,
     "losses": 10,
     "win_rate": 54.5,
-    "net_pips": 20.2,
-    "net_jpy": 20249,
-    "avg_pips": 0.92,
-    "profit_factor": 1.69,
-    "max_dd_jpy": 9000,
-    "avg_hold_min": 3.9,
-    "tp": 11,
+    "net_pips": 14.2,
+    "net_jpy": 14211,
+    "avg_pips": 0.65,
+    "profit_factor": 1.39,
+    "max_dd_jpy": 10491,
+    "avg_hold_min": 10.8,
+    "tp": 8,
     "sl": 8,
     "signal_exits": 0,
     "monthly": [
       {
         "month": "2026-11",
-        "pnl_jpy": 20249
+        "pnl_jpy": 14211
       }
     ]
   },
-  "why_this_over_yahoo_max": "Chose A≥+5.5 walk-forward balance over Yahoo-max variant (A only +1.5).",
-  "spread_model": "Duka=real tick; Yahoo=session-hour estimate",
-  "note": "Research BT ~1 month real M1. Modest sample. Not live broker results.",
-  "generated_at": "2026-11-25T13:26:22.300593+00:00"
+  "yahoo_full": {
+    "year": null,
+    "trades": 85,
+    "wins": 38,
+    "losses": 47,
+    "win_rate": 44.7,
+    "net_pips": 24.3,
+    "net_jpy": 24300,
+    "avg_pips": 0.29,
+    "profit_factor": 1.16,
+    "max_dd_jpy": 38350,
+    "avg_hold_min": 4.6,
+    "tp": 28,
+    "sl": 39,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-10",
+        "pnl_jpy": -1898
+      },
+      {
+        "month": "2026-11",
+        "pnl_jpy": 26198
+      }
+    ]
+  },
+  "yahoo_holdout": {
+    "year": null,
+    "trades": 24,
+    "wins": 13,
+    "losses": 11,
+    "win_rate": 54.2,
+    "net_pips": 33.1,
+    "net_jpy": 33098,
+    "avg_pips": 1.38,
+    "profit_factor": 2.06,
+    "max_dd_jpy": 7651,
+    "avg_hold_min": 5.5,
+    "tp": 11,
+    "sl": 7,
+    "signal_exits": 0,
+    "monthly": [
+      {
+        "month": "2026-11",
+        "pnl_jpy": 33098
+      }
+    ]
+  },
+  "frequency_note": "~1.5→~2.9 trades/day. 4+/day configs lose Yahoo-full confirmation.",
+  "generated_at": "2026-11-25T13:47:58.915587+00:00"
 }

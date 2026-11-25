@@ -65,7 +65,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
-          <p className="tagline">Apex WinEdge — London Mid Micro-Mom</p>
+          <p className="tagline">WinEdge Freq — London Mid · ~3本/日</p>
         </div>
 
         <div className="controls" role="toolbar" aria-label="チャート設定">
@@ -121,7 +121,7 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              サンプル気配 · WinEdge（London Mid / Micro-Mom / VWAP / 固定2.5·5p）· 実口座API未接続
+              サンプル気配 · WinEdge Freq（London Mid / Micro-Mom / VWAP / 固定3·6p）· 実口座API未接続
             </p>
           </div>
           <PriceChart candles={candles} pair={pair} overlays={overlays} />

@@ -24,7 +24,7 @@ export function SignalRail({ edge, bid, change, changePct, digits }: Props) {
   return (
     <aside className="signal-rail" aria-label="KEHAI Apex シグナル">
       <div className={`confluence tone-${tone}`}>
-        <p className="confluence-kicker">KEHAI Apex · WinEdge スキャル</p>
+        <p className="confluence-kicker">KEHAI Apex · WinEdge Freq</p>
         <div className="confluence-score">
           <span className="score-value">
             {edge.score > 0 ? '+' : ''}

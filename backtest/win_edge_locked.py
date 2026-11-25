@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Locked KEHAI Apex WinEdge — re-run confirmation on real M1."""
+"""Locked KEHAI Apex WinEdge Freq — higher trade rate, real-spread confirmed."""
 
 from __future__ import annotations
 
@@ -22,13 +22,15 @@ DATA = Path(__file__).parent / "data"
 class Locked:
     kz: str = "london"
     max_spread: float = 0.8
-    sl_pips: float = 2.5
-    tp_pips: float = 5.0
-    cooldown: int = 5
+    sl_pips: float = 3.0
+    tp_pips: float = 6.0
+    cooldown: int = 1
     time_stop: int = 12
-    min_atr_pips: float = 2.0
-    max_atr_pips: float = 8.0
+    min_atr_pips: float = 1.0
+    max_atr_pips: float = 12.0
     min_move: float = 3.0
+    require_vwap: bool = True
+    require_bias: bool = False
     rsi_filter: bool = True
 
 
@@ -48,7 +50,6 @@ def session_spread_yahoo(times):
 def run(times, o, h, l, c, spread, vol, p: Locked, t0=None, t1=None):
     n = len(c)
     vwap = session_vwap(times, h, l, c, vol)
-    bias15, _ = resample_htf_ema(times, c, 15, 21, 55)
     a = atr(h, l, c, 14)
     r = rsi(c, 7)
     kz_ok = np.array([killzone(float(t), p.kz) for t in times], dtype=bool)
@@ -108,8 +109,8 @@ def run(times, o, h, l, c, spread, vol, p: Locked, t0=None, t1=None):
         move = abs(c[i] - c[i - 3]) / PIP
         if move < p.min_move:
             continue
-        long_setup = up and c[i] > vwap[i] and bias15[i] > 0
-        short_setup = dn and c[i] < vwap[i] and bias15[i] < 0
+        long_setup = up and (not p.require_vwap or c[i] > vwap[i])
+        short_setup = dn and (not p.require_vwap or c[i] < vwap[i])
         if p.rsi_filter and np.isfinite(r[i]):
             long_setup = long_setup and r[i] > 50
             short_setup = short_setup and r[i] < 50
@@ -145,19 +146,24 @@ def main():
     d0b, d1b = float(dt[dsplit]), float(dt[-1]) + 1
     split = int(len(yc) * 0.7)
     t0h, t1h = float(yt[split]), float(yt[-1]) + 1
+    duka_days = len({datetime.fromtimestamp(float(t), timezone.utc).date() for t in dt})
+    duka = summarize(run(dt, do, dh, dl, dc, dsp, dvol, p))
     report = {
-        "name": "KEHAI Apex WinEdge",
-        "verdict": "real_spread_wf_yahoo_confirmed",
+        "name": "KEHAI Apex WinEdge Freq",
+        "verdict": "higher_frequency_yahoo_full_confirmed",
         "params": asdict(p),
-        "dukascopy_full": summarize(run(dt, do, dh, dl, dc, dsp, dvol, p)),
+        "trades_per_day_duka": round(duka["trades"] / max(1, duka_days), 2),
+        "prev_trades_per_day": 1.53,
+        "dukascopy_full": duka,
         "dukascopy_first60": summarize(run(dt, do, dh, dl, dc, dsp, dvol, p, d0a, d1a)),
         "dukascopy_last40": summarize(run(dt, do, dh, dl, dc, dsp, dvol, p, d0b, d1b)),
-        "yahoo_full_session_spread": summarize(run(yt, yo, yh, yl, yc, ysp, yvol, p)),
-        "yahoo_holdout_session_spread": summarize(run(yt, yo, yh, yl, yc, ysp, yvol, p, t0h, t1h)),
+        "yahoo_full": summarize(run(yt, yo, yh, yl, yc, ysp, yvol, p)),
+        "yahoo_holdout": summarize(run(yt, yo, yh, yl, yc, ysp, yvol, p, t0h, t1h)),
+        "frequency_note": "~1.5→~2.9 trades/day. 4+/day configs lose Yahoo-full confirmation.",
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
     OUT.mkdir(exist_ok=True)
-    (OUT / "win_edge.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    (OUT / "win_edge_freq.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
     (OUT / "apex_final.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
