@@ -144,6 +144,14 @@ function utcHm(unixSec: number) {
   }
 }
 
+/** UTC minute-of-day windows matching detectFxSession. */
+export const SESSION_UTC_WINDOWS: Record<FxSession, { start: number; end: number }> =
+  {
+    tokyo: { start: 0, end: 6 * 60 },
+    london: { start: 7 * 60, end: 11 * 60 },
+    ny: { start: 13 * 60, end: 17 * 60 },
+  }
+
 export function detectFxSession(unixSec: number): FxSession | null {
   const { weekday, hm } = utcHm(unixSec)
   if (weekday === 0 || weekday === 6) return null
@@ -151,9 +159,23 @@ export function detectFxSession(unixSec: number): FxSession | null {
   if (hm >= 0 && hm < 6 * 60) return 'tokyo'
   // London 16–20 JST
   if (hm >= 7 * 60 && hm < 11 * 60) return 'london'
-  // NY 22–02 JST (13–17 UTC, and 0–2 UTC overlaps Tokyo — Tokyo already claimed)
+  // NY 22–02 JST (13–17 UTC; 0–2 UTC overlaps Tokyo — Tokyo already claimed)
   if (hm >= 13 * 60 && hm < 17 * 60) return 'ny'
   return null
+}
+
+/** True when inside a session but away from the open/close edge. */
+export function sessionAwayFromEdge(
+  unixSec: number,
+  edgeMin: number,
+  session?: FxSession | null,
+): boolean {
+  if (edgeMin <= 0) return true
+  const fx = session ?? detectFxSession(unixSec)
+  if (!fx) return false
+  const { hm } = utcHm(unixSec)
+  const w = SESSION_UTC_WINDOWS[fx]
+  return hm - w.start >= edgeMin && w.end - hm >= edgeMin
 }
 
 /** @deprecated use detectFxSession — kept for London-only callers */

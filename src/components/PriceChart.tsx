@@ -485,28 +485,32 @@ export function PriceChart({
 
   useEffect(() => {
     if (!markersApi.current) return
-    // High-contrast vs candle teal/coral — gold / hot pink + larger size
-    const markers: SeriesMarker<Time>[] = histSignals.map((s) =>
-      s.side === 'BUY'
-        ? {
-            time: s.time as UTCTimestamp,
-            position: 'belowBar' as const,
-            shape: 'arrowUp' as const,
-            color: '#FFE566',
-            text: '買い',
-            size: 2,
-          }
-        : {
-            time: s.time as UTCTimestamp,
-            position: 'aboveBar' as const,
-            shape: 'arrowDown' as const,
-            color: '#FF4D9A',
-            text: '売り',
-            size: 2,
-          },
-    )
+    // 推奨 (prime/A/S) = bright + large; 標準 = softer but still visible
+    const markers: SeriesMarker<Time>[] = histSignals.map((s) => {
+      const recommended =
+        s.prime === true || s.grade === 'S' || s.grade === 'A'
+      if (s.side === 'BUY') {
+        return {
+          time: s.time as UTCTimestamp,
+          position: 'belowBar' as const,
+          shape: 'arrowUp' as const,
+          color: recommended ? '#FFE566' : '#C4B87A',
+          text: recommended ? '買い★' : '買い',
+          size: recommended ? 2 : 1,
+        }
+      }
+      return {
+        time: s.time as UTCTimestamp,
+        position: 'aboveBar' as const,
+        shape: 'arrowDown' as const,
+        color: recommended ? '#FF4D9A' : '#C47A9A',
+        text: recommended ? '売り★' : '売り',
+        size: recommended ? 2 : 1,
+      }
+    })
     markersApi.current.setMarkers(markers)
   }, [histSignals])
+
 
   return <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
 }

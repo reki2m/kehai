@@ -3,9 +3,10 @@
  *
  * Core (bakeoff winner): UT Bot flip × SSL Channel confirm
  * Quality stack (soft gates + grade):
- *   ADX regime · WaveTrend momentum · session EMA/VWAP
+ *   ADX · WaveTrend · ATR floor · session-edge skip · HTF SSL (prime)
+ * Risk: ATR-scaled SL/TP (hybrid) — fixed 7/10 as fallback
  *
- * Rules: one position mindset · fixed SL 7 / TP 10 · no auto-trading
+ * Rules: one position mindset · no auto-trading
  * READY: SSL/EMA/VWAP already aligned + price within readyPips of UT trail
  */
 
@@ -25,6 +26,7 @@ import {
   SESSION_PROFILES,
   detectFxSession,
   isInstrumentWindow,
+  sessionAwayFromEdge,
   type FxSession,
 } from './apex'
 
@@ -37,17 +39,50 @@ export const SIMPLE = {
     'ADX(14) regime · WaveTrend (LazyBear)',
     'Session windows — Tokyo / London Mid / NY',
   ],
+  /** Fallback / baseline when ATR missing. */
   slPips: 7,
   tpPips: 10,
+  /** ATR-hybrid risk: SL = clamp(ATR×mult), TP = clamp(SL×rr). */
+  slAtrMult: 1.1,
+  slMin: 6,
+  slMax: 10,
+  tpRr: 1.45,
+  tpMin: 9,
+  tpMax: 14,
   maxHoldBars: 45,
   /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
   /** Soft floor: below this ADX, treat as dead range (no new entries). */
   adxMin: 14,
+  /** Prime setups need stronger trend. */
+  adxPrime: 16,
   /** Soft block when WaveTrend is strongly against the flip. */
-  wtAgainstAbs: 60,
+  wtAgainstAbs: 55,
+  /** Skip lifeless tape. */
+  minAtrPips: 1.0,
+  /** Skip first/last N minutes of each session window. */
+  sessionEdgeMin: 5,
+  /** Higher-TF SSL proxy on 1m (≈ SSL10 on 5m) — prime confirm. */
+  htfSslLen: 50,
   pip: 0.01,
 } as const
+
+/** ATR-scaled SL/TP used by live board + manual close. */
+export function atrRiskPips(atrPips: number): { sl: number; tp: number } {
+  if (!(atrPips > 0)) return { sl: SIMPLE.slPips, tp: SIMPLE.tpPips }
+  const sl =
+    Math.round(
+      Math.max(
+        SIMPLE.slMin,
+        Math.min(SIMPLE.slMax, atrPips * SIMPLE.slAtrMult),
+      ) * 10,
+    ) / 10
+  const tp =
+    Math.round(
+      Math.max(SIMPLE.tpMin, Math.min(SIMPLE.tpMax, sl * SIMPLE.tpRr)) * 10,
+    ) / 10
+  return { sl, tp }
+}
 
 export type SimpleAction = 'BUY' | 'SELL' | 'READY_BUY' | 'READY_SELL' | 'WAIT'
 export type QualityGrade = 'S' | 'A' | 'B' | 'C' | '—'
@@ -69,6 +104,9 @@ export interface SimpleSignal {
   spreadPips: number
   stopDistance: number
   takeProfitDistance: number
+  /** Risk distances in pips (ATR-hybrid). */
+  slPips: number
+  tpPips: number
   utFlip: boolean
   sslSide: 'buy' | 'sell' | 'flat'
   filtersOk: boolean
@@ -78,12 +116,14 @@ export interface SimpleSignal {
   trailPrice: number | null
   /** Suggested entry price when READY/BUY/SELL (UT flip level or last close). */
   entryPrice: number | null
-  /** Absolute SL / TP from entryPrice (fixed pip distances). */
+  /** Absolute SL / TP from entryPrice (ATR-hybrid pip distances). */
   stopPrice: number | null
   takeProfitPrice: number | null
   readySide: 'BUY' | 'SELL' | null
   grade: QualityGrade
   quality: number
+  /** DI + ADX≥prime + WT agree + HTF SSL — take these first. */
+  prime: boolean
   layers: IndicatorLayer[]
   utKey: number
   utAtr: number
@@ -120,6 +160,8 @@ export function evaluateSimple(
     spreadPips: 0,
     stopDistance: SIMPLE.slPips * pip,
     takeProfitDistance: SIMPLE.tpPips * pip,
+    slPips: SIMPLE.slPips,
+    tpPips: SIMPLE.tpPips,
     utFlip: false,
     sslSide: 'flat',
     filtersOk: false,
@@ -131,6 +173,7 @@ export function evaluateSimple(
     readySide: null,
     grade: '—',
     quality: 0,
+    prime: false,
     layers: [],
     utKey: 2,
     utAtr: 7,
@@ -177,6 +220,7 @@ export function evaluateSimple(
   const utPrev = utSeries.length >= 2 ? utSeries[utSeries.length - 2] : undefined
   const trail = last(trailSeries)
   const ssl = last(sslDirection(candles, sslLen))
+  const htfSsl = last(sslDirection(candles, SIMPLE.htfSslLen))
   const vwap = last(sessionVwap(candles))
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
@@ -189,6 +233,8 @@ export function evaluateSimple(
   const utFlipShort = !!(ut && utPrev && ut.value < 0 && utPrev.value >= 0)
   const sslLong = !!ssl && ssl.value > 0
   const sslShort = !!ssl && ssl.value < 0
+  const htfLong = !!htfSsl && htfSsl.value > 0
+  const htfShort = !!htfSsl && htfSsl.value < 0
   const emaLong = !requireEma || (!!ema21 && !!ema55 && ema21.value > ema55.value)
   const emaShort = !requireEma || (!!ema21 && !!ema55 && ema21.value < ema55.value)
 
@@ -198,16 +244,21 @@ export function evaluateSimple(
     confirmLong = confirmLong && price >= vwap.value
     confirmShort = confirmShort && price <= vwap.value
   }
+  // HTF SSL is a prime-tier confirm, not a hard block (keeps ~10/日)
 
   let buy = utFlipLong && confirmLong
   let sell = utFlipShort && confirmShort
 
   const newsOk = !news
   const spreadOk = spreadPips <= maxSpread
-  const filtersOk = windowOk && newsOk && spreadOk
+  const edgeOk = sessionAwayFromEdge(t, SIMPLE.sessionEdgeMin, fxSession)
+  const atrFloorOk = atrPips <= 0 || atrPips >= SIMPLE.minAtrPips
+  const filtersOk = windowOk && newsOk && spreadOk && edgeOk && atrFloorOk
 
   const adxOk = !adxVal || adxVal.adx >= SIMPLE.adxMin
   const adxStrong = !!adxVal && adxVal.adx >= 25
+  const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
+  const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
   const wtBull = !!(w1 && w2 && w1.value > w2.value)
   const wtBear = !!(w1 && w2 && w1.value < w2.value)
   const wtAbs = w1 ? Math.abs(w1.value) : 0
@@ -220,7 +271,15 @@ export function evaluateSimple(
 
   // Soft quality gates — keep UT×SSL core, cut dead/against moves
   let qualityBlock: string | null = null
-  if ((buy || sell) && !adxOk) {
+  if ((buy || sell) && !edgeOk) {
+    qualityBlock = 'セッション端（見送り）'
+    buy = false
+    sell = false
+  } else if ((buy || sell) && !atrFloorOk) {
+    qualityBlock = `ATR薄い ${atrPips.toFixed(1)}p`
+    buy = false
+    sell = false
+  } else if ((buy || sell) && !adxOk) {
     qualityBlock = `ADX弱い ${adxVal?.adx.toFixed(0) ?? '—'}（レンジ）`
     buy = false
     sell = false
@@ -267,32 +326,47 @@ export function evaluateSimple(
   else if (readyBuy) action = 'READY_BUY'
   else if (readySell) action = 'READY_SELL'
 
-  // Quality score 0–100
+  // Quality score 0–100 — prime needs DI + stronger ADX + WT agree
   let quality = 0
-  if (windowOk) quality += 12
-  if (newsOk) quality += 8
-  if (spreadOk) quality += 8
-  if (sslLong || sslShort) quality += 14
-  if (ut) quality += 10
-  if (utFlipLong || utFlipShort) quality += 18
-  if ((buy && confirmLong) || (sell && confirmShort)) quality += 10
-  if (adxOk) quality += 8
-  if (adxStrong) quality += 6
+  if (windowOk) quality += 10
+  if (newsOk) quality += 6
+  if (spreadOk) quality += 6
+  if (edgeOk) quality += 6
+  if (atrFloorOk) quality += 6
+  if (sslLong || sslShort) quality += 10
+  if ((buy && htfLong) || (sell && htfShort) || (readyBuy && htfLong) || (readySell && htfShort))
+    quality += 10
+  if (ut) quality += 8
+  if (utFlipLong || utFlipShort) quality += 14
+  if ((buy && confirmLong) || (sell && confirmShort)) quality += 8
+  if (adxOk) quality += 6
+  if (adxVal && adxVal.adx >= SIMPLE.adxPrime) quality += 8
+  if (adxStrong) quality += 4
+  if ((buy || readyBuy) && diLong) quality += 8
+  if ((sell || readySell) && diShort) quality += 8
   if ((buy || readyBuy) && wtAgreeLong) quality += 10
   else if ((sell || readySell) && wtAgreeShort) quality += 10
   else if (w1 && w2) quality += 2
   if (requireVwap && vwap) {
-    if ((buy || readyBuy) && price >= vwap.value) quality += 6
-    if ((sell || readySell) && price <= vwap.value) quality += 6
+    if ((buy || readyBuy) && price >= vwap.value) quality += 4
+    if ((sell || readySell) && price <= vwap.value) quality += 4
   }
   if (requireEma && ema21 && ema55) {
-    if ((buy || readyBuy) && ema21.value > ema55.value) quality += 6
-    if ((sell || readySell) && ema21.value < ema55.value) quality += 6
+    if ((buy || readyBuy) && ema21.value > ema55.value) quality += 4
+    if ((sell || readySell) && ema21.value < ema55.value) quality += 4
   }
   quality = Math.max(0, Math.min(100, Math.round(quality)))
 
   const hasEntry = action === 'BUY' || action === 'SELL'
-  const grade = gradeFromQuality(quality, hasEntry || action.startsWith('READY'))
+  const prime =
+    hasEntry &&
+    adxVal != null &&
+    adxVal.adx >= SIMPLE.adxPrime &&
+    ((action === 'BUY' && diLong && wtAgreeLong && htfLong) ||
+      (action === 'SELL' && diShort && wtAgreeShort && htfShort))
+  let grade = gradeFromQuality(quality, hasEntry || action.startsWith('READY'))
+  if (prime && (grade === 'B' || grade === 'C')) grade = 'A'
+  if (prime && quality >= 88) grade = 'S'
 
   const layers: IndicatorLayer[] = [
     {
@@ -316,6 +390,13 @@ export function evaluateSimple(
       bias: sslLong ? 'bull' : sslShort ? 'bear' : 'neutral',
       ok: sslLong || sslShort,
       detail: sslLong ? '買い側' : sslShort ? '売り側' : 'フラット',
+    },
+    {
+      id: 'htf',
+      name: `SSL(${SIMPLE.htfSslLen})`,
+      bias: htfLong ? 'bull' : htfShort ? 'bear' : 'neutral',
+      ok: htfLong || htfShort,
+      detail: htfLong ? '上位買い' : htfShort ? '上位売り' : 'フラット',
     },
     {
       id: 'adx',
@@ -381,6 +462,7 @@ export function evaluateSimple(
   const digits = pair?.digits ?? 3
   const trailPrice =
     trail && Number.isFinite(trail.value) ? trail.value : null
+  const risk = atrRiskPips(atrPips)
 
   // READY: watch UT trail flip. BUY/SELL: fill reference is last close.
   let entryPrice: number | null = null
@@ -395,22 +477,23 @@ export function evaluateSimple(
   if (entryPrice != null) {
     const longSide = action === 'BUY' || action === 'READY_BUY'
     stopPrice = longSide
-      ? entryPrice - SIMPLE.slPips * pip
-      : entryPrice + SIMPLE.slPips * pip
+      ? entryPrice - risk.sl * pip
+      : entryPrice + risk.sl * pip
     takeProfitPrice = longSide
-      ? entryPrice + SIMPLE.tpPips * pip
-      : entryPrice - SIMPLE.tpPips * pip
+      ? entryPrice + risk.tp * pip
+      : entryPrice - risk.tp * pip
   }
 
   const fmt = (n: number | null) =>
     n != null && Number.isFinite(n) ? n.toFixed(digits) : null
   const entryTxt = fmt(entryPrice)
 
+  const tierTxt = prime ? '推奨' : grade === 'A' || grade === 'S' ? '推奨' : '標準'
   let reason = '待機'
   if (action === 'BUY')
-    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · 品質${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'SELL')
-    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · 品質${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'READY_BUY')
     reason = entryTxt
       ? `準備・買い · ${entryTxt} で買い検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
@@ -446,8 +529,10 @@ export function evaluateSimple(
     sessionLabel,
     reason,
     spreadPips,
-    stopDistance: SIMPLE.slPips * pip,
-    takeProfitDistance: SIMPLE.tpPips * pip,
+    stopDistance: risk.sl * pip,
+    takeProfitDistance: risk.tp * pip,
+    slPips: risk.sl,
+    tpPips: risk.tp,
     utFlip: utFlipLong || utFlipShort,
     sslSide: sslLong ? 'buy' : sslShort ? 'sell' : 'flat',
     filtersOk,
@@ -459,6 +544,7 @@ export function evaluateSimple(
     readySide: readyBuy ? 'BUY' : readySell ? 'SELL' : null,
     grade,
     quality,
+    prime,
     layers,
     utKey,
     utAtr,

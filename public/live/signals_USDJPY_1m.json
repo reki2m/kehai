@@ -1,1 +1,1289 @@
-{"pairId":"USDJPY","timeframe":"1m","from":"2026-11-01","signals":[{"time":1793581620,"side":"BUY","price":157.812},{"time":1793582280,"side":"BUY","price":157.812},{"time":1793590500,"side":"BUY","price":157.948},{"time":1793598600,"side":"SELL","price":157.78},{"time":1793603820,"side":"BUY","price":157.854},{"time":1793626620,"side":"SELL","price":157.80499},{"time":1793637600,"side":"BUY","price":157.87},{"time":1793664000,"side":"SELL","price":157.88699},{"time":1793664360,"side":"SELL","price":157.888},{"time":1793666160,"side":"SELL","price":157.823},{"time":1793667360,"side":"BUY","price":157.896},{"time":1793670780,"side":"BUY","price":157.922},{"time":1793678460,"side":"SELL","price":157.841},{"time":1793698920,"side":"BUY","price":158.117},{"time":1793700120,"side":"BUY","price":158.17599},{"time":1793751180,"side":"SELL","price":158.507},{"time":1793758620,"side":"SELL","price":157.718},{"time":1793761200,"side":"SELL","price":157.62199},{"time":1793764800,"side":"SELL","price":157.64301},{"time":1793770800,"side":"BUY","price":157.967},{"time":1793771520,"side":"BUY","price":157.974},{"time":1793778900,"side":"BUY","price":158.11},{"time":1793779800,"side":"BUY","price":158.14},{"time":1793784480,"side":"BUY","price":158.293},{"time":1793810040,"side":"SELL","price":158.40601},{"time":1793839440,"side":"SELL","price":158.239},{"time":1793839860,"side":"SELL","price":158.22301},{"time":1793846880,"side":"SELL","price":157.89999},{"time":1793851560,"side":"SELL","price":157.849},{"time":1793867220,"side":"BUY","price":158.196},{"time":1793870340,"side":"BUY","price":158.24899},{"time":1793874300,"side":"BUY","price":158.342},{"time":1793884680,"side":"BUY","price":158.47701},{"time":1793887020,"side":"SELL","price":158.39999},{"time":1793928540,"side":"BUY","price":157.782},{"time":1793929800,"side":"BUY","price":157.88},{"time":1793934360,"side":"SELL","price":157.814},{"time":1793935020,"side":"SELL","price":157.826},{"time":1793940420,"side":"BUY","price":157.94},{"time":1793944080,"side":"SELL","price":157.82899},{"time":1794186360,"side":"BUY","price":158.351},{"time":1794189120,"side":"SELL","price":158.187},{"time":1794208140,"side":"SELL","price":158.103},{"time":1794210180,"side":"SELL","price":158.028},{"time":1794215040,"side":"SELL","price":158.05},{"time":1794219120,"side":"SELL","price":158.00101},{"time":1794234720,"side":"BUY","price":157.97501},{"time":1794269160,"side":"BUY","price":158.01401},{"time":1794271380,"side":"BUY","price":158.08},{"time":1794271980,"side":"BUY","price":158.10201},{"time":1794276540,"side":"BUY","price":158.054},{"time":1794280740,"side":"SELL","price":158.034},{"time":1794283800,"side":"SELL","price":157.955},{"time":1794286440,"side":"SELL","price":157.94299},{"time":1794294240,"side":"SELL","price":157.95799},{"time":1794296340,"side":"SELL","price":157.933},{"time":1794301200,"side":"BUY","price":158.03101},{"time":1794303480,"side":"BUY","price":158.093},{"time":1794306660,"side":"BUY","price":158.12399},{"time":1794308100,"side":"BUY","price":158.12199},{"time":1794317400,"side":"BUY","price":158.392},{"time":1794321000,"side":"BUY","price":158.578},{"time":1794324840,"side":"BUY","price":158.659},{"time":1794365520,"side":"SELL","price":158.819},{"time":1794369240,"side":"BUY","price":158.88499},{"time":1794372420,"side":"SELL","price":158.80299},{"time":1794374340,"side":"SELL","price":158.73199},{"time":1794384000,"side":"BUY","price":158.903},{"time":1794384780,"side":"BUY","price":158.892},{"time":1794388560,"side":"BUY","price":158.875},{"time":1794390420,"side":"BUY","price":158.909},{"time":1794394380,"side":"BUY","price":159.022},{"time":1794410400,"side":"BUY","price":159.748},{"time":1794443160,"side":"SELL","price":159.561},{"time":1794444000,"side":"SELL","price":159.58701},{"time":1794445560,"side":"SELL","price":159.56799},{"time":1794447960,"side":"BUY","price":159.653},{"time":1794451140,"side":"BUY","price":159.76401},{"time":1794453420,"side":"BUY","price":159.80099},{"time":1794456120,"side":"SELL","price":159.703},{"time":1794456720,"side":"SELL","price":159.71201},{"time":1794458340,"side":"SELL","price":159.692},{"time":1794467340,"side":"BUY","price":159.847},{"time":1794472020,"side":"BUY","price":159.754},{"time":1794472980,"side":"SELL","price":159.69},{"time":1794474540,"side":"SELL","price":159.633},{"time":1794478680,"side":"SELL","price":159.62199},{"time":1794529500,"side":"SELL","price":159.82201},{"time":1794530160,"side":"SELL","price":159.804},{"time":1794538800,"side":"BUY","price":159.93201},{"time":1794539940,"side":"BUY","price":159.96201},{"time":1794541920,"side":"SELL","price":159.89799},{"time":1794547920,"side":"BUY","price":159.96899},{"time":1794554820,"side":"SELL","price":159.784},{"time":1794558060,"side":"SELL","price":159.855},{"time":1794558720,"side":"BUY","price":159.924},{"time":1794559680,"side":"SELL","price":159.879},{"time":1794791880,"side":"BUY","price":159.778},{"time":1794799560,"side":"SELL","price":159.67},{"time":1794800880,"side":"SELL","price":159.58299},{"time":1794801660,"side":"SELL","price":159.60001},{"time":1794806940,"side":"SELL","price":159.491},{"time":1794808560,"side":"SELL","price":159.38},{"time":1794812400,"side":"SELL","price":159.47701},{"time":1794813480,"side":"SELL","price":159.47},{"time":1794816540,"side":"SELL","price":159.506},{"time":1794819660,"side":"SELL","price":159.37801},{"time":1794837480,"side":"BUY","price":159.63},{"time":1794877380,"side":"BUY","price":159.494},{"time":1794881220,"side":"SELL","price":159.465},{"time":1794882660,"side":"SELL","price":159.45599},{"time":1794883380,"side":"SELL","price":159.416},{"time":1794885240,"side":"SELL","price":159.314},{"time":1794887280,"side":"SELL","price":159.313},{"time":1794887700,"side":"SELL","price":159.295},{"time":1794889320,"side":"SELL","price":159.202},{"time":1794890940,"side":"SELL","price":159.231},{"time":1794893220,"side":"SELL","price":159.166},{"time":1794895140,"side":"SELL","price":159.114},{"time":1794898860,"side":"SELL","price":159.233},{"time":1794900000,"side":"SELL","price":159.20599},{"time":1794902400,"side":"SELL","price":159.308},{"time":1794903060,"side":"SELL","price":159.229},{"time":1794964380,"side":"BUY","price":159.589},{"time":1794966780,"side":"SELL","price":159.526},{"time":1794968220,"side":"SELL","price":159.412},{"time":1794969120,"side":"SELL","price":159.431},{"time":1794974100,"side":"SELL","price":159.336},{"time":1794985860,"side":"SELL","price":159.25},{"time":1794990600,"side":"SELL","price":159.245},{"time":1794992520,"side":"SELL","price":159.17599},{"time":1794994980,"side":"SELL","price":159.23199},{"time":1795016520,"side":"SELL","price":159.22501},{"time":1795018320,"side":"SELL","price":159.19501},{"time":1795048800,"side":"BUY","price":159.442},{"time":1795050000,"side":"BUY","price":159.43201},{"time":1795056300,"side":"BUY","price":159.437},{"time":1795058460,"side":"BUY","price":159.51401},{"time":1795072980,"side":"BUY","price":159.629},{"time":1795075920,"side":"BUY","price":159.77},{"time":1795083780,"side":"BUY","price":159.89101},{"time":1795085400,"side":"BUY","price":159.91499},{"time":1795093560,"side":"BUY","price":159.95799},{"time":1795102140,"side":"SELL","price":159.832},{"time":1795134720,"side":"SELL","price":159.567},{"time":1795138500,"side":"SELL","price":159.343},{"time":1795141920,"side":"SELL","price":159.198},{"time":1795145040,"side":"SELL","price":159.13},{"time":1795145340,"side":"SELL","price":159.118},{"time":1795148160,"side":"BUY","price":159.23},{"time":1795150620,"side":"SELL","price":159.15601},{"time":1795152900,"side":"SELL","price":159.11099},{"time":1795158420,"side":"SELL","price":159.155},{"time":1795161900,"side":"SELL","price":159.13901},{"time":1795165320,"side":"SELL","price":158.978},{"time":1795167000,"side":"SELL","price":159.00999},{"time":1795169880,"side":"SELL","price":158.75999},{"time":1795171620,"side":"SELL","price":158.92},{"time":1795392000,"side":"BUY","price":158.94701},{"time":1795394700,"side":"BUY","price":158.892},{"time":1795397220,"side":"BUY","price":158.88499},{"time":1795401660,"side":"SELL","price":158.80701},{"time":1795404720,"side":"BUY","price":158.968},{"time":1795406040,"side":"BUY","price":158.992},{"time":1795410480,"side":"SELL","price":158.978},{"time":1795411980,"side":"SELL","price":158.94901},{"time":1795412820,"side":"SELL","price":158.948},{"time":1795417320,"side":"SELL","price":158.922},{"time":1795417500,"side":"BUY","price":158.976},{"time":1795422600,"side":"BUY","price":159.093},{"time":1795426140,"side":"BUY","price":159.16701},{"time":1795428660,"side":"BUY","price":159.142},{"time":1795431180,"side":"BUY","price":159.11501},{"time":1795449420,"side":"BUY","price":159.39301},{"time":1795478400,"side":"SELL","price":158.92999},{"time":1795483020,"side":"SELL","price":158.896},{"time":1795484940,"side":"SELL","price":158.855},{"time":1795490460,"side":"BUY","price":158.94299},{"time":1795505160,"side":"BUY","price":159.319},{"time":1795507860,"side":"BUY","price":159.36501},{"time":1795509840,"side":"BUY","price":159.289},{"time":1795511760,"side":"BUY","price":159.338},{"time":1795513020,"side":"BUY","price":159.36},{"time":1795525740,"side":"SELL","price":159.084},{"time":1795529700,"side":"BUY","price":159.186},{"time":1795532400,"side":"BUY","price":159.26401},{"time":1795565400,"side":"SELL","price":159.22099},{"time":1795567200,"side":"BUY","price":159.30299},{"time":1795574100,"side":"SELL","price":159.22301},{"time":1795578900,"side":"BUY","price":159.298},{"time":1795581540,"side":"BUY","price":159.31599},{"time":1795591080,"side":"SELL","price":159.231}],"count":192}
+{
+  "pairId": "USDJPY",
+  "timeframe": "1m",
+  "from": 1793491200,
+  "count": 183,
+  "signals": [
+    {
+      "time": 1793581620,
+      "side": "BUY",
+      "price": 157.812,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793582280,
+      "side": "BUY",
+      "price": 157.812,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793590500,
+      "side": "BUY",
+      "price": 157.948,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793598600,
+      "side": "SELL",
+      "price": 157.78,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793603820,
+      "side": "BUY",
+      "price": 157.854,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793626620,
+      "side": "SELL",
+      "price": 157.80499,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1793637600,
+      "side": "BUY",
+      "price": 157.87,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793664360,
+      "side": "SELL",
+      "price": 157.888,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793666160,
+      "side": "SELL",
+      "price": 157.823,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793667360,
+      "side": "BUY",
+      "price": 157.896,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793670780,
+      "side": "BUY",
+      "price": 157.922,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793678460,
+      "side": "SELL",
+      "price": 157.841,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1793698920,
+      "side": "BUY",
+      "price": 158.117,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793700120,
+      "side": "BUY",
+      "price": 158.17599,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793751180,
+      "side": "SELL",
+      "price": 158.507,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793758620,
+      "side": "SELL",
+      "price": 157.718,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793761200,
+      "side": "SELL",
+      "price": 157.62199,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793764800,
+      "side": "SELL",
+      "price": 157.64301,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793770800,
+      "side": "BUY",
+      "price": 157.967,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793771520,
+      "side": "BUY",
+      "price": 157.974,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793778900,
+      "side": "BUY",
+      "price": 158.11,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793779800,
+      "side": "BUY",
+      "price": 158.14,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793784480,
+      "side": "BUY",
+      "price": 158.293,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793810040,
+      "side": "SELL",
+      "price": 158.40601,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793839440,
+      "side": "SELL",
+      "price": 158.239,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793839860,
+      "side": "SELL",
+      "price": 158.22301,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793846880,
+      "side": "SELL",
+      "price": 157.89999,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793851560,
+      "side": "SELL",
+      "price": 157.849,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793867220,
+      "side": "BUY",
+      "price": 158.196,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793870340,
+      "side": "BUY",
+      "price": 158.24899,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793874300,
+      "side": "BUY",
+      "price": 158.342,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1793884680,
+      "side": "BUY",
+      "price": 158.47701,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1793887020,
+      "side": "SELL",
+      "price": 158.39999,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1793928540,
+      "side": "BUY",
+      "price": 157.782,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793929800,
+      "side": "BUY",
+      "price": 157.88,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793934360,
+      "side": "SELL",
+      "price": 157.814,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793935020,
+      "side": "SELL",
+      "price": 157.826,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793940420,
+      "side": "BUY",
+      "price": 157.94,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1793944080,
+      "side": "SELL",
+      "price": 157.82899,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794186360,
+      "side": "BUY",
+      "price": 158.351,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794189120,
+      "side": "SELL",
+      "price": 158.187,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794208140,
+      "side": "SELL",
+      "price": 158.103,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794210180,
+      "side": "SELL",
+      "price": 158.028,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794215040,
+      "side": "SELL",
+      "price": 158.05,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794219120,
+      "side": "SELL",
+      "price": 158.00101,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794234720,
+      "side": "BUY",
+      "price": 157.97501,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794269160,
+      "side": "BUY",
+      "price": 158.01401,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794271380,
+      "side": "BUY",
+      "price": 158.08,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794271980,
+      "side": "BUY",
+      "price": 158.10201,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794276540,
+      "side": "BUY",
+      "price": 158.054,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794280740,
+      "side": "SELL",
+      "price": 158.034,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794283800,
+      "side": "SELL",
+      "price": 157.955,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794286440,
+      "side": "SELL",
+      "price": 157.94299,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794296340,
+      "side": "SELL",
+      "price": 157.933,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794301200,
+      "side": "BUY",
+      "price": 158.03101,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794303480,
+      "side": "BUY",
+      "price": 158.093,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794306660,
+      "side": "BUY",
+      "price": 158.12399,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794308100,
+      "side": "BUY",
+      "price": 158.12199,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794317400,
+      "side": "BUY",
+      "price": 158.392,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794321000,
+      "side": "BUY",
+      "price": 158.578,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794324840,
+      "side": "BUY",
+      "price": 158.659,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1794365520,
+      "side": "SELL",
+      "price": 158.819,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794369240,
+      "side": "BUY",
+      "price": 158.88499,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794372420,
+      "side": "SELL",
+      "price": 158.80299,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794374340,
+      "side": "SELL",
+      "price": 158.73199,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794384000,
+      "side": "BUY",
+      "price": 158.903,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794384780,
+      "side": "BUY",
+      "price": 158.892,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794388560,
+      "side": "BUY",
+      "price": 158.875,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794390420,
+      "side": "BUY",
+      "price": 158.909,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794394380,
+      "side": "BUY",
+      "price": 159.022,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794410400,
+      "side": "BUY",
+      "price": 159.748,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794443160,
+      "side": "SELL",
+      "price": 159.561,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1794444000,
+      "side": "SELL",
+      "price": 159.58701,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794445560,
+      "side": "SELL",
+      "price": 159.56799,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794447960,
+      "side": "BUY",
+      "price": 159.653,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794451140,
+      "side": "BUY",
+      "price": 159.76401,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794453420,
+      "side": "BUY",
+      "price": 159.80099,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794456120,
+      "side": "SELL",
+      "price": 159.703,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794456720,
+      "side": "SELL",
+      "price": 159.71201,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794458340,
+      "side": "SELL",
+      "price": 159.692,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794467340,
+      "side": "BUY",
+      "price": 159.847,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794472020,
+      "side": "BUY",
+      "price": 159.754,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794472980,
+      "side": "SELL",
+      "price": 159.69,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794474540,
+      "side": "SELL",
+      "price": 159.633,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794478680,
+      "side": "SELL",
+      "price": 159.62199,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794529500,
+      "side": "SELL",
+      "price": 159.82201,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794530160,
+      "side": "SELL",
+      "price": 159.804,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794538800,
+      "side": "BUY",
+      "price": 159.93201,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794539940,
+      "side": "BUY",
+      "price": 159.96201,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794541920,
+      "side": "SELL",
+      "price": 159.89799,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794547920,
+      "side": "BUY",
+      "price": 159.96899,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794554820,
+      "side": "SELL",
+      "price": 159.784,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794558060,
+      "side": "SELL",
+      "price": 159.855,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794558720,
+      "side": "BUY",
+      "price": 159.924,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1794559680,
+      "side": "SELL",
+      "price": 159.879,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794791880,
+      "side": "BUY",
+      "price": 159.778,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794799560,
+      "side": "SELL",
+      "price": 159.67,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794800880,
+      "side": "SELL",
+      "price": 159.58299,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794801660,
+      "side": "SELL",
+      "price": 159.60001,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794806940,
+      "side": "SELL",
+      "price": 159.491,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794813480,
+      "side": "SELL",
+      "price": 159.47,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794816540,
+      "side": "SELL",
+      "price": 159.506,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794819660,
+      "side": "SELL",
+      "price": 159.37801,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794837480,
+      "side": "BUY",
+      "price": 159.63,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794877380,
+      "side": "BUY",
+      "price": 159.494,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794881220,
+      "side": "SELL",
+      "price": 159.465,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794882660,
+      "side": "SELL",
+      "price": 159.45599,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794883380,
+      "side": "SELL",
+      "price": 159.416,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794885240,
+      "side": "SELL",
+      "price": 159.314,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794887280,
+      "side": "SELL",
+      "price": 159.313,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794887700,
+      "side": "SELL",
+      "price": 159.295,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794889320,
+      "side": "SELL",
+      "price": 159.202,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794890940,
+      "side": "SELL",
+      "price": 159.231,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794893220,
+      "side": "SELL",
+      "price": 159.166,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794900000,
+      "side": "SELL",
+      "price": 159.20599,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794902400,
+      "side": "SELL",
+      "price": 159.308,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794903060,
+      "side": "SELL",
+      "price": 159.229,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794964380,
+      "side": "BUY",
+      "price": 159.589,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1794966780,
+      "side": "SELL",
+      "price": 159.526,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794968220,
+      "side": "SELL",
+      "price": 159.412,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794969120,
+      "side": "SELL",
+      "price": 159.431,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794974100,
+      "side": "SELL",
+      "price": 159.336,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1794985860,
+      "side": "SELL",
+      "price": 159.25,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794990600,
+      "side": "SELL",
+      "price": 159.245,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794992520,
+      "side": "SELL",
+      "price": 159.17599,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1794994980,
+      "side": "SELL",
+      "price": 159.23199,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795016520,
+      "side": "SELL",
+      "price": 159.22501,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795018320,
+      "side": "SELL",
+      "price": 159.19501,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795048800,
+      "side": "BUY",
+      "price": 159.442,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795050000,
+      "side": "BUY",
+      "price": 159.43201,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795056300,
+      "side": "BUY",
+      "price": 159.437,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795058460,
+      "side": "BUY",
+      "price": 159.51401,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795072980,
+      "side": "BUY",
+      "price": 159.629,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795075920,
+      "side": "BUY",
+      "price": 159.77,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795083780,
+      "side": "BUY",
+      "price": 159.89101,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795085400,
+      "side": "BUY",
+      "price": 159.91499,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795093560,
+      "side": "BUY",
+      "price": 159.95799,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795102140,
+      "side": "SELL",
+      "price": 159.832,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1795134720,
+      "side": "SELL",
+      "price": 159.567,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1795138500,
+      "side": "SELL",
+      "price": 159.343,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795141920,
+      "side": "SELL",
+      "price": 159.198,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795145040,
+      "side": "SELL",
+      "price": 159.13,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795145340,
+      "side": "SELL",
+      "price": 159.118,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795148160,
+      "side": "BUY",
+      "price": 159.23,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795150620,
+      "side": "SELL",
+      "price": 159.15601,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795152900,
+      "side": "SELL",
+      "price": 159.11099,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795158420,
+      "side": "SELL",
+      "price": 159.155,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795161900,
+      "side": "SELL",
+      "price": 159.13901,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795165320,
+      "side": "SELL",
+      "price": 158.978,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795167000,
+      "side": "SELL",
+      "price": 159.00999,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795169880,
+      "side": "SELL",
+      "price": 158.75999,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1795171620,
+      "side": "SELL",
+      "price": 158.92,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795394700,
+      "side": "BUY",
+      "price": 158.892,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795397220,
+      "side": "BUY",
+      "price": 158.88499,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795401660,
+      "side": "SELL",
+      "price": 158.80701,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795404720,
+      "side": "BUY",
+      "price": 158.968,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795406040,
+      "side": "BUY",
+      "price": 158.992,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795410480,
+      "side": "SELL",
+      "price": 158.978,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795411980,
+      "side": "SELL",
+      "price": 158.94901,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795412820,
+      "side": "SELL",
+      "price": 158.948,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795417500,
+      "side": "BUY",
+      "price": 158.976,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795422600,
+      "side": "BUY",
+      "price": 159.093,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795426140,
+      "side": "BUY",
+      "price": 159.16701,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795428660,
+      "side": "BUY",
+      "price": 159.142,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795431180,
+      "side": "BUY",
+      "price": 159.11501,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795449420,
+      "side": "BUY",
+      "price": 159.39301,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795483020,
+      "side": "SELL",
+      "price": 158.896,
+      "prime": true,
+      "grade": "S"
+    },
+    {
+      "time": 1795484940,
+      "side": "SELL",
+      "price": 158.855,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795490460,
+      "side": "BUY",
+      "price": 158.94299,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795505160,
+      "side": "BUY",
+      "price": 159.319,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795507860,
+      "side": "BUY",
+      "price": 159.36501,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795509840,
+      "side": "BUY",
+      "price": 159.289,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795511760,
+      "side": "BUY",
+      "price": 159.338,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795513020,
+      "side": "BUY",
+      "price": 159.36,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795525740,
+      "side": "SELL",
+      "price": 159.084,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795529700,
+      "side": "BUY",
+      "price": 159.186,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795532400,
+      "side": "BUY",
+      "price": 159.26401,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795565400,
+      "side": "SELL",
+      "price": 159.22099,
+      "prime": true,
+      "grade": "A"
+    },
+    {
+      "time": 1795567200,
+      "side": "BUY",
+      "price": 159.30299,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795574100,
+      "side": "SELL",
+      "price": 159.22301,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795578900,
+      "side": "BUY",
+      "price": 159.298,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795581540,
+      "side": "BUY",
+      "price": 159.31599,
+      "prime": false,
+      "grade": "B"
+    },
+    {
+      "time": 1795591080,
+      "side": "SELL",
+      "price": 159.231,
+      "prime": false,
+      "grade": "B"
+    }
+  ]
+}

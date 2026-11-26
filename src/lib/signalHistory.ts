@@ -1,12 +1,13 @@
 /**
  * Replay KEHAI Simple Pro entries across candle history (from a unix cutoff).
- * Same core as evaluateSimple: UT flip × SSL + session EMA/VWAP + ADX/WT gates.
+ * Same core as evaluateSimple: UT flip × SSL + session EMA/VWAP + quality gates.
  */
 
 import {
   SESSION_PROFILES,
   detectFxSession,
   isInstrumentWindow,
+  sessionAwayFromEdge,
 } from './apex'
 import { estimateSpreadPips, newsBlackout } from './filters'
 import {
@@ -26,6 +27,9 @@ export interface HistSignal {
   time: number
   side: 'BUY' | 'SELL'
   price: number
+  /** DI + ADX≥prime + WT agree + HTF SSL. */
+  prime?: boolean
+  grade?: 'S' | 'A' | 'B' | 'C'
 }
 
 /** 2026-11-01 00:00 UTC — chart markers from November onward. */
@@ -77,6 +81,14 @@ export function listHistoricalSignals(
       )
     }
   }
+  if (!sslByLen.has(SIMPLE.htfSslLen)) {
+    sslByLen.set(
+      SIMPLE.htfSslLen,
+      new Map(
+        sslDirection(candles, SIMPLE.htfSslLen).map((d) => [d.time, d.value]),
+      ),
+    )
+  }
 
   const vwapMap = mapByTime(sessionVwap(candles))
   const ema21Map = mapByTime(ema(candles, 21))
@@ -86,6 +98,7 @@ export function listHistoricalSignals(
   const { wt1, wt2 } = wavetrend(candles, 10, 21)
   const wt1Map = mapByTime(wt1)
   const wt2Map = mapByTime(wt2)
+  const htfMap = sslByLen.get(SIMPLE.htfSslLen)!
 
   let lastSignalIndex = -999
 
@@ -134,7 +147,9 @@ export function listHistoricalSignals(
         : fxSession != null
     const newsOk = !news
     const spreadOk = spreadPips <= maxSpread
-    if (!(windowOk && newsOk && spreadOk)) continue
+    const edgeOk = sessionAwayFromEdge(c.time, SIMPLE.sessionEdgeMin, fxSession)
+    const atrFloorOk = atrPips <= 0 || atrPips >= SIMPLE.minAtrPips
+    if (!(windowOk && newsOk && spreadOk && edgeOk && atrFloorOk)) continue
 
     const utFlipLong = ut > 0 && utPrev <= 0
     const utFlipShort = ut < 0 && utPrev >= 0
@@ -142,6 +157,9 @@ export function listHistoricalSignals(
 
     const sslLong = ssl > 0
     const sslShort = ssl < 0
+    const htf = htfMap.get(c.time)
+    const htfLong = htf != null && htf > 0
+    const htfShort = htf != null && htf < 0
     const e21 = ema21Map.get(c.time)?.value
     const e55 = ema55Map.get(c.time)?.value
     const emaLong = !requireEma || (!!e21 && !!e55 && e21 > e55)
@@ -154,6 +172,7 @@ export function listHistoricalSignals(
       confirmLong = confirmLong && price >= vwap
       confirmShort = confirmShort && price <= vwap
     }
+    // HTF SSL is prime-only — keep base frequency near ~10/weekday
 
     let buy = utFlipLong && confirmLong
     let sell = utFlipShort && confirmShort
@@ -167,19 +186,30 @@ export function listHistoricalSignals(
 
     const w1 = wt1Map.get(c.time)?.value
     const w2 = wt2Map.get(c.time)?.value
+    let wtAgreeLong = false
+    let wtAgreeShort = false
     if (w1 != null && w2 != null) {
       const wtAbs = Math.abs(w1)
+      wtAgreeLong = w1 > w2
+      wtAgreeShort = w1 < w2
       if (buy && w1 < w2 && wtAbs >= SIMPLE.wtAgainstAbs) buy = false
       if (sell && w1 > w2 && wtAbs >= SIMPLE.wtAgainstAbs) sell = false
     }
 
-    if (buy) {
-      out.push({ time: c.time, side: 'BUY', price })
-      lastSignalIndex = i
-    } else if (sell) {
-      out.push({ time: c.time, side: 'SELL', price })
-      lastSignalIndex = i
-    }
+    if (!buy && !sell) continue
+
+    const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
+    const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
+    const side: 'BUY' | 'SELL' = buy ? 'BUY' : 'SELL'
+    const prime =
+      !!adxVal &&
+      adxVal.adx >= SIMPLE.adxPrime &&
+      ((side === 'BUY' && diLong && wtAgreeLong && htfLong) ||
+        (side === 'SELL' && diShort && wtAgreeShort && htfShort))
+    const grade = prime ? (adxVal && adxVal.adx >= 25 ? 'S' : 'A') : 'B'
+
+    out.push({ time: c.time, side, price, prime, grade })
+    lastSignalIndex = i
   }
 
   return out

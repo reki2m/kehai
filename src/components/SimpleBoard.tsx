@@ -60,7 +60,10 @@ export function SimpleBoard({
         </p>
         {showGrade && (
           <p className={`simple-grade grade-${signal.grade.toLowerCase()}`}>
-            品質 {signal.grade}
+            {signal.prime || signal.grade === 'S' || signal.grade === 'A'
+              ? '推奨'
+              : '標準'}{' '}
+            {signal.grade}
             <span className="simple-grade-score"> · {signal.quality}</span>
           </p>
         )}
@@ -150,7 +153,7 @@ export function SimpleBoard({
         </p>
 
         <p className="simple-risk">
-          SL {SIMPLE.slPips} / TP {SIMPLE.tpPips} {unitLabel(pair)}
+          SL {signal.slPips} / TP {signal.tpPips} {unitLabel(pair)}
           {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ''}
         </p>
         <p className="simple-meta">
@@ -172,12 +175,12 @@ export function SimpleBoard({
           READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
-          BUY / SELL は品質 A〜S 優先 · C は見送り推奨
+          BUY / SELL は「推奨」(A〜S / ★)を優先 · 「標準」は様子見可 · C は見送り
         </li>
         <li>
-          損切り {SIMPLE.slPips}
-          {unitLabel(pair)} · 利確 {SIMPLE.tpPips}
-          {unitLabel(pair)} を固定
+          損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /
+          TP{SIMPLE.tpMin}–{SIMPLE.tpMax}
+          {unitLabel(pair)}）· 表示の数値に合わせる
         </li>
         <li>約定の最終確認はGMOの板で行う</li>
         <li>チャートは UT / SSL / VWAP がサイン用オーバーレイ</li>

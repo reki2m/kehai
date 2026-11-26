@@ -450,14 +450,18 @@ export default function App() {
         side: raw.action as 'BUY' | 'SELL',
         expectedEntry: expected,
         pairId,
+        slPips: raw.slPips,
+        tpPips: raw.tpPips,
       }),
     )
   }
 
   function handleClose(kind: 'TP' | 'SL' | 'OTHER') {
     const slip = Math.max(0, Number(slipInput) || 0)
+    const openSl = stats.open?.slPips ?? SIMPLE.slPips
+    const openTp = stats.open?.tpPips ?? SIMPLE.tpPips
     let pnl =
-      kind === 'TP' ? SIMPLE.tpPips : kind === 'SL' ? -SIMPLE.slPips : Number(otherPnl)
+      kind === 'TP' ? openTp : kind === 'SL' ? -openSl : Number(otherPnl)
     if (kind === 'OTHER' && !Number.isFinite(pnl)) return
     // Adverse slip reduces net for winners / worsens losers slightly on entry
     if (kind === 'TP') pnl = Math.max(0, pnl - slip)
@@ -508,11 +512,12 @@ export default function App() {
       if (lastEntryKey.current !== key) {
         lastEntryKey.current = key
         announceEntry(raw.action === 'BUY' ? 'LONG' : 'SHORT', midText, {
-          sl: SIMPLE.slPips,
-          tp: SIMPLE.tpPips,
+          sl: raw.slPips,
+          tp: raw.tpPips,
           unit: unitLabel(pair),
           session: raw.sessionLabel ?? undefined,
           grade: raw.grade,
+          prime: raw.prime,
         })
       }
       return
@@ -534,6 +539,9 @@ export default function App() {
     raw.action,
     raw.entryPrice,
     raw.grade,
+    raw.prime,
+    raw.slPips,
+    raw.tpPips,
     raw.sessionLabel,
     raw.trailDistancePips,
     pair,
@@ -756,7 +764,7 @@ export default function App() {
         <div className="brand-block">
           <p className="brand">KEHAI</p>
           <p className="tagline">
-            {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
+            {SIMPLE.stack} · 手動サイン · SL/TP ATR連動
           </p>
         </div>
 
