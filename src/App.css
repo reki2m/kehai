@@ -268,27 +268,88 @@
   letter-spacing: 0.02em;
 }
 
-.shock-banner {
-  flex-basis: 100%;
-  margin: 0.35rem 0 0;
-  padding: 0.4rem 0.65rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.shock-top {
+  position: relative;
+  z-index: 5;
+  margin: 0.35rem 1rem 0;
+  padding: 0.75rem 0.9rem 0.65rem;
   border: 1px solid transparent;
-  animation: shock-flash 0.9s ease-in-out 2;
+  animation: shock-flash 1s ease-in-out 2;
 }
 
-.shock-banner.up {
-  color: var(--sea);
+.shock-top.up {
+  color: var(--text);
   background: rgba(94, 234, 212, 0.14);
   border-color: rgba(94, 234, 212, 0.45);
 }
 
-.shock-banner.down {
-  color: var(--coral);
-  background: rgba(240, 113, 103, 0.16);
+.shock-top.down {
+  color: var(--text);
+  background: rgba(240, 113, 103, 0.14);
   border-color: rgba(240, 113, 103, 0.5);
+}
+
+.shock-top-main {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.shock-top-main strong {
+  font-size: 0.92rem;
+  letter-spacing: 0.03em;
+}
+
+.shock-conf {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.shock-conf.conf-high {
+  color: var(--gold);
+  border-color: rgba(232, 196, 124, 0.45);
+}
+
+.shock-conf.conf-medium {
+  color: var(--sea);
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.shock-dismiss {
+  margin-left: auto;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.shock-top-summary {
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.shock-top-details {
+  margin: 0.4rem 0 0;
+  padding: 0 0 0 1.1rem;
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.9;
+  line-height: 1.45;
+}
+
+.shock-top-ttl {
+  margin: 0.4rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
 }
 
 @keyframes shock-flash {
@@ -297,7 +358,13 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.55;
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 640px) {
+  .shock-top {
+    margin-inline: 0.75rem;
   }
 }
 

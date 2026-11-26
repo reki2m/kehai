@@ -430,13 +430,14 @@ export function playShockBeep(direction: 'UP' | 'DOWN'): void {
   }
 }
 
-/** 急変アラート（警告音＋読み上げ） */
+/** 急変アラート（警告音＋読み上げ＋原因要約） */
 export function announceShock(hit: {
   direction: 'UP' | 'DOWN'
   pips: number
   windowSec: number
   label?: string
   pairLabel?: string
+  causeSummary?: string
 }): void {
   if (!shockAlertOn) return
   playShockBeep(hit.direction)
@@ -448,14 +449,17 @@ export function announceShock(hit: {
     (hit.windowSec >= 60
       ? `${Math.round(hit.windowSec / 60)}分`
       : `${hit.windowSec}秒`)
+  const cause = hit.causeSummary ? `原因調査。${hit.causeSummary}` : ''
   speak(
-    `急変警告。${pair}${when}で${dir}、約${hit.pips.toFixed(0)}ピプス。`,
+    `急変警告。${pair}${when}で${dir}、約${hit.pips.toFixed(0)}ピプス。${cause}`,
     { force: true, priority: 0, interrupt: true },
   )
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
       new Notification(`KEHAI · 急変 ${dir}`, {
-        body: `${hit.pairLabel ?? ''} ${hit.pips.toFixed(0)}p / ${when}`,
+        body:
+          hit.causeSummary ??
+          `${hit.pairLabel ?? ''} ${hit.pips.toFixed(0)}p / ${when}`,
         tag: 'shock',
       })
     } catch {

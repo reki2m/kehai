@@ -38,6 +38,7 @@ import {
   type SessionStatsState,
 } from './lib/sessionStats'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
+import { investigateShockCause, type ShockCauseReport } from './lib/shockCause'
 import { ShockDetector } from './lib/shockDetect'
 import {
   announceBriefNow,
@@ -85,10 +86,12 @@ export default function App() {
   const [entrySound, setEntrySound] = useState(true)
   const [newsVoice, setNewsVoice] = useState(true)
   const [shockAlert, setShockAlert] = useState(true)
-  const [shockFlash, setShockFlash] = useState<{
+  const [shockReport, setShockReport] = useState<{
     dir: 'UP' | 'DOWN'
     pips: number
     label: string
+    cause: ShockCauseReport
+    until: number
   } | null>(null)
   const [alertIds, setAlertIds] = useState<Set<string>>(() => new Set())
   const [stats, setStats] = useState<SessionStatsState>(() => loadSessionStats())
@@ -105,9 +108,19 @@ export default function App() {
   const spokenSpeeches = useRef<Set<string>>(new Set())
   const briefDone = useRef(false)
   const shockRef = useRef<ShockDetector | null>(null)
+  const eventsRef = useRef<CalendarEvent[]>([])
+  const headlinesRef = useRef<Headline[]>([])
+  const shockClearTimer = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
+
+  useEffect(() => {
+    eventsRef.current = events
+  }, [events])
+  useEffect(() => {
+    headlinesRef.current = headlines
+  }, [headlines])
 
   useEffect(() => {
     const id = window.setTimeout(() => setBooted(true), 40)
@@ -158,10 +171,14 @@ export default function App() {
         { windowSec: 600, thresholdPips: 50, label: '10分', cooldownSec: 180 },
       ],
     })
-    setShockFlash(null)
+    setShockReport(null)
+    if (shockClearTimer.current) {
+      window.clearTimeout(shockClearTimer.current)
+      shockClearTimer.current = null
+    }
   }, [pairId, pair.pip])
 
-  // Live tick ~1s — updates chart tip + bid/ask + 急変検知
+  // Live tick ~1s — updates chart tip + bid/ask + 急変検知＋原因調査
   useEffect(() => {
     let cancelled = false
     let inFlight = false
@@ -182,19 +199,32 @@ export default function App() {
         if (shockAlert && shockRef.current) {
           const hit = shockRef.current.push(px)
           if (hit) {
+            const cause = investigateShockCause({
+              hit,
+              events: eventsRef.current,
+              headlines: headlinesRef.current,
+            })
             announceShock({
               direction: hit.direction,
               pips: hit.pips,
               windowSec: hit.windowSec,
               label: hit.label,
               pairLabel: pair.label,
+              causeSummary: cause.summary,
             })
-            setShockFlash({
+            const until = Date.now() + 5 * 60_000
+            setShockReport({
               dir: hit.direction,
               pips: hit.pips,
               label: hit.label,
+              cause,
+              until,
             })
-            window.setTimeout(() => setShockFlash(null), 8000)
+            if (shockClearTimer.current) window.clearTimeout(shockClearTimer.current)
+            shockClearTimer.current = window.setTimeout(() => {
+              setShockReport(null)
+              shockClearTimer.current = null
+            }, 5 * 60_000)
           }
         }
       } catch {
@@ -469,6 +499,51 @@ export default function App() {
       <div className="atmosphere" aria-hidden />
       <div className="tide" aria-hidden />
 
+      {shockReport && (
+        <div
+          className={`shock-top ${shockReport.dir === 'UP' ? 'up' : 'down'}`}
+          role="alert"
+        >
+          <div className="shock-top-main">
+            <strong>
+              急変調査 · {shockReport.dir === 'UP' ? '急騰' : '急落'}{' '}
+              {shockReport.pips.toFixed(0)}p / {shockReport.label}
+            </strong>
+            <span className={`shock-conf conf-${shockReport.cause.confidence}`}>
+              確度
+              {shockReport.cause.confidence === 'high'
+                ? '高'
+                : shockReport.cause.confidence === 'medium'
+                  ? '中'
+                  : '低'}
+            </span>
+            <button
+              type="button"
+              className="shock-dismiss"
+              aria-label="閉じる"
+              onClick={() => {
+                setShockReport(null)
+                if (shockClearTimer.current) {
+                  window.clearTimeout(shockClearTimer.current)
+                  shockClearTimer.current = null
+                }
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <p className="shock-top-summary">{shockReport.cause.summary}</p>
+          {shockReport.cause.details.length > 0 && (
+            <ul className="shock-top-details">
+              {shockReport.cause.details.map((d) => (
+                <li key={d}>{d}</li>
+              ))}
+            </ul>
+          )}
+          <p className="shock-top-ttl">約5分間トップに表示 · 手動で閉じることも可</p>
+        </div>
+      )}
+
       <header className="topbar">
         <div className="brand-block">
           <p className="brand">KEHAI</p>
@@ -649,17 +724,6 @@ export default function App() {
               {' · '}BUY/SELLのみ · 1本
               {liveError ? ` · ${liveError}` : ''}
             </p>
-            {shockFlash && (
-              <p
-                className={`shock-banner ${shockFlash.dir === 'UP' ? 'up' : 'down'}`}
-                role="alert"
-              >
-                急変 {shockFlash.dir === 'UP' ? '↑急騰' : '↓急落'} ·{' '}
-                {shockFlash.pips.toFixed(0)}
-                {pair.unit === 'pips' ? 'p' : 'pt'} / {shockFlash.label}
-                （基準: 1分20p・10分50p）
-              </p>
-            )}
           </div>
           {candles.length >= 30 ? (
             <ErrorBoundary>
