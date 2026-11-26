@@ -48,6 +48,7 @@ import {
   toggleSessionDisabled,
   type SessionStatsState,
 } from './lib/sessionStats'
+import { BROKER_SPREAD_PIPS } from './lib/filters'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import { investigateShockCause, type ShockCauseReport } from './lib/shockCause'
 import { ShockDetector } from './lib/shockDetect'
@@ -89,8 +90,6 @@ export default function App() {
   const [candles, setCandles] = useState<Candle[]>([])
   const [archiveSignals, setArchiveSignals] = useState<HistSignal[]>([])
   const [livePrice, setLivePrice] = useState<number | null>(null)
-  const [liveBid, setLiveBid] = useState<number | null>(null)
-  const [liveAsk, setLiveAsk] = useState<number | null>(null)
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
@@ -241,8 +240,6 @@ export default function App() {
       }
     }
 
-    setLiveBid(null)
-    setLiveAsk(null)
     setArchiveSignals([])
     void load(true)
     // 履歴だけゆっくり更新（形成中足はティック側が担当）
@@ -303,9 +300,7 @@ export default function App() {
       if (cancelled) return
       const px = q.price
       setLivePrice(px)
-      if (q.bid != null) setLiveBid(q.bid)
-      if (q.ask != null) setLiveAsk(q.ask)
-      // Chart: coalesce WS spam (~4Hz). Board mid/bid/ask stay realtime.
+      // Chart: coalesce WS spam. Board bid/ask = mid ± fixed 0.2p.
       pendingTickRef.current = px
       if (tickFlushTimer.current == null) {
         tickFlushTimer.current = window.setTimeout(flushTickToChart, 500)
@@ -508,19 +503,10 @@ export default function App() {
       : last
         ? last.close
         : NaN
-  const halfSpread = ((raw.spreadPips || 0.2) * pair.pip) / 2
-  const bidNum =
-    liveBid != null && Number.isFinite(liveBid)
-      ? liveBid
-      : Number.isFinite(mid)
-        ? mid - halfSpread
-        : NaN
-  const askNum =
-    liveAsk != null && Number.isFinite(liveAsk)
-      ? liveAsk
-      : Number.isFinite(mid)
-        ? mid + halfSpread
-        : NaN
+  // Display bid/ask always at fixed broker spread (0.2p) — ignore live BBO width
+  const halfSpread = (BROKER_SPREAD_PIPS * pair.pip) / 2
+  const bidNum = Number.isFinite(mid) ? mid - halfSpread : NaN
+  const askNum = Number.isFinite(mid) ? mid + halfSpread : NaN
   const bid = Number.isFinite(bidNum) ? bidNum.toFixed(pair.digits) : '—'
   const ask = Number.isFinite(askNum) ? askNum.toFixed(pair.digits) : '—'
   const midText = Number.isFinite(mid) ? mid.toFixed(pair.digits) : '—'
