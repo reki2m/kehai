@@ -236,12 +236,15 @@
 }
 
 .chart-meta {
+  /* Always stacked — never flip beside/below the pair title (that reflows the chart) */
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1rem 0.35rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem 0.45rem;
+  flex-shrink: 0;
+  min-height: 3.35rem;
+  box-sizing: border-box;
 }
 
 .chart-meta h1 {
@@ -253,6 +256,7 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  white-space: nowrap;
 }
 
 .tf-chip {
@@ -263,9 +267,18 @@
 
 .sample-note {
   margin: 0;
+  width: 100%;
+  min-height: 1.1rem;
   font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sample-note-hist {
+  color: var(--muted);
 }
 
 .shock-top {
@@ -1742,8 +1755,4 @@
     text-align: center;
   }
 
-  .chart-meta {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }

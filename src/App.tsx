@@ -310,9 +310,8 @@ export default function App() {
         q.source === 'biquote' && streaming
           ? 'biquote WS'
           : q.source
-      setLiveSource(
-        age <= 2 ? `ライブ ${tag}` : `ライブ ${tag} · ${age}秒前`,
-      )
+      // Stable label only — age in the string reflows chart-meta every second
+      setLiveSource(tag)
       setLiveError(null)
 
       if (shockAlert && shockRef.current) {
@@ -711,11 +710,11 @@ export default function App() {
   }, [events, headlines, voiceOn, newsVoice])
 
   const sourceLabel = liveSource
-    ? `ライブ ${liveSource}`
+    ? `ライブ · ${liveSource}`
     : liveLoading
       ? 'レート取得中…'
       : liveError
-        ? `レート取得失敗（${liveError}）· 再読み込みしてください`
+        ? `レート取得失敗 · 再読み込み`
         : 'レート待機中'
 
   return (
@@ -959,14 +958,24 @@ export default function App() {
                 {timeframe} · {SIMPLE.stack}
               </span>
             </h1>
-            <p className="sample-note">
-              {sourceLabel}
-              {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ' · セッション外'}
-              {' · '}BUY/SELLのみ · 1本
-              {histSignals.length > 0
-                ? ` · 過去サイン ${histSignals.length}（11月〜）`
-                : ''}
-              {liveError ? ` · ${liveError}` : ''}
+            <p className="sample-note" title={[
+              sourceLabel,
+              signal.sessionLabel ?? 'セッション外',
+              histSignals.length > 0
+                ? `過去サイン ${histSignals.length}（11月〜）`
+                : null,
+              liveError,
+            ].filter(Boolean).join(' · ')}>
+              <span className="sample-note-main">
+                {sourceLabel}
+                {' · '}
+                {signal.sessionLabel ?? 'セッション外'}
+              </span>
+              {histSignals.length > 0 ? (
+                <span className="sample-note-hist">
+                  {' · '}過去サイン {histSignals.length}（11月〜）
+                </span>
+              ) : null}
             </p>
           </div>
           {candles.length >= 30 ? (
