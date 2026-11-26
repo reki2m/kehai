@@ -210,22 +210,38 @@ export function PriceChart({ candles, pair, overlays }: Props) {
       candles.length >= prevLen.current &&
       candles.length - prevLen.current <= 1
     ) {
-      candleSeries.current.update(lastBar)
-      prevLen.current = candles.length
-      chartRef.current?.timeScale().scrollToRealTime()
-      return
+      try {
+        candleSeries.current.update(lastBar)
+        prevLen.current = candles.length
+        chartRef.current?.timeScale().scrollToRealTime()
+        return
+      } catch {
+        // fall through to full setData
+      }
     }
     prevOverlays.current = overlayKey
 
-    const candleData: CandlestickData<Time>[] = candles.map((c) => ({
-      time: c.time as UTCTimestamp,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }))
-    candleSeries.current.setData(candleData)
-    prevLen.current = candles.length
+    // Dedupe ascending times — duplicate timestamps white-screen the chart
+    const seen = new Set<number>()
+    const candleData: CandlestickData<Time>[] = []
+    for (const c of candles) {
+      if (!Number.isFinite(c.time) || seen.has(c.time)) continue
+      seen.add(c.time)
+      candleData.push({
+        time: c.time as UTCTimestamp,
+        open: c.open,
+        high: Math.max(c.open, c.high, c.close),
+        low: Math.min(c.open, c.low, c.close),
+        close: c.close,
+      })
+    }
+    try {
+      candleSeries.current.setData(candleData)
+      prevLen.current = candles.length
+    } catch {
+      prevLen.current = 0
+      return
+    }
 
     const showEma = overlays.includes('ema')
     const showBb = overlays.includes('bb')

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { RulesPanel } from './components/RulesPanel'
@@ -9,6 +10,7 @@ import {
   applyLiveTick,
   fetchLiveCandles,
   fetchLiveTick,
+  sanitizeCandles,
 } from './lib/liveRates'
 import type { Candle } from './lib/marketData'
 import {
@@ -110,7 +112,7 @@ export default function App() {
         const live = await fetchLiveCandles(pairId, timeframe)
         if (cancelled) return
         if (live.candles.length >= 30) {
-          setCandles(live.candles)
+          setCandles(sanitizeCandles(live.candles))
           if (live.lastPrice != null) setLivePrice(live.lastPrice)
           setLiveSource(live.source)
           setLiveError(null)
@@ -554,7 +556,9 @@ export default function App() {
             </p>
           </div>
           {candles.length >= 30 ? (
-            <PriceChart candles={candles} pair={pair} overlays={overlays} />
+            <ErrorBoundary>
+              <PriceChart candles={candles} pair={pair} overlays={overlays} />
+            </ErrorBoundary>
           ) : (
             <p className="sample-note" style={{ padding: '1.2rem' }}>
               {liveLoading ? 'チャート読み込み中…' : '足データ待ち…'}

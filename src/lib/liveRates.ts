@@ -227,9 +227,37 @@ export async function fetchTwelveCandles(
         Number.isFinite(c.close),
     )
   if (timeframe === '4H') candles = resample(candles, 4)
+  candles = sanitizeCandles(candles)
   if (candles.length < 30) throw new Error('twelve short')
   const lastPrice = candles[candles.length - 1].close
   return { candles: candles.slice(-360), lastPrice, source: 'Twelve Data' }
+}
+
+/** Keep ascending unique times and valid OHLC for lightweight-charts. */
+export function sanitizeCandles(candles: Candle[]): Candle[] {
+  const byTime = new Map<number, Candle>()
+  for (const c of candles) {
+    if (!Number.isFinite(c.time) || !Number.isFinite(c.close)) continue
+    const open = Number.isFinite(c.open) ? c.open : c.close
+    const close = c.close
+    const high = Math.max(
+      open,
+      close,
+      Number.isFinite(c.high) ? c.high : close,
+    )
+    const low = Math.min(open, close, Number.isFinite(c.low) ? c.low : close)
+    byTime.set(c.time, {
+      time: c.time,
+      open,
+      high,
+      low,
+      close,
+      volume: c.volume || 0,
+    })
+  }
+  return [...byTime.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, c]) => c)
 }
 
 /** Apply a live price onto the current timeframe bar (opens a new bar when needed). */
@@ -242,8 +270,10 @@ export function applyLiveTick(
   const step = tfSeconds(timeframe)
   const now = Math.floor(Date.now() / 1000)
   const barTime = now - (now % step)
-  const out = candles.map((c) => ({ ...c }))
+  const out = sanitizeCandles(candles).map((c) => ({ ...c }))
+  if (!out.length) return candles
   const last = out[out.length - 1]
+  // Never rewrite last.time backward — that duplicates the previous bar and crashes the chart.
   if (last.time < barTime) {
     out.push({
       time: barTime,
@@ -254,10 +284,6 @@ export function applyLiveTick(
       volume: 0,
     })
     return out.slice(-360)
-  }
-  // Align weird Yahoo partial timestamps to the minute bucket
-  if (last.time > barTime) {
-    last.time = barTime
   }
   last.close = price
   last.high = Math.max(last.high, price)
