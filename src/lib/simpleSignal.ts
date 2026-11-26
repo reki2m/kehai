@@ -25,7 +25,9 @@ import type { PairMeta } from './pairs'
 import {
   SESSION_PROFILES,
   detectFxSession,
+  isFxWeekday,
   isInstrumentWindow,
+  isNoonSignalWindow,
   sessionAwayFromEdge,
   type FxSession,
 } from './apex'
@@ -191,7 +193,13 @@ export function evaluateSimple(
       reason: '弱い帯として停止中',
     })
   }
-  const profile = fxSession ? SESSION_PROFILES[fxSession] : null
+  // Outside Tokyo/London/NY bands still allow 推奨 with Tokyo knobs
+  const profile = fxSession
+    ? SESSION_PROFILES[fxSession]
+    : pair?.kind === 'fx' || !pair
+      ? SESSION_PROFILES.tokyo
+      : null
+  const noonOk = !pair || pair.kind === 'fx' ? isNoonSignalWindow(t) : true
 
   const utKey = profile?.utKey ?? 2
   const utAtr = profile?.utAtr ?? 7
@@ -208,8 +216,11 @@ export function evaluateSimple(
       : estimateSpreadPips(t, atrPips || undefined)
 
   const news = pair?.kind === 'fx' ? newsBlackout(t) : null
+  // FX: weekday 24h (prime off-noon); non-FX keeps instrument windows
   const windowOk =
-    pair && pair.kind !== 'fx' ? isInstrumentWindow(t, pair) : fxSession != null
+    pair && pair.kind !== 'fx'
+      ? isInstrumentWindow(t, pair)
+      : isFxWeekday(t)
 
   const { direction: utSeries, trail: trailSeries } = utBotTrail(
     candles,
@@ -291,14 +302,49 @@ export function evaluateSimple(
     sell = false
   }
 
+  // Off-noon: only 推奨 (prime) — DI + ADX≥prime + WT agree + HTF SSL
+  const primeLong =
+    !!buy &&
+    !!adxVal &&
+    adxVal.adx >= SIMPLE.adxPrime &&
+    diLong &&
+    wtAgreeLong &&
+    htfLong
+  const primeShort =
+    !!sell &&
+    !!adxVal &&
+    adxVal.adx >= SIMPLE.adxPrime &&
+    diShort &&
+    wtAgreeShort &&
+    htfShort
+  if ((buy || sell) && !noonOk && !(primeLong || primeShort)) {
+    qualityBlock = '昼枠外 · 確度不足（推奨条件なし）'
+    buy = false
+    sell = false
+  }
+
   const trailDistancePips =
     trail && Number.isFinite(trail.value)
       ? Math.abs(price - trail.value) / pip
       : null
 
-  // READY: confirms already set, UT not flipped yet, price near trail
+  // READY: noon always when near trail; off-noon only if setup looks prime
   const nearTrail =
     trailDistancePips != null && trailDistancePips <= SIMPLE.readyPips
+  const readyPrimeLong =
+    noonOk ||
+    (!!adxVal &&
+      adxVal.adx >= SIMPLE.adxPrime &&
+      diLong &&
+      wtAgreeLong &&
+      htfLong)
+  const readyPrimeShort =
+    noonOk ||
+    (!!adxVal &&
+      adxVal.adx >= SIMPLE.adxPrime &&
+      diShort &&
+      wtAgreeShort &&
+      htfShort)
   const readyBuy =
     filtersOk &&
     adxOk &&
@@ -308,7 +354,8 @@ export function evaluateSimple(
     !!ut &&
     ut.value < 0 &&
     nearTrail &&
-    !wtStrongAgainstLong
+    !wtStrongAgainstLong &&
+    readyPrimeLong
   const readySell =
     filtersOk &&
     adxOk &&
@@ -318,7 +365,8 @@ export function evaluateSimple(
     !!ut &&
     ut.value > 0 &&
     nearTrail &&
-    !wtStrongAgainstShort
+    !wtStrongAgainstShort &&
+    readyPrimeShort
 
   let action: SimpleAction = 'WAIT'
   if (filtersOk && buy) action = 'BUY'
@@ -360,10 +408,7 @@ export function evaluateSimple(
   const hasEntry = action === 'BUY' || action === 'SELL'
   const prime =
     hasEntry &&
-    adxVal != null &&
-    adxVal.adx >= SIMPLE.adxPrime &&
-    ((action === 'BUY' && diLong && wtAgreeLong && htfLong) ||
-      (action === 'SELL' && diShort && wtAgreeShort && htfShort))
+    ((action === 'BUY' && primeLong) || (action === 'SELL' && primeShort))
   let grade = gradeFromQuality(quality, hasEntry || action.startsWith('READY'))
   if (prime && (grade === 'B' || grade === 'C')) grade = 'A'
   if (prime && quality >= 88) grade = 'S'
@@ -455,9 +500,15 @@ export function evaluateSimple(
     })
   }
 
-  const sessionLabel = profile
-    ? `${profile.labelJa} (${profile.jst})`
-    : null
+  const sessionOut: FxSession | null =
+    fxSession ?? (isFxWeekday(t) && (!pair || pair.kind === 'fx') ? 'tokyo' : null)
+  const sessionLabel = noonOk
+    ? '昼サイン枠 (12:00–13:00 JST)'
+    : fxSession
+      ? `${SESSION_PROFILES[fxSession].labelJa} · 推奨のみ`
+      : sessionOut
+        ? '推奨枠 (平日いつでも)'
+        : null
 
   const digits = pair?.digits ?? 3
   const trailPrice =
@@ -525,7 +576,7 @@ export function evaluateSimple(
   return {
     action,
     label,
-    session: fxSession,
+    session: sessionOut,
     sessionLabel,
     reason,
     spreadPips,

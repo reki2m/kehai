@@ -3,8 +3,7 @@ import { BROKER_SPREAD_PIPS } from '../lib/filters'
 import { SIMPLE } from '../lib/simpleSignal'
 
 export function RulesPanel() {
-  // TEMP: only noon JST window is live
-  const sessions = [SESSION_PROFILES.tokyo]
+  const sessions = [SESSION_PROFILES.tokyo, SESSION_PROFILES.london, SESSION_PROFILES.ny]
   return (
     <section className="rules-panel" aria-label="ルール">
       <h2>ルール</h2>
@@ -23,9 +22,8 @@ export function RulesPanel() {
         <li>
           <strong>品質ゲート</strong>
           <span>
-            ADX≥{SIMPLE.adxMin} · ATR≥{SIMPLE.minAtrPips}p · 帯端
-            {SIMPLE.sessionEdgeMin}分カット · WaveTrend強い逆行は見送り ·
-            「推奨」= DI+上位SSL({SIMPLE.htfSslLen})+WT一致（★優先・標準は任意）
+            通常サインは 12:00–13:00 JST のみ · 推奨（DI+ADX≥{SIMPLE.adxPrime}
+            +上位SSL+WT）は平日いつでも · WaveTrend強い逆行は見送り
           </span>
         </li>
         <li>

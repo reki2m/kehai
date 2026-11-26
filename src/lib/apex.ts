@@ -17,8 +17,10 @@ import type { Bias, IndicatorSignal } from './signals'
 /**
  * KEHAI Apex — session-tuned UT×SSL
  *
- * TEMP (user): FX entries only JST 12:00–13:00 (UTC 03:00–04:00),
- * labeled as Tokyo knobs. London/NY profiles kept for stats UI but inactive.
+ * Entry policy:
+ *  · Noon window JST 12:00–13:00 → normal + 推奨
+ *  · Otherwise (weekday 24h) → 推奨 (prime) only
+ * Session profiles still tune UT/SSL knobs by time of day.
  */
 
 export type FxSession = 'tokyo' | 'london' | 'ny'
@@ -39,13 +41,12 @@ export interface SessionProfile {
   requireEma: boolean
 }
 
-/** Active FX window is Tokyo profile only (see detectFxSession). */
 export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
   tokyo: {
     id: 'tokyo',
-    label: 'Tokyo noon',
-    labelJa: '昼サイン枠',
-    jst: '12:00–13:00 JST',
+    label: 'Tokyo',
+    labelJa: '東京時間',
+    jst: '09:00–15:00 JST（通常サインは12–13）',
     utKey: 1.5,
     utAtr: 7,
     sslLen: 10,
@@ -59,7 +60,7 @@ export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
     id: 'london',
     label: 'London',
     labelJa: 'ロンドン時間',
-    jst: '（停止中）',
+    jst: '16:00–20:00 JST（推奨のみ）',
     utKey: 2,
     utAtr: 10,
     sslLen: 10,
@@ -73,7 +74,7 @@ export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
     id: 'ny',
     label: 'NY',
     labelJa: 'NY時間',
-    jst: '（停止中）',
+    jst: '22:00–02:00 JST（推奨のみ）',
     utKey: 3,
     utAtr: 7,
     sslLen: 10,
@@ -140,21 +141,34 @@ function utcHm(unixSec: number) {
   }
 }
 
-/** UTC minute-of-day windows matching detectFxSession. */
+/** UTC minute-of-day windows matching detectFxSession (knob profiles). */
 export const SESSION_UTC_WINDOWS: Record<FxSession, { start: number; end: number }> =
   {
-    // JST 12:00–13:00 = UTC 03:00–04:00
-    tokyo: { start: 3 * 60, end: 4 * 60 },
-    // inactive — kept for type/stats compatibility
-    london: { start: -1, end: -1 },
-    ny: { start: -1, end: -1 },
+    tokyo: { start: 0, end: 6 * 60 },
+    london: { start: 7 * 60, end: 11 * 60 },
+    ny: { start: 13 * 60, end: 17 * 60 },
   }
 
+/** Normal (non-prime) entries: JST 12:00–13:00 = UTC 03:00–04:00. */
+export function isNoonSignalWindow(unixSec: number): boolean {
+  const { weekday, hm } = utcHm(unixSec)
+  if (weekday === 0 || weekday === 6) return false
+  return hm >= 3 * 60 && hm < 4 * 60
+}
+
+/** Weekday FX hours — prime entries allowed any time. */
+export function isFxWeekday(unixSec: number): boolean {
+  const { weekday } = utcHm(unixSec)
+  return weekday !== 0 && weekday !== 6
+}
+
+/** Session knobs by time of day (null outside Tokyo/London/NY bands). */
 export function detectFxSession(unixSec: number): FxSession | null {
   const { weekday, hm } = utcHm(unixSec)
   if (weekday === 0 || weekday === 6) return null
-  // TEMP: only JST 12:00–13:00 (UTC 03:00–04:00)
-  if (hm >= 3 * 60 && hm < 4 * 60) return 'tokyo'
+  if (hm >= 0 && hm < 6 * 60) return 'tokyo'
+  if (hm >= 7 * 60 && hm < 11 * 60) return 'london'
+  if (hm >= 13 * 60 && hm < 17 * 60) return 'ny'
   return null
 }
 
@@ -166,9 +180,11 @@ export function sessionAwayFromEdge(
 ): boolean {
   if (edgeMin <= 0) return true
   const fx = session ?? detectFxSession(unixSec)
-  if (!fx) return false
+  // Outside Tokyo/London/NY bands (24h prime) — no edge trim
+  if (!fx) return true
   const { hm } = utcHm(unixSec)
   const w = SESSION_UTC_WINDOWS[fx]
+  if (w.start < 0) return true
   return hm - w.start >= edgeMin && w.end - hm >= edgeMin
 }
 
@@ -265,7 +281,7 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
     ? `${profile.label} · ${profile.jst}`
     : pair && pair.kind !== 'fx'
       ? 'アクティブ時間帯'
-      : '昼サイン枠 12:00–13:00 JST'
+      : '通常 12–13 JST · 推奨は平日いつでも'
 
   const signals: IndicatorSignal[] = []
 

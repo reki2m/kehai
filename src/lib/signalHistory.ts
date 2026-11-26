@@ -6,7 +6,9 @@
 import {
   SESSION_PROFILES,
   detectFxSession,
+  isFxWeekday,
   isInstrumentWindow,
+  isNoonSignalWindow,
   sessionAwayFromEdge,
 } from './apex'
 import { estimateSpreadPips, newsBlackout } from './filters'
@@ -110,15 +112,22 @@ export function listHistoricalSignals(
 
     const fxSession =
       !pair || pair.kind === 'fx' ? detectFxSession(c.time) : null
-    const profile = fxSession ? SESSION_PROFILES[fxSession] : null
-    if (!profile && (!pair || pair.kind === 'fx')) continue
+    const noonOk =
+      !pair || pair.kind === 'fx' ? isNoonSignalWindow(c.time) : true
+    // Off-band weekdays still evaluate with Tokyo knobs for 推奨
+    const profile = fxSession
+      ? SESSION_PROFILES[fxSession]
+      : !pair || pair.kind === 'fx'
+        ? SESSION_PROFILES.tokyo
+        : null
+    if (!profile) continue
 
-    const utKey = profile?.utKey ?? 2
-    const utAtr = profile?.utAtr ?? 7
-    const sslLen = profile?.sslLen ?? 10
-    const requireVwap = profile?.requireVwap ?? false
-    const requireEma = profile?.requireEma ?? false
-    const maxSpread = profile?.maxSpread ?? 0.45
+    const utKey = profile.utKey
+    const utAtr = profile.utAtr
+    const sslLen = profile.sslLen
+    const requireVwap = profile.requireVwap
+    const requireEma = profile.requireEma
+    const maxSpread = profile.maxSpread
 
     const utPack = utByProfile.get(`${utKey}/${utAtr}`)
     const sslMap = sslByLen.get(sslLen)
@@ -144,7 +153,7 @@ export function listHistoricalSignals(
     const windowOk =
       pair && pair.kind !== 'fx'
         ? isInstrumentWindow(c.time, pair)
-        : fxSession != null
+        : isFxWeekday(c.time)
     const newsOk = !news
     const spreadOk = spreadPips <= maxSpread
     const edgeOk = sessionAwayFromEdge(c.time, SIMPLE.sessionEdgeMin, fxSession)
@@ -172,7 +181,6 @@ export function listHistoricalSignals(
       confirmLong = confirmLong && price >= vwap
       confirmShort = confirmShort && price <= vwap
     }
-    // HTF SSL is prime-only — keep base frequency near ~10/weekday
 
     let buy = utFlipLong && confirmLong
     let sell = utFlipShort && confirmShort
@@ -206,6 +214,8 @@ export function listHistoricalSignals(
       adxVal.adx >= SIMPLE.adxPrime &&
       ((side === 'BUY' && diLong && wtAgreeLong && htfLong) ||
         (side === 'SELL' && diShort && wtAgreeShort && htfShort))
+    // Off-noon: 推奨 only
+    if (!noonOk && !prime) continue
     const grade = prime ? (adxVal && adxVal.adx >= 25 ? 'S' : 'A') : 'B'
 
     out.push({ time: c.time, side, price, prime, grade })

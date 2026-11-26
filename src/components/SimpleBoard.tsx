@@ -1,4 +1,3 @@
-import { SESSION_PROFILES } from '../lib/apex'
 import { SIMPLE, type SimpleSignal } from '../lib/simpleSignal'
 import type { PairMeta } from '../lib/pairs'
 import { unitLabel } from '../lib/pairs'
@@ -176,7 +175,7 @@ export function SimpleBoard({
           READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
-          今はサイン枠 {SESSION_PROFILES.tokyo.jst} のみ · BUY/SELL は「推奨」優先
+          通常は 12:00–13:00 JST · 確度の高い「推奨」は平日いつでも可
         </li>
         <li>
           損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /
