@@ -150,48 +150,44 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
       },
     })
 
+    // No series titles / last-value badges — they cover the M1 candles on the right.
     utUp.current = chart.addSeries(LineSeries, {
-      color: '#5EEAD4',
+      color: 'rgba(94, 234, 212, 0.85)',
       lineWidth: 2,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'UT↑',
     })
     utDown.current = chart.addSeries(LineSeries, {
-      color: '#F07167',
+      color: 'rgba(240, 113, 103, 0.85)',
       lineWidth: 2,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'UT↓',
     })
     sslHi.current = chart.addSeries(LineSeries, {
-      color: 'rgba(94, 234, 212, 0.55)',
+      color: 'rgba(94, 234, 212, 0.4)',
       lineWidth: 1,
       lineStyle: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'SSL Hi',
     })
     sslLo.current = chart.addSeries(LineSeries, {
-      color: 'rgba(240, 113, 103, 0.55)',
+      color: 'rgba(240, 113, 103, 0.4)',
       lineWidth: 1,
       lineStyle: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'SSL Lo',
     })
     vwapLine.current = chart.addSeries(LineSeries, {
-      color: '#E8C47C',
-      lineWidth: 2,
+      color: 'rgba(232, 196, 124, 0.75)',
+      lineWidth: 1,
       lineStyle: 0,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'VWAP',
     })
 
     emaFast.current = chart.addSeries(LineSeries, {
