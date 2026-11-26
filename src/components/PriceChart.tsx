@@ -6,6 +6,7 @@ import {
   createSeriesMarkers,
   HistogramSeries,
   LineSeries,
+  type AutoscaleInfo,
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
@@ -109,10 +110,18 @@ export function PriceChart({
   const macdLine = useRef<ISeriesApi<'Line'> | null>(null)
   const macdSignal = useRef<ISeriesApi<'Line'> | null>(null)
   const rsiLine = useRef<ISeriesApi<'Line'> | null>(null)
+  /** Sticky Y range — stops tick-by-tick vertical bouncing. */
+  const stickyPrice = useRef<{ from: number; to: number } | null>(null)
+  const lastBarTime = useRef<number | null>(null)
 
   useEffect(() => {
     const el = hostRef.current
     if (!el) return
+    stickyPrice.current = null
+    lastBarTime.current = null
+
+    const padPips = Math.max(12, pair.pip * 1200)
+    const pad = padPips * pair.pip
 
     const chart = createChart(el, {
       layout: {
@@ -138,12 +147,16 @@ export function PriceChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
-        scaleMargins: { top: 0.08, bottom: 0.22 },
+        scaleMargins: { top: 0.1, bottom: 0.24 },
+        // Don't snap the axis on every tiny high/low tick
+        autoScale: true,
       },
       timeScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 4,
+        shiftVisibleRangeOnNewBar: true,
       },
       width: el.clientWidth,
       height: el.clientHeight,
@@ -160,6 +173,40 @@ export function PriceChart({
         type: 'price',
         precision: pair.digits,
         minMove: pair.pip,
+      },
+      autoscaleInfoProvider: (
+        original: () => AutoscaleInfo | null,
+      ): AutoscaleInfo | null => {
+        const info = original()
+        if (!info?.priceRange) return info
+        const rawFrom = info.priceRange.minValue
+        const rawTo = info.priceRange.maxValue
+        let from = rawFrom - pad
+        let to = rawTo + pad
+        const prev = stickyPrice.current
+        if (prev) {
+          const span = Math.max(prev.to - prev.from, pad * 2)
+          const edge = span * 0.18
+          // Keep previous window while price stays inside a comfortable band
+          if (rawFrom >= prev.from + edge && rawTo <= prev.to - edge) {
+            from = prev.from
+            to = prev.to
+          } else {
+            // Expand immediately near edges; shrink only slowly
+            from = Math.min(from, prev.from)
+            to = Math.max(to, prev.to)
+            const wantSpan = rawTo - rawFrom + pad * 2
+            if (to - from > wantSpan * 2.2) {
+              from = Math.max(from, rawFrom - pad - span * 0.15)
+              to = Math.min(to, rawTo + pad + span * 0.15)
+            }
+          }
+        }
+        stickyPrice.current = { from, to }
+        return {
+          ...info,
+          priceRange: { minValue: from, maxValue: to },
+        }
       },
     })
     markersApi.current = createSeriesMarkers(candleSeries.current, [], {
@@ -304,6 +351,7 @@ export function PriceChart({
   }, [pair.digits, pair.pip])
 
   const prevLen = useRef(0)
+  const overlayKeyRef = useRef('')
 
   useEffect(() => {
     if (!candleSeries.current || candles.length === 0) return
@@ -316,9 +364,16 @@ export function PriceChart({
       low: last.low,
       close: last.close,
     }
+    const newBar =
+      lastBarTime.current != null && last.time !== lastBarTime.current
+    const firstPaint = lastBarTime.current == null
+    const overlayKey = `${overlays.join(',')}|${signalParams?.utKey ?? ''}/${signalParams?.utAtr ?? ''}/${signalParams?.sslLen ?? ''}`
+    const overlayChanged = overlayKeyRef.current !== overlayKey
+    overlayKeyRef.current = overlayKey
 
-    // Fast path for tip updates — skip heavy overlay rebuilds
+    // Fast path for tip updates — skip heavy overlay rebuilds + don't scroll
     if (
+      !overlayChanged &&
       prevLen.current > 0 &&
       candles.length >= prevLen.current &&
       candles.length - prevLen.current <= 1
@@ -326,7 +381,9 @@ export function PriceChart({
       try {
         candleSeries.current.update(lastBar)
         prevLen.current = candles.length
-        chartRef.current?.timeScale().scrollToRealTime()
+        lastBarTime.current = last.time
+        // Only nudge time scale when a new M1 bar opens — not on every tick
+        if (newBar) chartRef.current?.timeScale().scrollToRealTime()
         return
       } catch {
         /* fall through to full setData */
@@ -348,8 +405,11 @@ export function PriceChart({
         })
       }
       try {
+        // Full redraw can reset Y — keep sticky unless first paint / pair change
+        if (firstPaint) stickyPrice.current = null
         candleSeries.current.setData(candleData)
         prevLen.current = candles.length
+        lastBarTime.current = last.time
       } catch {
         prevLen.current = 0
         return
@@ -480,7 +540,10 @@ export function PriceChart({
       }
     }
 
-    chartRef.current?.timeScale().scrollToRealTime()
+    // Initial / overlay rebuild only — avoid per-tick scroll jitter
+    if (firstPaint || newBar) {
+      chartRef.current?.timeScale().scrollToRealTime()
+    }
   }, [candles, overlays, signalParams])
 
   useEffect(() => {

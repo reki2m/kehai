@@ -134,6 +134,9 @@ export default function App() {
   const priceHistRef = useRef<{ t: number; price: number }[]>([])
   const lastFiveSpoken = useRef<number | null>(null)
   const livePriceRef = useRef<number | null>(null)
+  /** Throttle chart candle writes — board price still updates every tick. */
+  const pendingTickRef = useRef<number | null>(null)
+  const tickFlushTimer = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -286,16 +289,27 @@ export default function App() {
     let streaming = false
     let lastStreamAt = 0
 
+    function flushTickToChart() {
+      tickFlushTimer.current = null
+      const px = pendingTickRef.current
+      if (px == null || !Number.isFinite(px)) return
+      setCandles((prev) => {
+        if (prev.length < 30) return prev
+        return applyLiveTick(prev, px, timeframe)
+      })
+    }
+
     function applyQuote(q: LiveQuote) {
       if (cancelled) return
       const px = q.price
       setLivePrice(px)
       if (q.bid != null) setLiveBid(q.bid)
       if (q.ask != null) setLiveAsk(q.ask)
-      setCandles((prev) => {
-        if (prev.length < 30) return prev
-        return applyLiveTick(prev, px, timeframe)
-      })
+      // Chart: coalesce WS spam (~4Hz). Board mid/bid/ask stay realtime.
+      pendingTickRef.current = px
+      if (tickFlushTimer.current == null) {
+        tickFlushTimer.current = window.setTimeout(flushTickToChart, 250)
+      }
       const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
       const tag =
         q.source === 'biquote' && streaming
@@ -380,6 +394,10 @@ export default function App() {
       stopStream()
       window.clearInterval(id)
       window.clearInterval(watch)
+      if (tickFlushTimer.current != null) {
+        window.clearTimeout(tickFlushTimer.current)
+        tickFlushTimer.current = null
+      }
     }
   }, [pairId, timeframe, pair.label, shockAlert])
 
