@@ -342,6 +342,27 @@ export async function fetchTwelveCandles(
   return { candles: candles.slice(-360), lastPrice, source: 'Twelve Data' }
 }
 
+/** Archive under live tip — live bars win on the same timestamp. */
+export function mergeArchiveCandles(
+  archive: Candle[],
+  live: Candle[],
+): Candle[] {
+  if (!archive.length) return sanitizeCandles(live)
+  if (!live.length) return sanitizeCandles(archive)
+  const byTime = new Map<number, Candle>()
+  for (const c of archive) {
+    if (!Number.isFinite(c.time)) continue
+    byTime.set(c.time, c)
+  }
+  for (const c of live) {
+    if (!Number.isFinite(c.time)) continue
+    byTime.set(c.time, c)
+  }
+  return [...byTime.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, c]) => c)
+}
+
 /** Keep ascending unique times and valid OHLC for lightweight-charts. */
 export function sanitizeCandles(candles: Candle[]): Candle[] {
   const byTime = new Map<number, Candle>()
@@ -379,9 +400,10 @@ export function applyLiveTick(
   const step = tfSeconds(timeframe)
   const now = Math.floor(Date.now() / 1000)
   const barTime = now - (now % step)
-  const out = sanitizeCandles(candles).map((c) => ({ ...c }))
-  if (!out.length) return candles
-  const last = out[out.length - 1]
+  // Avoid full sanitize on every tick — history can be 20k+ bars (Nov archive).
+  const out = candles.slice()
+  const last = { ...out[out.length - 1] }
+  out[out.length - 1] = last
   // Never rewrite last.time backward — that duplicates the previous bar and crashes the chart.
   if (last.time < barTime) {
     out.push({
@@ -392,7 +414,7 @@ export function applyLiveTick(
       close: price,
       volume: 0,
     })
-    return out.slice(-360)
+    return out
   }
   last.close = price
   last.high = Math.max(last.high, price)

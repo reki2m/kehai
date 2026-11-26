@@ -3,13 +3,16 @@ import {
   CandlestickSeries,
   ColorType,
   createChart,
+  createSeriesMarkers,
   HistogramSeries,
   LineSeries,
   type IChartApi,
   type ISeriesApi,
+  type ISeriesMarkersPluginApi,
   type CandlestickData,
   type HistogramData,
   type LineData,
+  type SeriesMarker,
   type Time,
   type UTCTimestamp,
   type WhitespaceData,
@@ -25,6 +28,7 @@ import {
   utBotTrail,
 } from '../lib/indicators'
 import type { PairMeta } from '../lib/pairs'
+import type { HistSignal } from '../lib/signalHistory'
 
 export type OverlayId = 'ut' | 'ssl' | 'vwap' | 'ema' | 'bb' | 'macd' | 'rsi'
 
@@ -39,6 +43,8 @@ interface Props {
   pair: PairMeta
   overlays: OverlayId[]
   signalParams?: ChartSignalParams
+  /** Past BUY/SELL markers (e.g. from November). */
+  histSignals?: HistSignal[]
 }
 
 function toLine(pts: { time: number; value: number }[]): LineData<Time>[] {
@@ -78,10 +84,17 @@ function splitTrailByDir(
   return { up, down }
 }
 
-export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
+export function PriceChart({
+  candles,
+  pair,
+  overlays,
+  signalParams,
+  histSignals = [],
+}: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeries = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const markersApi = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
   const utUp = useRef<ISeriesApi<'Line'> | null>(null)
   const utDown = useRef<ISeriesApi<'Line'> | null>(null)
   const sslHi = useRef<ISeriesApi<'Line'> | null>(null)
@@ -149,49 +162,48 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
         minMove: pair.pip,
       },
     })
+    markersApi.current = createSeriesMarkers(candleSeries.current, [], {
+      zOrder: 'top',
+    })
 
+    // No series titles / last-value badges — they cover candles on the right.
     utUp.current = chart.addSeries(LineSeries, {
-      color: '#5EEAD4',
+      color: 'rgba(94, 234, 212, 0.85)',
       lineWidth: 2,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'UT↑',
     })
     utDown.current = chart.addSeries(LineSeries, {
-      color: '#F07167',
+      color: 'rgba(240, 113, 103, 0.85)',
       lineWidth: 2,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'UT↓',
     })
     sslHi.current = chart.addSeries(LineSeries, {
-      color: 'rgba(94, 234, 212, 0.55)',
+      color: 'rgba(94, 234, 212, 0.4)',
       lineWidth: 1,
       lineStyle: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'SSL Hi',
     })
     sslLo.current = chart.addSeries(LineSeries, {
-      color: 'rgba(240, 113, 103, 0.55)',
+      color: 'rgba(240, 113, 103, 0.4)',
       lineWidth: 1,
       lineStyle: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'SSL Lo',
     })
     vwapLine.current = chart.addSeries(LineSeries, {
-      color: '#E8C47C',
-      lineWidth: 2,
+      color: 'rgba(232, 196, 124, 0.75)',
+      lineWidth: 1,
       lineStyle: 0,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       crosshairMarkerVisible: false,
-      title: 'VWAP',
     })
 
     emaFast.current = chart.addSeries(LineSeries, {
@@ -284,6 +296,8 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     return () => {
       ro.disconnect()
+      markersApi.current?.detach()
+      markersApi.current = null
       chart.remove()
       chartRef.current = null
     }
@@ -303,8 +317,7 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
       close: last.close,
     }
 
-    // Fast path for tip updates; overlays always refreshed below
-    let usedFast = false
+    // Fast path for tip updates — skip heavy overlay rebuilds
     if (
       prevLen.current > 0 &&
       candles.length >= prevLen.current &&
@@ -313,13 +326,14 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
       try {
         candleSeries.current.update(lastBar)
         prevLen.current = candles.length
-        usedFast = true
+        chartRef.current?.timeScale().scrollToRealTime()
+        return
       } catch {
-        usedFast = false
+        /* fall through to full setData */
       }
     }
 
-    if (!usedFast) {
+    {
       const seen = new Set<number>()
       const candleData: CandlestickData<Time>[] = []
       for (const c of candles) {
@@ -353,10 +367,13 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
     const utKey = signalParams?.utKey ?? 2
     const utAtr = signalParams?.utAtr ?? 7
     const sslLen = signalParams?.sslLen ?? 10
+    // Overlay math on full Nov archive is too heavy — tip window is enough.
+    const overlaySrc =
+      candles.length > 2200 ? candles.slice(-2000) : candles
 
     if (utUp.current && utDown.current) {
       if (showUt) {
-        const { direction, trail } = utBotTrail(candles, utKey, utAtr)
+        const { direction, trail } = utBotTrail(overlaySrc, utKey, utAtr)
         const { up, down } = splitTrailByDir(trail, direction)
         utUp.current.setData(up)
         utDown.current.setData(down)
@@ -368,7 +385,7 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     if (sslHi.current && sslLo.current) {
       if (showSsl) {
-        const ch = sslChannel(candles, sslLen)
+        const ch = sslChannel(overlaySrc, sslLen)
         sslHi.current.setData(toLine(ch.high))
         sslLo.current.setData(toLine(ch.low))
       } else {
@@ -379,7 +396,7 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     if (vwapLine.current) {
       if (showVwap) {
-        vwapLine.current.setData(toLine(sessionVwap(candles)))
+        vwapLine.current.setData(toLine(sessionVwap(overlaySrc)))
       } else {
         vwapLine.current.setData([])
       }
@@ -387,8 +404,8 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     if (emaFast.current && emaSlow.current) {
       if (showEma) {
-        emaFast.current.setData(toLine(ema(candles, 21)))
-        emaSlow.current.setData(toLine(ema(candles, 55)))
+        emaFast.current.setData(toLine(ema(overlaySrc, 21)))
+        emaSlow.current.setData(toLine(ema(overlaySrc, 55)))
       } else {
         emaFast.current.setData([])
         emaSlow.current.setData([])
@@ -397,7 +414,7 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     if (bbUpper.current && bbMid.current && bbLower.current) {
       if (showBb) {
-        const bands = bollinger(candles)
+        const bands = bollinger(overlaySrc)
         bbUpper.current.setData(
           bands.map((p) => ({
             time: p.time as UTCTimestamp,
@@ -425,7 +442,7 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     if (macdHist.current && macdLine.current && macdSignal.current) {
       if (showMacd && !showRsi) {
-        const m = macd(candles)
+        const m = macd(overlaySrc)
         macdHist.current.setData(
           m.map((p) => ({
             time: p.time as UTCTimestamp,
@@ -457,7 +474,7 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     if (rsiLine.current) {
       if (showRsi) {
-        rsiLine.current.setData(toLine(rsi(candles)))
+        rsiLine.current.setData(toLine(rsi(overlaySrc)))
       } else {
         rsiLine.current.setData([])
       }
@@ -465,6 +482,28 @@ export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
 
     chartRef.current?.timeScale().scrollToRealTime()
   }, [candles, overlays, signalParams])
+
+  useEffect(() => {
+    if (!markersApi.current) return
+    const markers: SeriesMarker<Time>[] = histSignals.map((s) =>
+      s.side === 'BUY'
+        ? {
+            time: s.time as UTCTimestamp,
+            position: 'belowBar' as const,
+            shape: 'arrowUp' as const,
+            color: '#5EEAD4',
+            text: 'BUY',
+          }
+        : {
+            time: s.time as UTCTimestamp,
+            position: 'aboveBar' as const,
+            shape: 'arrowDown' as const,
+            color: '#F07167',
+            text: 'SELL',
+          },
+    )
+    markersApi.current.setMarkers(markers)
+  }, [histSignals])
 
   return <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
 }

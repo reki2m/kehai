@@ -7,14 +7,22 @@ import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
 import type { FxSession } from './lib/apex'
 import { BIQUOTE_SYMBOLS, subscribeBiquoteTicks } from './lib/biquote'
+import { histCandlesUrl, histSignalsUrl } from './lib/http'
 import {
   applyLiveTick,
   fetchLiveCandles,
   fetchLiveQuote,
+  mergeArchiveCandles,
   mergeRemoteCandles,
   sanitizeCandles,
   type LiveQuote,
 } from './lib/liveRates'
+import {
+  HIST_FROM_UNIX,
+  listHistoricalSignals,
+  mergeHistSignals,
+  type HistSignal,
+} from './lib/signalHistory'
 import type { Candle } from './lib/marketData'
 import {
   eventsDueSoon,
@@ -79,6 +87,7 @@ export default function App() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [overlays, setOverlays] = useState<OverlayId[]>(['ut', 'ssl', 'vwap'])
   const [candles, setCandles] = useState<Candle[]>([])
+  const [archiveSignals, setArchiveSignals] = useState<HistSignal[]>([])
   const [livePrice, setLivePrice] = useState<number | null>(null)
   const [liveBid, setLiveBid] = useState<number | null>(null)
   const [liveAsk, setLiveAsk] = useState<number | null>(null)
@@ -144,27 +153,76 @@ export default function App() {
   useEffect(() => {
     let cancelled = false
     let timer: number | undefined
+    let archive: Candle[] = []
+
+    async function loadArchive() {
+      if (pairId !== 'USDJPY' || timeframe !== '1m') {
+        archive = []
+        setArchiveSignals([])
+        return
+      }
+      try {
+        const [barsRes, sigRes] = await Promise.all([
+          fetch(histCandlesUrl(pairId, timeframe)),
+          fetch(histSignalsUrl(pairId, timeframe)),
+        ])
+        if (barsRes.ok) {
+          const data = (await barsRes.json()) as { candles?: Candle[] }
+          if (data.candles?.length) {
+            archive = sanitizeCandles(
+              data.candles.filter((c) => c.time >= HIST_FROM_UNIX),
+            )
+          }
+        }
+        if (sigRes.ok) {
+          const data = (await sigRes.json()) as { signals?: HistSignal[] }
+          if (data.signals?.length && !cancelled) {
+            setArchiveSignals(
+              data.signals.filter((s) => s.time >= HIST_FROM_UNIX),
+            )
+          }
+        } else if (archive.length && !cancelled) {
+          setArchiveSignals(
+            listHistoricalSignals(archive, pair, HIST_FROM_UNIX),
+          )
+        }
+      } catch {
+        archive = []
+      }
+    }
 
     async function load(initial: boolean) {
       if (initial) setLiveLoading(true)
       try {
+        if (initial) await loadArchive()
         const live = await fetchLiveCandles(pairId, timeframe)
         if (cancelled) return
         if (live.candles.length >= 30) {
-          setCandles((prev) =>
-            initial || prev.length < 30
-              ? sanitizeCandles(live.candles)
-              : mergeRemoteCandles(
-                  live.candles,
-                  prev,
-                  timeframe,
-                  livePriceRef.current,
-                ),
-          )
+          setCandles((prev) => {
+            const tip =
+              initial || prev.length < 30
+                ? sanitizeCandles(live.candles)
+                : mergeRemoteCandles(
+                    live.candles,
+                    prev.length > archive.length
+                      ? prev.slice(-Math.max(400, live.candles.length + 50))
+                      : prev,
+                    timeframe,
+                    livePriceRef.current,
+                  )
+            if (!archive.length) return tip
+            return mergeArchiveCandles(archive, tip)
+          })
           if (live.lastPrice != null && livePriceRef.current == null) {
             setLivePrice(live.lastPrice)
           }
-          if (initial) setLiveSource(live.source)
+          if (initial) {
+            setLiveSource(
+              archive.length
+                ? `${live.source} · 11月〜履歴`
+                : live.source,
+            )
+          }
           setLiveError(null)
         } else throw new Error('足が足りません')
       } catch (e) {
@@ -173,6 +231,7 @@ export default function App() {
         if (initial) {
           setLiveSource(null)
           setCandles([])
+          setArchiveSignals([])
         }
       } finally {
         if (!cancelled && initial) setLiveLoading(false)
@@ -181,6 +240,7 @@ export default function App() {
 
     setLiveBid(null)
     setLiveAsk(null)
+    setArchiveSignals([])
     void load(true)
     // 履歴だけゆっくり更新（形成中足はティック側が担当）
     timer = window.setInterval(() => void load(false), 60_000)
@@ -351,10 +411,20 @@ export default function App() {
     }
   }, [])
 
-  const raw = useMemo(
-    () => evaluateSimple(candles, pair, stats.disabledSessions),
-    [candles, pair, stats.disabledSessions],
-  )
+  // Live board only needs a recent window — full Nov archive is for markers/chart.
+  const raw = useMemo(() => {
+    const window = candles.length > 600 ? candles.slice(-500) : candles
+    return evaluateSimple(window, pair, stats.disabledSessions)
+  }, [candles, pair, stats.disabledSessions])
+
+  const histSignals = useMemo(() => {
+    const recent = listHistoricalSignals(
+      candles.length > 900 ? candles.slice(-800) : candles,
+      pair,
+      HIST_FROM_UNIX,
+    )
+    return mergeHistSignals(archiveSignals, recent)
+  }, [archiveSignals, candles, pair])
   const signal = useMemo(() => {
     if (!inPosition) return raw
     return {
@@ -873,6 +943,9 @@ export default function App() {
               {sourceLabel}
               {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ' · セッション外'}
               {' · '}BUY/SELLのみ · 1本
+              {histSignals.length > 0
+                ? ` · 過去サイン ${histSignals.length}（11月〜）`
+                : ''}
               {liveError ? ` · ${liveError}` : ''}
             </p>
           </div>
@@ -887,6 +960,7 @@ export default function App() {
                   utAtr: raw.utAtr,
                   sslLen: raw.sslLen,
                 }}
+                histSignals={histSignals}
               />
             </ErrorBoundary>
           ) : (
