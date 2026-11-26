@@ -20,6 +20,12 @@ export function RulesPanel() {
           </span>
         </li>
         <li>
+          <strong>品質ゲート</strong>
+          <span>
+            ADX≥{SIMPLE.adxMin} · WaveTrend強い逆行は見送り · 品質 S/A 優先（Cは見送り推奨）
+          </span>
+        </li>
+        <li>
           <strong>決済</strong>
           <span>
             損切り {SIMPLE.slPips} pips · 利確 {SIMPLE.tpPips} pips（固定）

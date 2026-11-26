@@ -477,8 +477,11 @@ export function wavetrend(
   return { wt1, wt2 }
 }
 
-/** SSL Channel direction (+1 / -1). */
-export function sslDirection(candles: Candle[], period = 10): LinePoint[] {
+/** SSL Channel high/low baselines + direction (+1 / -1). */
+export function sslChannel(
+  candles: Candle[],
+  period = 10,
+): { high: LinePoint[]; low: LinePoint[]; direction: LinePoint[] } {
   const hi = ema(
     candles.map((c) => ({ ...c, close: c.high })),
     period,
@@ -489,7 +492,9 @@ export function sslDirection(candles: Candle[], period = 10): LinePoint[] {
   )
   const hiMap = new Map(hi.map((p) => [p.time, p.value]))
   const loMap = new Map(lo.map((p) => [p.time, p.value]))
-  const out: LinePoint[] = []
+  const direction: LinePoint[] = []
+  const high: LinePoint[] = []
+  const low: LinePoint[] = []
   let hlv = 0
   for (const c of candles) {
     const mh = hiMap.get(c.time)
@@ -497,7 +502,14 @@ export function sslDirection(candles: Candle[], period = 10): LinePoint[] {
     if (mh === undefined || ml === undefined) continue
     if (c.close > mh) hlv = 1
     else if (c.close < ml) hlv = -1
-    out.push({ time: c.time, value: hlv })
+    high.push({ time: c.time, value: mh })
+    low.push({ time: c.time, value: ml })
+    direction.push({ time: c.time, value: hlv })
   }
-  return out
+  return { high, low, direction }
+}
+
+/** SSL Channel direction (+1 / -1). */
+export function sslDirection(candles: Candle[], period = 10): LinePoint[] {
+  return sslChannel(candles, period).direction
 }

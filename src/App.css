@@ -928,6 +928,86 @@
   line-height: 1.45;
 }
 
+.simple-grade {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+
+.simple-grade.grade-s {
+  color: var(--sea);
+}
+
+.simple-grade.grade-a {
+  color: var(--gold);
+}
+
+.simple-grade.grade-b {
+  color: var(--text);
+}
+
+.simple-grade.grade-c {
+  color: var(--coral);
+  opacity: 0.9;
+}
+
+.simple-grade-score {
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.ind-layers {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.ind-layer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding: 0.35rem 0.45rem;
+  border-left: 2px solid var(--line);
+  min-width: 0;
+}
+
+.ind-layer.bias-bull {
+  border-left-color: var(--sea);
+}
+
+.ind-layer.bias-bear {
+  border-left-color: var(--coral);
+}
+
+.ind-layer.off {
+  opacity: 0.55;
+}
+
+.ind-name {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ind-detail {
+  font-size: 0.78rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .simple-quote {
   margin-top: 0.85rem;
   display: flex;

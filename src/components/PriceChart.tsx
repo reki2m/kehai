@@ -12,23 +12,81 @@ import {
   type LineData,
   type Time,
   type UTCTimestamp,
+  type WhitespaceData,
 } from 'lightweight-charts'
 import type { Candle } from '../lib/marketData'
-import { bollinger, ema, macd, rsi } from '../lib/indicators'
+import {
+  bollinger,
+  ema,
+  macd,
+  rsi,
+  sessionVwap,
+  sslChannel,
+  utBotTrail,
+} from '../lib/indicators'
 import type { PairMeta } from '../lib/pairs'
 
-export type OverlayId = 'ema' | 'bb' | 'macd' | 'rsi'
+export type OverlayId = 'ut' | 'ssl' | 'vwap' | 'ema' | 'bb' | 'macd' | 'rsi'
+
+export interface ChartSignalParams {
+  utKey: number
+  utAtr: number
+  sslLen: number
+}
 
 interface Props {
   candles: Candle[]
   pair: PairMeta
   overlays: OverlayId[]
+  signalParams?: ChartSignalParams
 }
 
-export function PriceChart({ candles, pair, overlays }: Props) {
+function toLine(pts: { time: number; value: number }[]): LineData<Time>[] {
+  return pts.map((p) => ({
+    time: p.time as UTCTimestamp,
+    value: p.value,
+  }))
+}
+
+/** Split trail into up/down segments with gaps at flips. */
+function splitTrailByDir(
+  trail: { time: number; value: number }[],
+  direction: { time: number; value: number }[],
+): {
+  up: (LineData<Time> | WhitespaceData<Time>)[]
+  down: (LineData<Time> | WhitespaceData<Time>)[]
+} {
+  const dirMap = new Map(direction.map((d) => [d.time, d.value]))
+  const up: (LineData<Time> | WhitespaceData<Time>)[] = []
+  const down: (LineData<Time> | WhitespaceData<Time>)[] = []
+  let prevDir: number | null = null
+  for (const p of trail) {
+    const d = dirMap.get(p.time) ?? 0
+    const point: LineData<Time> = {
+      time: p.time as UTCTimestamp,
+      value: p.value,
+    }
+    if (prevDir != null && prevDir !== d) {
+      const gap: WhitespaceData<Time> = { time: point.time }
+      if (d > 0) up.push(gap)
+      else down.push(gap)
+    }
+    if (d > 0) up.push(point)
+    else down.push(point)
+    prevDir = d
+  }
+  return { up, down }
+}
+
+export function PriceChart({ candles, pair, overlays, signalParams }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeries = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const utUp = useRef<ISeriesApi<'Line'> | null>(null)
+  const utDown = useRef<ISeriesApi<'Line'> | null>(null)
+  const sslHi = useRef<ISeriesApi<'Line'> | null>(null)
+  const sslLo = useRef<ISeriesApi<'Line'> | null>(null)
+  const vwapLine = useRef<ISeriesApi<'Line'> | null>(null)
   const emaFast = useRef<ISeriesApi<'Line'> | null>(null)
   const emaSlow = useRef<ISeriesApi<'Line'> | null>(null)
   const bbUpper = useRef<ISeriesApi<'Line'> | null>(null)
@@ -90,6 +148,50 @@ export function PriceChart({ candles, pair, overlays }: Props) {
         precision: pair.digits,
         minMove: pair.pip,
       },
+    })
+
+    utUp.current = chart.addSeries(LineSeries, {
+      color: '#5EEAD4',
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      crosshairMarkerVisible: false,
+      title: 'UT↑',
+    })
+    utDown.current = chart.addSeries(LineSeries, {
+      color: '#F07167',
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      crosshairMarkerVisible: false,
+      title: 'UT↓',
+    })
+    sslHi.current = chart.addSeries(LineSeries, {
+      color: 'rgba(94, 234, 212, 0.55)',
+      lineWidth: 1,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      title: 'SSL Hi',
+    })
+    sslLo.current = chart.addSeries(LineSeries, {
+      color: 'rgba(240, 113, 103, 0.55)',
+      lineWidth: 1,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      title: 'SSL Lo',
+    })
+    vwapLine.current = chart.addSeries(LineSeries, {
+      color: '#E8C47C',
+      lineWidth: 2,
+      lineStyle: 0,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      crosshairMarkerVisible: false,
+      title: 'VWAP',
     })
 
     emaFast.current = chart.addSeries(LineSeries, {
@@ -188,7 +290,6 @@ export function PriceChart({ candles, pair, overlays }: Props) {
   }, [pair.digits, pair.pip])
 
   const prevLen = useRef(0)
-  const prevOverlays = useRef('')
 
   useEffect(() => {
     if (!candleSeries.current || candles.length === 0) return
@@ -202,66 +303,92 @@ export function PriceChart({ candles, pair, overlays }: Props) {
       close: last.close,
     }
 
-    const overlayKey = overlays.slice().sort().join(',')
-    // Fast path for 1s ticks: append/update last bar only
+    // Fast path for tip updates; overlays always refreshed below
+    let usedFast = false
     if (
       prevLen.current > 0 &&
-      overlayKey === prevOverlays.current &&
       candles.length >= prevLen.current &&
       candles.length - prevLen.current <= 1
     ) {
       try {
         candleSeries.current.update(lastBar)
         prevLen.current = candles.length
-        chartRef.current?.timeScale().scrollToRealTime()
-        return
+        usedFast = true
       } catch {
-        // fall through to full setData
+        usedFast = false
       }
     }
-    prevOverlays.current = overlayKey
 
-    // Dedupe ascending times — duplicate timestamps white-screen the chart
-    const seen = new Set<number>()
-    const candleData: CandlestickData<Time>[] = []
-    for (const c of candles) {
-      if (!Number.isFinite(c.time) || seen.has(c.time)) continue
-      seen.add(c.time)
-      candleData.push({
-        time: c.time as UTCTimestamp,
-        open: c.open,
-        high: Math.max(c.open, c.high, c.close),
-        low: Math.min(c.open, c.low, c.close),
-        close: c.close,
-      })
-    }
-    try {
-      candleSeries.current.setData(candleData)
-      prevLen.current = candles.length
-    } catch {
-      prevLen.current = 0
-      return
+    if (!usedFast) {
+      const seen = new Set<number>()
+      const candleData: CandlestickData<Time>[] = []
+      for (const c of candles) {
+        if (!Number.isFinite(c.time) || seen.has(c.time)) continue
+        seen.add(c.time)
+        candleData.push({
+          time: c.time as UTCTimestamp,
+          open: c.open,
+          high: Math.max(c.open, c.high, c.close),
+          low: Math.min(c.open, c.low, c.close),
+          close: c.close,
+        })
+      }
+      try {
+        candleSeries.current.setData(candleData)
+        prevLen.current = candles.length
+      } catch {
+        prevLen.current = 0
+        return
+      }
     }
 
+    const showUt = overlays.includes('ut')
+    const showSsl = overlays.includes('ssl')
+    const showVwap = overlays.includes('vwap')
     const showEma = overlays.includes('ema')
     const showBb = overlays.includes('bb')
     const showMacd = overlays.includes('macd')
     const showRsi = overlays.includes('rsi')
 
+    const utKey = signalParams?.utKey ?? 2
+    const utAtr = signalParams?.utAtr ?? 7
+    const sslLen = signalParams?.sslLen ?? 10
+
+    if (utUp.current && utDown.current) {
+      if (showUt) {
+        const { direction, trail } = utBotTrail(candles, utKey, utAtr)
+        const { up, down } = splitTrailByDir(trail, direction)
+        utUp.current.setData(up)
+        utDown.current.setData(down)
+      } else {
+        utUp.current.setData([])
+        utDown.current.setData([])
+      }
+    }
+
+    if (sslHi.current && sslLo.current) {
+      if (showSsl) {
+        const ch = sslChannel(candles, sslLen)
+        sslHi.current.setData(toLine(ch.high))
+        sslLo.current.setData(toLine(ch.low))
+      } else {
+        sslHi.current.setData([])
+        sslLo.current.setData([])
+      }
+    }
+
+    if (vwapLine.current) {
+      if (showVwap) {
+        vwapLine.current.setData(toLine(sessionVwap(candles)))
+      } else {
+        vwapLine.current.setData([])
+      }
+    }
+
     if (emaFast.current && emaSlow.current) {
       if (showEma) {
-        emaFast.current.setData(
-          ema(candles, 21).map((p) => ({
-            time: p.time as UTCTimestamp,
-            value: p.value,
-          })) as LineData<Time>[],
-        )
-        emaSlow.current.setData(
-          ema(candles, 55).map((p) => ({
-            time: p.time as UTCTimestamp,
-            value: p.value,
-          })) as LineData<Time>[],
-        )
+        emaFast.current.setData(toLine(ema(candles, 21)))
+        emaSlow.current.setData(toLine(ema(candles, 55)))
       } else {
         emaFast.current.setData([])
         emaSlow.current.setData([])
@@ -330,19 +457,14 @@ export function PriceChart({ candles, pair, overlays }: Props) {
 
     if (rsiLine.current) {
       if (showRsi) {
-        rsiLine.current.setData(
-          rsi(candles).map((p) => ({
-            time: p.time as UTCTimestamp,
-            value: p.value,
-          })) as LineData<Time>[],
-        )
+        rsiLine.current.setData(toLine(rsi(candles)))
       } else {
         rsiLine.current.setData([])
       }
     }
 
     chartRef.current?.timeScale().scrollToRealTime()
-  }, [candles, overlays])
+  }, [candles, overlays, signalParams])
 
   return <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
 }

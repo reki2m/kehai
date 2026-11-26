@@ -342,7 +342,13 @@ export function speakRate(
 export function announceEntry(
   action: 'LONG' | 'SHORT',
   price: string,
-  risk?: { sl: number; tp: number; unit: string; session?: string },
+  risk?: {
+    sl: number
+    tp: number
+    unit: string
+    session?: string
+    grade?: string
+  },
 ): void {
   if (entrySoundOn) playEntryBeep(action)
   const side = action === 'LONG' ? 'ロング' : 'ショート'
@@ -350,8 +356,12 @@ export function announceEntry(
   const tp = risk?.tp ?? 6
   const unit = risk?.unit ?? 'ピプス'
   const sess = risk?.session ? `${risk.session}。` : ''
+  const grade =
+    risk?.grade && risk.grade !== '—'
+      ? `品質${risk.grade}。`
+      : ''
   speak(
-    `${sess}${side}エントリー。価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`,
+    `${sess}${side}エントリー。${grade}価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`,
     { force: true, priority: 0, interrupt: true },
   )
 }

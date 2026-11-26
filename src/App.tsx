@@ -65,6 +65,9 @@ import {
 import './App.css'
 
 const OVERLAYS: { id: OverlayId; label: string }[] = [
+  { id: 'ut', label: 'UT' },
+  { id: 'ssl', label: 'SSL' },
+  { id: 'vwap', label: 'VWAP' },
   { id: 'ema', label: 'EMA' },
   { id: 'bb', label: 'BB' },
 ]
@@ -72,7 +75,7 @@ const OVERLAYS: { id: OverlayId; label: string }[] = [
 export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
-  const [overlays, setOverlays] = useState<OverlayId[]>(['ema'])
+  const [overlays, setOverlays] = useState<OverlayId[]>(['ut', 'ssl', 'vwap'])
   const [candles, setCandles] = useState<Candle[]>([])
   const [livePrice, setLivePrice] = useState<number | null>(null)
   const [liveBid, setLiveBid] = useState<number | null>(null)
@@ -400,6 +403,7 @@ export default function App() {
           tp: SIMPLE.tpPips,
           unit: unitLabel(pair),
           session: raw.sessionLabel ?? undefined,
+          grade: raw.grade,
         })
       }
       return
@@ -419,6 +423,7 @@ export default function App() {
     last,
     midText,
     raw.action,
+    raw.grade,
     raw.sessionLabel,
     raw.trailDistancePips,
     pair,
@@ -837,7 +842,16 @@ export default function App() {
           </div>
           {candles.length >= 30 ? (
             <ErrorBoundary>
-              <PriceChart candles={candles} pair={pair} overlays={overlays} />
+              <PriceChart
+                candles={candles}
+                pair={pair}
+                overlays={overlays}
+                signalParams={{
+                  utKey: raw.utKey,
+                  utAtr: raw.utAtr,
+                  sslLen: raw.sslLen,
+                }}
+              />
             </ErrorBoundary>
           ) : (
             <p className="sample-note" style={{ padding: '1.2rem' }}>
