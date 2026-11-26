@@ -1,0 +1,90 @@
+[
+  {
+    "name": "ut_noST",
+    "n": 305,
+    "tpd": 3.91,
+    "wr": 45.2,
+    "ev": 0.324,
+    "net": 98.9
+  },
+  {
+    "name": "ut_full",
+    "n": 270,
+    "tpd": 3.46,
+    "wr": 44.8,
+    "ev": 0.318,
+    "net": 85.9
+  },
+  {
+    "name": "st_peakish",
+    "n": 316,
+    "tpd": 4.05,
+    "wr": 43,
+    "ev": -0.13,
+    "net": -41.2
+  },
+  {
+    "name": "ssl_peakish",
+    "n": 180,
+    "tpd": 2.31,
+    "wr": 42.2,
+    "ev": 0.01,
+    "net": 1.8
+  },
+  {
+    "name": "st_core",
+    "n": 477,
+    "tpd": 6.12,
+    "wr": 40.9,
+    "ev": -0.342,
+    "net": -163.1
+  },
+  {
+    "name": "ut_noST+st_peakish",
+    "n": 508,
+    "tpd": 6.51,
+    "wr": 44.1,
+    "ev": 0.14,
+    "net": 71
+  },
+  {
+    "name": "ut_noST+ssl_peakish",
+    "n": 368,
+    "tpd": 4.72,
+    "wr": 43.5,
+    "ev": 0.119,
+    "net": 43.9
+  },
+  {
+    "name": "ut_full+st_peakish",
+    "n": 492,
+    "tpd": 6.31,
+    "wr": 43.5,
+    "ev": 0.049,
+    "net": 24
+  },
+  {
+    "name": "ut_noST+st_core",
+    "n": 651,
+    "tpd": 8.35,
+    "wr": 42.1,
+    "ev": -0.099,
+    "net": -64.2
+  },
+  {
+    "name": "ut_full+st_core",
+    "n": 639,
+    "tpd": 8.19,
+    "wr": 41.5,
+    "ev": -0.169,
+    "net": -108.1
+  },
+  {
+    "name": "ut_noST+ssl_peakish",
+    "n": 368,
+    "tpd": 4.72,
+    "wr": 43.5,
+    "ev": 0.119,
+    "net": 43.9
+  }
+]

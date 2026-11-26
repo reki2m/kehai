@@ -175,7 +175,8 @@ export function SimpleBoard({
           READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
-          Peakスタック · 通常 12:00–0:00 JST · 枠外は ADX≥{SIMPLE.adxPrime} の推奨のみ
+          Pulse · UT/ST二系統 · 目安8–9回/日 · 枠外は ADX≥{SIMPLE.adxPrime}{' '}
+          の推奨
         </li>
         <li>
           損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /

@@ -1,6 +1,6 @@
 /**
- * Replay KEHAI Peak entries across candle history (from a unix cutoff).
- * Same stack as evaluateSimple: UT×SSL×ST + HTF/DI/WT/RSI.
+ * Replay KEHAI Peak Pulse entries across candle history (from a unix cutoff).
+ * Same dual stack as evaluateSimple: UT path + Supertrend-flip path.
  */
 
 import {
@@ -95,9 +95,12 @@ export function listHistoricalSignals(
   const adxMap = mapByTime(adx(candles, 14))
   const atrMap = mapByTime(atr(candles, 14))
   const rsiMap = mapByTime(rsi(candles, 14))
-  const stMap = mapByTime(
-    supertrendDirection(candles, SIMPLE.stPeriod, SIMPLE.stMult),
+  const stSeries = supertrendDirection(
+    candles,
+    SIMPLE.stPeriod,
+    SIMPLE.stMult,
   )
+  const stMap = mapByTime(stSeries)
   const { wt1, wt2 } = wavetrend(candles, 10, 21)
   const wt1Map = mapByTime(wt1)
   const wt2Map = mapByTime(wt2)
@@ -161,16 +164,16 @@ export function listHistoricalSignals(
 
     const utFlipLong = ut > 0 && utPrev <= 0
     const utFlipShort = ut < 0 && utPrev >= 0
-    if (!utFlipLong && !utFlipShort) continue
+    const st = stMap.get(c.time)?.value
+    const stPrev = stMap.get(prev.time)?.value
+    const stFlipLong = st != null && stPrev != null && st > 0 && stPrev <= 0
+    const stFlipShort = st != null && stPrev != null && st < 0 && stPrev >= 0
 
     const sslLong = ssl > 0
     const sslShort = ssl < 0
     const htf = htfMap.get(c.time)
     const htfLong = htf != null && htf > 0
     const htfShort = htf != null && htf < 0
-    const st = stMap.get(c.time)?.value
-    const stLong = st != null && st > 0
-    const stShort = st != null && st < 0
     const e21 = ema21Map.get(c.time)?.value
     const e55 = ema55Map.get(c.time)?.value
     const emaLong = !requireEma || (!!e21 && !!e55 && e21 > e55)
@@ -188,6 +191,7 @@ export function listHistoricalSignals(
     let sell = utFlipShort && confirmShort
 
     const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
+    const adxPulseFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
     const adxVal = adxMap.get(c.time)
     if (!adxVal || adxVal.adx < adxFloor) {
       buy = false
@@ -196,12 +200,11 @@ export function listHistoricalSignals(
 
     const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
     const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
+    // Path A: UT — ST not required (Pulse)
     if (buy && !htfLong) buy = false
     if (sell && !htfShort) sell = false
     if (buy && !diLong) buy = false
     if (sell && !diShort) sell = false
-    if (buy && !stLong) buy = false
-    if (sell && !stShort) sell = false
 
     const w1 = wt1Map.get(c.time)?.value
     const w2 = wt2Map.get(c.time)?.value
@@ -230,6 +233,25 @@ export function listHistoricalSignals(
       ) {
         sell = false
       }
+    }
+
+    // Path B: Supertrend flip fill (SSL only + HTF/DI/WT)
+    if (!buy && !sell && adxVal && adxVal.adx >= adxPulseFloor) {
+      let stBuy = stFlipLong && sslLong
+      let stSell = stFlipShort && sslShort
+      if (stBuy && !htfLong) stBuy = false
+      if (stSell && !htfShort) stSell = false
+      if (stBuy && !diLong) stBuy = false
+      if (stSell && !diShort) stSell = false
+      if (w1 == null || w2 == null) {
+        stBuy = false
+        stSell = false
+      } else {
+        if (stBuy && !(w1 > w2)) stBuy = false
+        if (stSell && !(w1 < w2)) stSell = false
+      }
+      buy = stBuy
+      sell = stSell
     }
 
     if (!buy && !sell) continue
