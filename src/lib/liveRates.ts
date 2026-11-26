@@ -1,3 +1,8 @@
+import {
+  BIQUOTE_SYMBOLS,
+  fetchBiquoteCandles,
+  fetchBiquoteQuote,
+} from './biquote'
 import type { Candle } from './marketData'
 import type { PairId, Timeframe } from './pairs'
 import { TIMEFRAMES } from './pairs'
@@ -250,11 +255,12 @@ async function fetchSnapshotTick(pairId: PairId): Promise<LiveQuote | null> {
 }
 
 /**
- * 複数ソースを並列に取り、いちばん新しい（同点ならスプレッド付き）を採用。
- * ブラウザから直接 Yahoo/Swissquote は CORS で落ちるため、Twelve + CI tick を併用。
+ * 複数ソースを並列に取り、いちばん新しい（同点なら bid/ask 付き）を採用。
+ * 優先: biquote（無料・CORS・bid/ask）→ Twelve → CI Swissquote tick。
  */
 export async function fetchLiveQuote(pairId: PairId): Promise<LiveQuote | null> {
   const tasks: Promise<LiveQuote | null>[] = [
+    fetchBiquoteQuote(pairId).catch(() => null),
     fetchTwelvePrice(pairId).catch(() => null),
     fetchTwelveQuote(pairId).catch(() => null),
     fetchSnapshotTick(pairId).catch(() => null),
@@ -262,6 +268,13 @@ export async function fetchLiveQuote(pairId: PairId): Promise<LiveQuote | null> 
   const results = (await Promise.all(tasks)).filter((q): q is LiveQuote => !!q)
   if (!results.length) return null
   results.sort((a, b) => {
+    // Prefer biquote when within 3s of the freshest quote
+    const freshest = Math.max(...results.map((r) => r.at))
+    const aFresh = a.at >= freshest - 3 ? 1 : 0
+    const bFresh = b.at >= freshest - 3 ? 1 : 0
+    const aBq = a.source === 'biquote' && aFresh ? 2 : 0
+    const bBq = b.source === 'biquote' && bFresh ? 2 : 0
+    if (bBq !== aBq) return bBq - aBq
     if (b.at !== a.at) return b.at - a.at
     const aBa = a.bid != null && a.ask != null ? 1 : 0
     const bBa = b.bid != null && b.ask != null ? 1 : 0
@@ -458,7 +471,18 @@ export async function fetchLiveCandles(
   pairId: PairId,
   timeframe: Timeframe,
 ): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
-  // Browser: Twelve Data first (CORS + fresh). Snapshot/Yahoo as fallback.
+  // Browser: biquote first (free CORS), then Twelve, then snapshot/Yahoo.
+  if (BIQUOTE_SYMBOLS[pairId]) {
+    try {
+      const live = await fetchBiquoteCandles(pairId, timeframe)
+      return {
+        ...live,
+        candles: sanitizeCandles(live.candles),
+      }
+    } catch {
+      /* fall through */
+    }
+  }
   if (TWELVE_SYMBOLS[pairId]) {
     try {
       return await fetchTwelveCandles(pairId, timeframe)

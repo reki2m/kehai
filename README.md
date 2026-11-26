@@ -23,6 +23,12 @@ Yahoo Finance USDJPY 60分足から再構成した1分足でのウォークフ�
 
 0.1ロット・スプレッド0.8pips想定。実口座成績ではありません。
 
+## ライブレート
+
+- **biquote**（無料・キー不要）: REST + SignalR WebSocket。bid/ask 付き
+- Twelve Data / GitHub Actions の Swissquote tick も並列フォールバック
+- GMO板そのものではないので、約定はGMO側で最終確認
+
 ## 開発
 
 ```bash

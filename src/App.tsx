@@ -6,12 +6,14 @@ import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
 import type { FxSession } from './lib/apex'
+import { BIQUOTE_SYMBOLS, subscribeBiquoteTicks } from './lib/biquote'
 import {
   applyLiveTick,
   fetchLiveCandles,
   fetchLiveQuote,
   mergeRemoteCandles,
   sanitizeCandles,
+  type LiveQuote,
 } from './lib/liveRates'
 import type { Candle } from './lib/marketData'
 import {
@@ -217,74 +219,107 @@ export default function App() {
     while (hist.length && hist[0].t < cut) hist.shift()
   }, [livePrice])
 
-  // Live tick ~0.8s — multi-source quote + chart tip + 急変
+  // Live ticks: biquote SignalR push + multi-source REST fallback
   useEffect(() => {
     let cancelled = false
     let inFlight = false
-    async function tick() {
+    let streaming = false
+    let lastStreamAt = 0
+
+    function applyQuote(q: LiveQuote) {
+      if (cancelled) return
+      const px = q.price
+      setLivePrice(px)
+      if (q.bid != null) setLiveBid(q.bid)
+      if (q.ask != null) setLiveAsk(q.ask)
+      setCandles((prev) => {
+        if (prev.length < 30) return prev
+        return applyLiveTick(prev, px, timeframe)
+      })
+      const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
+      const tag =
+        q.source === 'biquote' && streaming
+          ? 'biquote WS'
+          : q.source
+      setLiveSource(
+        age <= 2 ? `ライブ ${tag}` : `ライブ ${tag} · ${age}秒前`,
+      )
+      setLiveError(null)
+
+      if (shockAlert && shockRef.current) {
+        const hit = shockRef.current.push(px)
+        if (hit) {
+          const cause = investigateShockCause({
+            hit,
+            events: eventsRef.current,
+            headlines: headlinesRef.current,
+          })
+          announceShock({
+            direction: hit.direction,
+            pips: hit.pips,
+            windowSec: hit.windowSec,
+            label: hit.label,
+            pairLabel: pair.label,
+            causeSummary: cause.summary,
+          })
+          const until = Date.now() + 5 * 60_000
+          setShockReport({
+            dir: hit.direction,
+            pips: hit.pips,
+            label: hit.label,
+            cause,
+            until,
+          })
+          if (shockClearTimer.current) window.clearTimeout(shockClearTimer.current)
+          shockClearTimer.current = window.setTimeout(() => {
+            setShockReport(null)
+            shockClearTimer.current = null
+          }, 5 * 60_000)
+        }
+      }
+    }
+
+    const stopStream =
+      BIQUOTE_SYMBOLS[pairId] != null
+        ? subscribeBiquoteTicks(pairId, (q) => {
+            streaming = true
+            lastStreamAt = Date.now()
+            applyQuote(q)
+          })
+        : () => {}
+
+    async function poll() {
       if (inFlight) return
+      // While WS is healthy, poll slower as a safety net only
+      if (streaming && Date.now() - lastStreamAt < 4000) return
       inFlight = true
       try {
         const q = await fetchLiveQuote(pairId)
         if (cancelled || !q) return
-        const px = q.price
-        setLivePrice(px)
-        if (q.bid != null) setLiveBid(q.bid)
-        if (q.ask != null) setLiveAsk(q.ask)
-        setCandles((prev) => {
-          if (prev.length < 30) return prev
-          return applyLiveTick(prev, px, timeframe)
-        })
-        const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
-        setLiveSource(
-          age <= 2
-            ? `ライブ ${q.source}`
-            : `ライブ ${q.source} · ${age}秒前`,
-        )
-        setLiveError(null)
-
-        if (shockAlert && shockRef.current) {
-          const hit = shockRef.current.push(px)
-          if (hit) {
-            const cause = investigateShockCause({
-              hit,
-              events: eventsRef.current,
-              headlines: headlinesRef.current,
-            })
-            announceShock({
-              direction: hit.direction,
-              pips: hit.pips,
-              windowSec: hit.windowSec,
-              label: hit.label,
-              pairLabel: pair.label,
-              causeSummary: cause.summary,
-            })
-            const until = Date.now() + 5 * 60_000
-            setShockReport({
-              dir: hit.direction,
-              pips: hit.pips,
-              label: hit.label,
-              cause,
-              until,
-            })
-            if (shockClearTimer.current) window.clearTimeout(shockClearTimer.current)
-            shockClearTimer.current = window.setTimeout(() => {
-              setShockReport(null)
-              shockClearTimer.current = null
-            }, 5 * 60_000)
-          }
+        // Don't overwrite a fresher WS tick with a staler REST quote
+        if (streaming && Date.now() - lastStreamAt < 1500 && q.source !== 'biquote') {
+          return
         }
+        applyQuote(q)
       } catch {
         /* keep chart; history still shown */
       } finally {
         inFlight = false
       }
     }
-    void tick()
-    const id = window.setInterval(() => void tick(), 800)
+
+    void poll()
+    // Poll is a safety net; early-return while biquote WS is healthy
+    const id = window.setInterval(() => void poll(), 1000)
+    const watch = window.setInterval(() => {
+      if (streaming && Date.now() - lastStreamAt > 8000) streaming = false
+    }, 2000)
+
     return () => {
       cancelled = true
+      stopStream()
       window.clearInterval(id)
+      window.clearInterval(watch)
     }
   }, [pairId, timeframe, pair.label, shockAlert])
 
