@@ -503,7 +503,7 @@ export function evaluateSimple(
   const sessionOut: FxSession | null =
     fxSession ?? (isFxWeekday(t) && (!pair || pair.kind === 'fx') ? 'tokyo' : null)
   const sessionLabel = noonOk
-    ? '昼サイン枠 (12:00–13:00 JST)'
+    ? '通常枠 (12:00–0:00 JST)'
     : fxSession
       ? `${SESSION_PROFILES[fxSession].labelJa} · 推奨のみ`
       : sessionOut

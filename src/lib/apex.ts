@@ -18,8 +18,8 @@ import type { Bias, IndicatorSignal } from './signals'
  * KEHAI Apex — session-tuned UT×SSL
  *
  * Entry policy:
- *  · Noon window JST 12:00–13:00 → normal + 推奨
- *  · Otherwise (weekday 24h) → 推奨 (prime) only
+ *  · Primary window JST 12:00–00:00 (12h) → normal + 推奨
+ *  · Otherwise (weekday) → 推奨 (prime) only
  * Session profiles still tune UT/SSL knobs by time of day.
  */
 
@@ -46,7 +46,7 @@ export const SESSION_PROFILES: Record<FxSession, SessionProfile> = {
     id: 'tokyo',
     label: 'Tokyo',
     labelJa: '東京時間',
-    jst: '09:00–15:00 JST（通常サインは12–13）',
+    jst: '09:00–15:00 JST（通常は12:00–0:00）',
     utKey: 1.5,
     utAtr: 7,
     sslLen: 10,
@@ -149,11 +149,14 @@ export const SESSION_UTC_WINDOWS: Record<FxSession, { start: number; end: number
     ny: { start: 13 * 60, end: 17 * 60 },
   }
 
-/** Normal (non-prime) entries: JST 12:00–13:00 = UTC 03:00–04:00. */
+/**
+ * Normal (non-prime) entries: JST 12:00–00:00 (12 hours)
+ * = UTC 03:00–15:00.
+ */
 export function isNoonSignalWindow(unixSec: number): boolean {
   const { weekday, hm } = utcHm(unixSec)
   if (weekday === 0 || weekday === 6) return false
-  return hm >= 3 * 60 && hm < 4 * 60
+  return hm >= 3 * 60 && hm < 15 * 60
 }
 
 /** Weekday FX hours — prime entries allowed any time. */
@@ -281,7 +284,7 @@ export function evaluateApex(candles: Candle[], pair?: PairMeta): ApexSignal {
     ? `${profile.label} · ${profile.jst}`
     : pair && pair.kind !== 'fx'
       ? 'アクティブ時間帯'
-      : '通常 12–13 JST · 推奨は平日いつでも'
+      : '通常 12:00–0:00 JST · 推奨は平日いつでも'
 
   const signals: IndicatorSignal[] = []
 

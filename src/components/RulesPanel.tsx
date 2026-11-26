@@ -22,8 +22,8 @@ export function RulesPanel() {
         <li>
           <strong>品質ゲート</strong>
           <span>
-            通常サインは 12:00–13:00 JST のみ · 推奨（DI+ADX≥{SIMPLE.adxPrime}
-            +上位SSL+WT）は平日いつでも · WaveTrend強い逆行は見送り
+            通常サインは 12:00–0:00 JST（12時間）· 推奨（DI+ADX≥
+            {SIMPLE.adxPrime}+上位SSL+WT）は枠外でも平日可 · WaveTrend強い逆行は見送り
           </span>
         </li>
         <li>

@@ -175,7 +175,7 @@ export function SimpleBoard({
           READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
-          通常は 12:00–13:00 JST · 確度の高い「推奨」は平日いつでも可
+          通常は 12:00–0:00 JST（12時間）· 確度の高い「推奨」はそれ以外も平日可
         </li>
         <li>
           損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /
