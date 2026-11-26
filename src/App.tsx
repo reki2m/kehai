@@ -418,11 +418,15 @@ export default function App() {
   }, [candles, pair, stats.disabledSessions])
 
   const histSignals = useMemo(() => {
-    const recent = listHistoricalSignals(
-      candles.length > 900 ? candles.slice(-800) : candles,
-      pair,
-      HIST_FROM_UNIX,
-    )
+    // Extra bars for indicator warmup, then only emit after warmup.
+    const need = 1400
+    const slice = candles.length > need ? candles.slice(-need) : candles
+    const warmup = 100
+    const from =
+      slice.length > warmup
+        ? Math.max(HIST_FROM_UNIX, slice[warmup].time)
+        : HIST_FROM_UNIX
+    const recent = listHistoricalSignals(slice, pair, from)
     return mergeHistSignals(archiveSignals, recent)
   }, [archiveSignals, candles, pair])
   const signal = useMemo(() => {

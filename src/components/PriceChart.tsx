@@ -485,21 +485,24 @@ export function PriceChart({
 
   useEffect(() => {
     if (!markersApi.current) return
+    // High-contrast vs candle teal/coral — gold / hot pink + larger size
     const markers: SeriesMarker<Time>[] = histSignals.map((s) =>
       s.side === 'BUY'
         ? {
             time: s.time as UTCTimestamp,
             position: 'belowBar' as const,
             shape: 'arrowUp' as const,
-            color: '#5EEAD4',
-            text: 'BUY',
+            color: '#FFE566',
+            text: '買い',
+            size: 2,
           }
         : {
             time: s.time as UTCTimestamp,
             position: 'aboveBar' as const,
             shape: 'arrowDown' as const,
-            color: '#F07167',
-            text: 'SELL',
+            color: '#FF4D9A',
+            text: '売り',
+            size: 2,
           },
     )
     markersApi.current.setMarkers(markers)
