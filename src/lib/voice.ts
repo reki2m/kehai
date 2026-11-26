@@ -6,6 +6,7 @@ let unlocked = false
 let rateVoiceOn = true
 let entrySoundOn = true
 let newsVoiceOn = true
+let shockAlertOn = true
 let cachedJaVoice: SpeechSynthesisVoice | null | undefined
 
 type Priority = 0 | 1 | 2 | 3 // 0=critical(entry) 1=alert 2=news 3=rate
@@ -25,7 +26,7 @@ export function isVoiceUnlocked() {
 }
 
 export function getVoicePrefs() {
-  return { rateVoiceOn, entrySoundOn, newsVoiceOn, unlocked }
+  return { rateVoiceOn, entrySoundOn, newsVoiceOn, shockAlertOn, unlocked }
 }
 
 export function setRateVoiceOn(v: boolean) {
@@ -38,6 +39,14 @@ export function setEntrySoundOn(v: boolean) {
 
 export function setNewsVoiceOn(v: boolean) {
   newsVoiceOn = v
+}
+
+export function setShockAlertOn(v: boolean) {
+  shockAlertOn = v
+}
+
+export function isShockAlertOn() {
+  return shockAlertOn
 }
 
 function refreshVoices(): void {
@@ -384,6 +393,68 @@ function playAlertBeep(importance: number): void {
     })
   } catch {
     /* ignore */
+  }
+}
+
+/** 急変専用：短く強いサイレン風ビープ（上下で音色を変える） */
+export function playShockBeep(direction: 'UP' | 'DOWN'): void {
+  if (!unlocked || !shockAlertOn) return
+  try {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
+    const ctx = new Ctx()
+    void ctx.resume()
+    const now = ctx.currentTime
+    const freqs =
+      direction === 'UP'
+        ? [880, 1175, 1480, 1175]
+        : [740, 554, 415, 554]
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = i % 2 === 0 ? 'square' : 'sawtooth'
+      osc.frequency.value = f
+      const t0 = now + i * 0.09
+      gain.gain.setValueAtTime(0.0001, t0)
+      gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(t0)
+      osc.stop(t0 + 0.12)
+    })
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 急変アラート（警告音＋読み上げ） */
+export function announceShock(hit: {
+  direction: 'UP' | 'DOWN'
+  pips: number
+  windowSec: number
+  pairLabel?: string
+}): void {
+  if (!shockAlertOn) return
+  playShockBeep(hit.direction)
+  if (!unlocked) return
+  const dir = hit.direction === 'UP' ? '急騰' : '急落'
+  const pair = hit.pairLabel ? `${hit.pairLabel}、` : ''
+  speak(
+    `急変警告。${pair}${dir}、約${hit.pips.toFixed(1)}ピプス、${hit.windowSec}秒。`,
+    { force: true, priority: 0, interrupt: true },
+  )
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      new Notification(`KEHAI · 急変 ${dir}`, {
+        body: `${hit.pairLabel ?? ''} ${hit.pips.toFixed(1)}p / ${hit.windowSec}秒`,
+        tag: 'shock',
+      })
+    } catch {
+      /* ignore */
+    }
   }
 }
 

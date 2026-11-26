@@ -268,6 +268,39 @@
   letter-spacing: 0.02em;
 }
 
+.shock-banner {
+  flex-basis: 100%;
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  animation: shock-flash 0.9s ease-in-out 2;
+}
+
+.shock-banner.up {
+  color: var(--sea);
+  background: rgba(94, 234, 212, 0.14);
+  border-color: rgba(94, 234, 212, 0.45);
+}
+
+.shock-banner.down {
+  color: var(--coral);
+  background: rgba(240, 113, 103, 0.16);
+  border-color: rgba(240, 113, 103, 0.5);
+}
+
+@keyframes shock-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 .chart-host {
   flex: 1;
   min-height: 360px;

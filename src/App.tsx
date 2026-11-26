@@ -37,15 +37,18 @@ import {
   toggleSessionDisabled,
   type SessionStatsState,
 } from './lib/sessionStats'
+import { atr } from './lib/indicators'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
+import { ShockDetector } from './lib/shockDetect'
 import {
+  announceBriefNow,
   announceEntry,
   announceEventResult,
   announceEventWarning,
   announceHeadline,
   announceReady,
+  announceShock,
   announceSpeech,
-  announceBriefNow,
   announceUpcomingBrief,
   getVoicePrefs,
   isVoiceUnlocked,
@@ -53,6 +56,7 @@ import {
   setEntrySoundOn,
   setNewsVoiceOn,
   setRateVoiceOn,
+  setShockAlertOn,
   speakRate,
   unlockAudio,
 } from './lib/voice'
@@ -81,6 +85,11 @@ export default function App() {
   const [rateVoice, setRateVoice] = useState(true)
   const [entrySound, setEntrySound] = useState(true)
   const [newsVoice, setNewsVoice] = useState(true)
+  const [shockAlert, setShockAlert] = useState(true)
+  const [shockFlash, setShockFlash] = useState<{
+    dir: 'UP' | 'DOWN'
+    pips: number
+  } | null>(null)
   const [alertIds, setAlertIds] = useState<Set<string>>(() => new Set())
   const [stats, setStats] = useState<SessionStatsState>(() => loadSessionStats())
   const [statsRange, setStatsRange] = useState<14 | 0>(14)
@@ -95,6 +104,8 @@ export default function App() {
   const spokenHeadlines = useRef<Set<string>>(new Set())
   const spokenSpeeches = useRef<Set<string>>(new Set())
   const briefDone = useRef(false)
+  const shockRef = useRef<ShockDetector | null>(null)
+  const atrPipsRef = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -139,7 +150,20 @@ export default function App() {
     }
   }, [pairId, timeframe, pair])
 
-  // Live tick ~1s — updates chart tip + bid/ask
+  // ペア変更時は急変検知をリセット
+  useEffect(() => {
+    shockRef.current = new ShockDetector({
+      pip: pair.pip,
+      windowSec: 8,
+      minPips: pair.kind === 'fx' ? 4 : 8,
+      atrRatio: 0.55,
+      cooldownSec: 45,
+    })
+    atrPipsRef.current = null
+    setShockFlash(null)
+  }, [pairId, pair.pip, pair.kind])
+
+  // Live tick ~1s — updates chart tip + bid/ask + 急変検知
   useEffect(() => {
     let cancelled = false
     let inFlight = false
@@ -156,6 +180,20 @@ export default function App() {
         })
         setLiveSource('ライブ 1秒更新')
         setLiveError(null)
+
+        if (shockAlert && shockRef.current) {
+          const hit = shockRef.current.push(px, atrPipsRef.current)
+          if (hit) {
+            announceShock({
+              direction: hit.direction,
+              pips: hit.pips,
+              windowSec: hit.windowSec,
+              pairLabel: pair.label,
+            })
+            setShockFlash({ dir: hit.direction, pips: hit.pips })
+            window.setTimeout(() => setShockFlash(null), 6000)
+          }
+        }
       } catch {
         /* keep chart; history still shown */
       } finally {
@@ -168,7 +206,7 @@ export default function App() {
       cancelled = true
       window.clearInterval(id)
     }
-  }, [pairId, timeframe])
+  }, [pairId, timeframe, pair.label, shockAlert])
 
   useEffect(() => {
     let cancelled = false
@@ -197,6 +235,18 @@ export default function App() {
       window.clearInterval(id)
     }
   }, [])
+
+  // ATR(pips) を急変閾値用に保持
+  useEffect(() => {
+    if (candles.length < 40) {
+      atrPipsRef.current = null
+      return
+    }
+    const series = atr(candles, 14)
+    const lastAtr = series[series.length - 1]?.value
+    atrPipsRef.current =
+      lastAtr != null && Number.isFinite(lastAtr) ? lastAtr / pair.pip : null
+  }, [candles, pair.pip])
 
   const raw = useMemo(
     () => evaluateSimple(candles, pair, stats.disabledSessions),
@@ -335,6 +385,8 @@ export default function App() {
     setEntrySound(prefs.entrySoundOn)
     setNewsVoice(prefs.newsVoiceOn)
     setNewsVoiceOn(prefs.newsVoiceOn)
+    setShockAlert(prefs.shockAlertOn)
+    setShockAlertOn(prefs.shockAlertOn)
     briefDone.current = false
   }
 
@@ -556,6 +608,18 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  className={`voice-btn ${shockAlert ? 'active' : ''}`}
+                  onClick={() => {
+                    const n = !shockAlert
+                    setShockAlert(n)
+                    setShockAlertOn(n)
+                  }}
+                  title="短時間の急騰・急落で警告音"
+                >
+                  急変
+                </button>
+                <button
+                  type="button"
                   className="voice-btn"
                   title="直近の注目指標を今すぐ読み上げ"
                   onClick={() => {
@@ -594,6 +658,16 @@ export default function App() {
               {' · '}BUY/SELLのみ · 1本
               {liveError ? ` · ${liveError}` : ''}
             </p>
+            {shockFlash && (
+              <p
+                className={`shock-banner ${shockFlash.dir === 'UP' ? 'up' : 'down'}`}
+                role="alert"
+              >
+                急変 {shockFlash.dir === 'UP' ? '↑急騰' : '↓急落'} ·{' '}
+                {shockFlash.pips.toFixed(1)}
+                {pair.unit === 'pips' ? 'p' : 'pt'} / 8秒
+              </p>
+            )}
           </div>
           {candles.length >= 30 ? (
             <ErrorBoundary>
