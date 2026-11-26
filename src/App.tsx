@@ -37,7 +37,6 @@ import {
   toggleSessionDisabled,
   type SessionStatsState,
 } from './lib/sessionStats'
-import { atr } from './lib/indicators'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import { ShockDetector } from './lib/shockDetect'
 import {
@@ -89,6 +88,7 @@ export default function App() {
   const [shockFlash, setShockFlash] = useState<{
     dir: 'UP' | 'DOWN'
     pips: number
+    label: string
   } | null>(null)
   const [alertIds, setAlertIds] = useState<Set<string>>(() => new Set())
   const [stats, setStats] = useState<SessionStatsState>(() => loadSessionStats())
@@ -105,7 +105,6 @@ export default function App() {
   const spokenSpeeches = useRef<Set<string>>(new Set())
   const briefDone = useRef(false)
   const shockRef = useRef<ShockDetector | null>(null)
-  const atrPipsRef = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -150,18 +149,17 @@ export default function App() {
     }
   }, [pairId, timeframe, pair])
 
-  // ペア変更時は急変検知をリセット
+  // ペア変更時は急変検知をリセット（1分20p / 10分50p）
   useEffect(() => {
     shockRef.current = new ShockDetector({
       pip: pair.pip,
-      windowSec: 8,
-      minPips: pair.kind === 'fx' ? 4 : 8,
-      atrRatio: 0.55,
-      cooldownSec: 45,
+      rules: [
+        { windowSec: 60, thresholdPips: 20, label: '1分', cooldownSec: 60 },
+        { windowSec: 600, thresholdPips: 50, label: '10分', cooldownSec: 180 },
+      ],
     })
-    atrPipsRef.current = null
     setShockFlash(null)
-  }, [pairId, pair.pip, pair.kind])
+  }, [pairId, pair.pip])
 
   // Live tick ~1s — updates chart tip + bid/ask + 急変検知
   useEffect(() => {
@@ -182,16 +180,21 @@ export default function App() {
         setLiveError(null)
 
         if (shockAlert && shockRef.current) {
-          const hit = shockRef.current.push(px, atrPipsRef.current)
+          const hit = shockRef.current.push(px)
           if (hit) {
             announceShock({
               direction: hit.direction,
               pips: hit.pips,
               windowSec: hit.windowSec,
+              label: hit.label,
               pairLabel: pair.label,
             })
-            setShockFlash({ dir: hit.direction, pips: hit.pips })
-            window.setTimeout(() => setShockFlash(null), 6000)
+            setShockFlash({
+              dir: hit.direction,
+              pips: hit.pips,
+              label: hit.label,
+            })
+            window.setTimeout(() => setShockFlash(null), 8000)
           }
         }
       } catch {
@@ -235,18 +238,6 @@ export default function App() {
       window.clearInterval(id)
     }
   }, [])
-
-  // ATR(pips) を急変閾値用に保持
-  useEffect(() => {
-    if (candles.length < 40) {
-      atrPipsRef.current = null
-      return
-    }
-    const series = atr(candles, 14)
-    const lastAtr = series[series.length - 1]?.value
-    atrPipsRef.current =
-      lastAtr != null && Number.isFinite(lastAtr) ? lastAtr / pair.pip : null
-  }, [candles, pair.pip])
 
   const raw = useMemo(
     () => evaluateSimple(candles, pair, stats.disabledSessions),
@@ -614,7 +605,7 @@ export default function App() {
                     setShockAlert(n)
                     setShockAlertOn(n)
                   }}
-                  title="短時間の急騰・急落で警告音"
+                  title="1分20p / 10分50p の急変で警告音"
                 >
                   急変
                 </button>
@@ -664,8 +655,9 @@ export default function App() {
                 role="alert"
               >
                 急変 {shockFlash.dir === 'UP' ? '↑急騰' : '↓急落'} ·{' '}
-                {shockFlash.pips.toFixed(1)}
-                {pair.unit === 'pips' ? 'p' : 'pt'} / 8秒
+                {shockFlash.pips.toFixed(0)}
+                {pair.unit === 'pips' ? 'p' : 'pt'} / {shockFlash.label}
+                （基準: 1分20p・10分50p）
               </p>
             )}
           </div>

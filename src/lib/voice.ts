@@ -435,6 +435,7 @@ export function announceShock(hit: {
   direction: 'UP' | 'DOWN'
   pips: number
   windowSec: number
+  label?: string
   pairLabel?: string
 }): void {
   if (!shockAlertOn) return
@@ -442,14 +443,19 @@ export function announceShock(hit: {
   if (!unlocked) return
   const dir = hit.direction === 'UP' ? '急騰' : '急落'
   const pair = hit.pairLabel ? `${hit.pairLabel}、` : ''
+  const when =
+    hit.label ??
+    (hit.windowSec >= 60
+      ? `${Math.round(hit.windowSec / 60)}分`
+      : `${hit.windowSec}秒`)
   speak(
-    `急変警告。${pair}${dir}、約${hit.pips.toFixed(1)}ピプス、${hit.windowSec}秒。`,
+    `急変警告。${pair}${when}で${dir}、約${hit.pips.toFixed(0)}ピプス。`,
     { force: true, priority: 0, interrupt: true },
   )
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
       new Notification(`KEHAI · 急変 ${dir}`, {
-        body: `${hit.pairLabel ?? ''} ${hit.pips.toFixed(1)}p / ${hit.windowSec}秒`,
+        body: `${hit.pairLabel ?? ''} ${hit.pips.toFixed(0)}p / ${when}`,
         tag: 'shock',
       })
     } catch {
