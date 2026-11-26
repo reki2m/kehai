@@ -59,7 +59,6 @@ export function SimpleBoard({
             <span className="rate-label">売り値</span>
             <span className="rate-num">{bid}</span>
           </div>
-          <div className="rate-divider" aria-hidden />
           <div className="rate-side rate-ask">
             <span className="rate-label">買い値</span>
             <span className="rate-num">{ask}</span>
