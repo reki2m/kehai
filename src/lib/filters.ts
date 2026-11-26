@@ -97,19 +97,17 @@ export function newsBlackout(unixSec: number): NewsWindow | null {
   return null
 }
 
-/** User broker USDJPY scalp spread (pips). */
+/** User broker USDJPY scalp spread (pips) — GMO想定で固定. */
 export const BROKER_SPREAD_PIPS = 0.2
 
 /**
  * Estimated USDJPY spread in pips.
- * Default = broker 0.2; widen only on news / thin ATR.
+ * Always 0.2 for normal trading; widen only inside high-impact news windows.
  */
-export function estimateSpreadPips(unixSec: number, atrPips?: number): number {
-  let spread = BROKER_SPREAD_PIPS
-  if (newsBlackout(unixSec)) spread = Math.max(spread, 1.5)
-  if (atrPips !== undefined && atrPips < 1.2) spread = Math.max(spread, 0.35)
-  return spread
+export function estimateSpreadPips(unixSec: number, _atrPips?: number): number {
+  if (newsBlackout(unixSec)) return Math.max(BROKER_SPREAD_PIPS, 1.5)
+  return BROKER_SPREAD_PIPS
 }
 
 /** Skip entry when spread too wide for scalping. */
-export const MAX_ENTRY_SPREAD_PIPS = 0.35
+export const MAX_ENTRY_SPREAD_PIPS = 0.5
