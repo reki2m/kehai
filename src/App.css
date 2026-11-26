@@ -313,13 +313,13 @@
 }
 
 .voice-btn:hover {
-  color: var(--ink);
+  color: var(--text);
   border-color: rgba(94, 234, 212, 0.35);
 }
 
 .voice-btn.active,
 .voice-btn.primary {
-  color: var(--ink);
+  color: var(--gold);
   background: rgba(232, 196, 124, 0.18);
   border-color: rgba(232, 196, 124, 0.45);
 }
@@ -347,9 +347,10 @@
 .news-source,
 .news-status {
   margin: 0.35rem 0 0.65rem;
-  font-size: 0.72rem;
-  color: var(--muted);
-  line-height: 1.4;
+  font-size: 0.8rem;
+  color: var(--text);
+  opacity: 0.9;
+  line-height: 1.45;
 }
 
 .sample-note.err {
@@ -400,9 +401,10 @@
 }
 
 .rules-list span {
-  font-size: 0.78rem;
-  color: var(--ink);
-  line-height: 1.45;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+  opacity: 0.92;
 }
 
 .news-head {
@@ -456,7 +458,7 @@
 
 .news-title {
   grid-column: 1 / -1;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .news-title.link {
@@ -497,21 +499,21 @@
 }
 
 .imp-badge.imp-5 {
-  color: var(--ink);
-  background: rgba(240, 113, 103, 0.35);
-  border-color: rgba(240, 113, 103, 0.55);
+  color: #fff;
+  background: rgba(240, 113, 103, 0.45);
+  border-color: rgba(240, 113, 103, 0.65);
 }
 
 .imp-badge.imp-4 {
-  color: var(--ink);
-  background: rgba(240, 113, 103, 0.18);
-  border-color: rgba(240, 113, 103, 0.4);
+  color: #ffe8e6;
+  background: rgba(240, 113, 103, 0.28);
+  border-color: rgba(240, 113, 103, 0.5);
 }
 
 .imp-badge.imp-3 {
-  color: var(--ink);
-  background: rgba(232, 196, 124, 0.2);
-  border-color: rgba(232, 196, 124, 0.45);
+  color: var(--gold);
+  background: rgba(232, 196, 124, 0.22);
+  border-color: rgba(232, 196, 124, 0.5);
 }
 
 .imp-badge.imp-2,
@@ -561,7 +563,7 @@
 .tf-chip-row.tf-active {
   border-color: rgba(94, 234, 212, 0.35);
   background: rgba(94, 234, 212, 0.08);
-  color: var(--ink);
+  color: var(--sea);
 }
 
 .tf-name {
@@ -614,9 +616,10 @@
 .impact-why,
 .impact-last {
   margin: 0.3rem 0 0;
-  font-size: 0.7rem;
-  color: var(--muted);
-  line-height: 1.4;
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.88;
+  line-height: 1.45;
 }
 
 .impact-score-row {
@@ -630,7 +633,7 @@
   font-family: var(--font-mono);
   font-size: 1.6rem;
   font-variant-numeric: tabular-nums;
-  color: var(--ink);
+  color: var(--text);
   min-width: 3.2rem;
 }
 
@@ -645,7 +648,7 @@
 .impact-label {
   margin: 0;
   font-size: 0.82rem;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .impact-list {
@@ -666,7 +669,7 @@
 }
 
 .impact-name {
-  color: var(--ink);
+  color: var(--text);
 }
 
 .impact-chg {
@@ -778,9 +781,9 @@
 
 .simple-reason {
   margin: 0.35rem 0 0;
-  font-size: 0.78rem;
-  color: var(--ink);
-  line-height: 1.4;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.45;
 }
 
 .simple-quote {
@@ -860,8 +863,8 @@
   list-style-position: inside;
   border: 1px solid var(--line);
   background: var(--panel);
-  font-size: 0.74rem;
-  color: var(--ink);
+  font-size: 0.8rem;
+  color: var(--text);
   line-height: 1.55;
 }
 
@@ -889,9 +892,10 @@
 .session-hint,
 .session-advice {
   margin: 0.3rem 0 0;
-  font-size: 0.7rem;
-  color: var(--muted);
-  line-height: 1.4;
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.88;
+  line-height: 1.45;
 }
 
 .session-advice {
@@ -920,7 +924,7 @@
 }
 
 .session-range button.active {
-  color: var(--ink);
+  color: var(--sea);
   border-color: rgba(94, 234, 212, 0.4);
   background: rgba(94, 234, 212, 0.1);
 }
@@ -930,9 +934,9 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   margin: 0.65rem 0 0.5rem;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .session-rows {
@@ -991,8 +995,8 @@
 
 .session-close-title {
   margin: 0 0 0.45rem;
-  font-size: 0.74rem;
-  color: var(--ink);
+  font-size: 0.8rem;
+  color: var(--text);
 }
 
 .session-field {
@@ -1000,8 +1004,9 @@
   flex-direction: column;
   gap: 0.2rem;
   margin-top: 0.45rem;
-  font-size: 0.68rem;
-  color: var(--muted);
+  font-size: 0.75rem;
+  color: var(--text);
+  opacity: 0.88;
 }
 
 .session-field input {
@@ -1009,7 +1014,7 @@
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--line);
   background: rgba(6, 20, 26, 0.45);
-  color: var(--ink);
+  color: var(--text);
   max-width: 9rem;
 }
 
@@ -1080,7 +1085,7 @@
 }
 
 .grail-stats strong {
-  color: var(--ink);
+  color: var(--text);
   text-align: right;
   font-weight: 600;
 }
@@ -1098,9 +1103,9 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   margin: 0.55rem 0;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .grail-slip {
@@ -1116,7 +1121,7 @@
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--line);
   background: rgba(6, 20, 26, 0.45);
-  color: var(--ink);
+  color: var(--text);
   max-width: 8rem;
 }
 
@@ -1138,7 +1143,7 @@
 }
 
 .grail-close-btns button:hover {
-  color: var(--ink);
+  color: var(--text);
   border-color: rgba(94, 234, 212, 0.35);
 }
 
