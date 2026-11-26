@@ -7,7 +7,25 @@ let rateVoiceOn = true
 let entrySoundOn = true
 let newsVoiceOn = true
 let shockAlertOn = true
+/** 0〜1。読み上げ・効果音の共通音量 */
+let voiceVolume = 0.85
 let cachedJaVoice: SpeechSynthesisVoice | null | undefined
+
+const VOLUME_KEY = 'kehai.voiceVolume'
+
+function loadStoredVolume(): number {
+  try {
+    const raw = localStorage.getItem(VOLUME_KEY)
+    if (raw == null) return 0.85
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return 0.85
+    return Math.min(1, Math.max(0, n))
+  } catch {
+    return 0.85
+  }
+}
+
+voiceVolume = typeof localStorage !== 'undefined' ? loadStoredVolume() : 0.85
 
 type Priority = 0 | 1 | 2 | 3 // 0=critical(entry) 1=alert 2=news 3=rate
 
@@ -26,7 +44,14 @@ export function isVoiceUnlocked() {
 }
 
 export function getVoicePrefs() {
-  return { rateVoiceOn, entrySoundOn, newsVoiceOn, shockAlertOn, unlocked }
+  return {
+    rateVoiceOn,
+    entrySoundOn,
+    newsVoiceOn,
+    shockAlertOn,
+    voiceVolume,
+    unlocked,
+  }
 }
 
 export function setRateVoiceOn(v: boolean) {
@@ -47,6 +72,24 @@ export function setShockAlertOn(v: boolean) {
 
 export function isShockAlertOn() {
   return shockAlertOn
+}
+
+export function getVoiceVolume() {
+  return voiceVolume
+}
+
+/** 0〜1。読み上げと警告音の両方に反映。 */
+export function setVoiceVolume(v: number) {
+  voiceVolume = Math.min(1, Math.max(0, v))
+  try {
+    localStorage.setItem(VOLUME_KEY, String(voiceVolume))
+  } catch {
+    /* ignore */
+  }
+}
+
+function beepGain(peak: number): number {
+  return Math.max(0.0001, peak * voiceVolume)
 }
 
 function refreshVoices(): void {
@@ -163,7 +206,7 @@ function drainQueue(): void {
     u.lang = 'ja-JP'
     u.rate = next.priority <= 1 ? 1.0 : 1.08
     u.pitch = 1
-    u.volume = 1
+    u.volume = voiceVolume
     const voice = ensureVoices()
     if (voice) u.voice = voice
     u.onend = () => {
@@ -347,7 +390,7 @@ export function playReadyBeep(side: 'BUY' | 'SELL'): void {
     osc.type = 'triangle'
     osc.frequency.value = f
     gain.gain.setValueAtTime(0.0001, now)
-    gain.gain.exponentialRampToValueAtTime(0.1, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(beepGain(0.1), now + 0.02)
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
     osc.connect(gain)
     gain.connect(ctx.destination)
@@ -375,7 +418,7 @@ export function playEntryBeep(action: 'LONG' | 'SHORT'): void {
       osc.type = 'sine'
       osc.frequency.value = f
       gain.gain.setValueAtTime(0.0001, now)
-      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02 + i * 0.08)
+      gain.gain.exponentialRampToValueAtTime(beepGain(0.18), now + 0.02 + i * 0.08)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28 + i * 0.1)
       osc.connect(gain)
       gain.connect(ctx.destination)
@@ -405,7 +448,7 @@ function playAlertBeep(importance: number): void {
       osc.type = 'triangle'
       osc.frequency.value = base
       gain.gain.setValueAtTime(0.0001, now + delay)
-      gain.gain.exponentialRampToValueAtTime(0.16, now + delay + 0.02)
+      gain.gain.exponentialRampToValueAtTime(beepGain(0.16), now + delay + 0.02)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.14)
       osc.connect(gain)
       gain.connect(ctx.destination)
@@ -439,7 +482,7 @@ export function playShockBeep(direction: 'UP' | 'DOWN'): void {
       osc.frequency.value = f
       const t0 = now + i * 0.09
       gain.gain.setValueAtTime(0.0001, t0)
-      gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.015)
+      gain.gain.exponentialRampToValueAtTime(beepGain(0.22), t0 + 0.015)
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1)
       osc.connect(gain)
       gain.connect(ctx.destination)

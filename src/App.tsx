@@ -57,6 +57,7 @@ import {
   setNewsVoiceOn,
   setRateVoiceOn,
   setShockAlertOn,
+  setVoiceVolume,
   speakRate,
   unlockAudio,
 } from './lib/voice'
@@ -86,6 +87,7 @@ export default function App() {
   const [entrySound, setEntrySound] = useState(true)
   const [newsVoice, setNewsVoice] = useState(true)
   const [shockAlert, setShockAlert] = useState(true)
+  const [volume, setVolume] = useState(() => getVoicePrefs().voiceVolume)
   const [shockReport, setShockReport] = useState<{
     dir: 'UP' | 'DOWN'
     pips: number
@@ -460,6 +462,8 @@ export default function App() {
     setNewsVoiceOn(prefs.newsVoiceOn)
     setShockAlert(prefs.shockAlertOn)
     setShockAlertOn(prefs.shockAlertOn)
+    setVolume(prefs.voiceVolume)
+    setVoiceVolume(prefs.voiceVolume)
     briefDone.current = false
   }
 
@@ -755,6 +759,23 @@ export default function App() {
                 >
                   まとめ
                 </button>
+                <label className="voice-volume" title="読み上げ・警告音の音量">
+                  <span>音量</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.round(volume * 100)}
+                    aria-label="音量"
+                    onChange={(e) => {
+                      const v = Number(e.target.value) / 100
+                      setVolume(v)
+                      setVoiceVolume(v)
+                    }}
+                  />
+                  <em>{Math.round(volume * 100)}</em>
+                </label>
               </>
             )}
           </div>
