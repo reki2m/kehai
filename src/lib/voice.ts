@@ -252,11 +252,20 @@ export function unlockAudio(): void {
   })
 }
 
+function formatPipsChange(pips: number, windowJa: string): string {
+  const abs = Math.abs(pips)
+  const rounded = abs >= 10 ? abs.toFixed(0) : abs.toFixed(1)
+  if (Math.abs(pips) < 0.05) return `${windowJa}はほぼ変わらず`
+  const dir = pips > 0 ? 'プラス' : 'マイナス'
+  return `${windowJa}で${dir}${rounded}ピプス`
+}
+
 export function speakRate(
   pairLabel: string,
   price: string,
   action: string,
   quote?: { bid: string; ask: string },
+  change?: { pips1m?: number | null; pips5m?: number | null; include5m?: boolean },
 ): void {
   if (!rateVoiceOn) return
   const act =
@@ -272,7 +281,19 @@ export function speakRate(
   const rates = quote
     ? `売値 ${quote.bid}、買値 ${quote.ask}`
     : `現在値 ${price}`
-  speak(`${pairLabel}、${rates}。シグナルは${act}。`, { priority: 3 })
+  const parts = [`${pairLabel}、${rates}`]
+  if (change?.pips1m != null && Number.isFinite(change.pips1m)) {
+    parts.push(formatPipsChange(change.pips1m, '1分前から'))
+  }
+  if (
+    change?.include5m &&
+    change.pips5m != null &&
+    Number.isFinite(change.pips5m)
+  ) {
+    parts.push(formatPipsChange(change.pips5m, '5分間'))
+  }
+  parts.push(`シグナルは${act}`)
+  speak(`${parts.join('。')}。`, { priority: 3 })
 }
 
 export function announceEntry(

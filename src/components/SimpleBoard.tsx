@@ -104,7 +104,7 @@ export function SimpleBoard({
           {unitLabel(pair)} を固定
         </li>
         <li>約定の最終確認はGMOの板で行う</li>
-        <li>音声オンでサイン・指標・急変警告音を利用</li>
+        <li>音声オンでサイン・1分/5分変動・指標・急変を読み上げ</li>
       </ol>
     </aside>
   )

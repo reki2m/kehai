@@ -111,6 +111,9 @@ export default function App() {
   const eventsRef = useRef<CalendarEvent[]>([])
   const headlinesRef = useRef<Headline[]>([])
   const shockClearTimer = useRef<number | null>(null)
+  /** 変動読み上げ用の価格履歴 {t:ms, price} */
+  const priceHistRef = useRef<{ t: number; price: number }[]>([])
+  const lastFiveSpoken = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -162,7 +165,7 @@ export default function App() {
     }
   }, [pairId, timeframe, pair])
 
-  // ペア変更時は急変検知をリセット（1分20p / 10分50p）
+  // ペア変更時は急変検知・価格履歴をリセット（1分20p / 10分50p）
   useEffect(() => {
     shockRef.current = new ShockDetector({
       pip: pair.pip,
@@ -171,12 +174,24 @@ export default function App() {
         { windowSec: 600, thresholdPips: 50, label: '10分', cooldownSec: 180 },
       ],
     })
+    priceHistRef.current = []
+    lastFiveSpoken.current = null
     setShockReport(null)
     if (shockClearTimer.current) {
       window.clearTimeout(shockClearTimer.current)
       shockClearTimer.current = null
     }
   }, [pairId, pair.pip])
+
+  // ライブ価格を履歴に積む（変動読み上げ用・最大12分）
+  useEffect(() => {
+    if (livePrice == null || !Number.isFinite(livePrice)) return
+    const now = Date.now()
+    const hist = priceHistRef.current
+    hist.push({ t: now, price: livePrice })
+    const cut = now - 12 * 60_000
+    while (hist.length && hist[0].t < cut) hist.shift()
+  }, [livePrice])
 
   // Live tick ~1s — updates chart tip + bid/ask + 急変検知＋原因調査
   useEffect(() => {
@@ -372,11 +387,30 @@ export default function App() {
     inPosition,
   ])
 
-  // Exactly every 1 minute: read bid / ask numbers
+  // 毎分: レート + 1分前比。5分おき: 5分間の変動も追加
   useEffect(() => {
     if (!voiceOn) return
+
+    function priceAgo(msAgo: number): number | null {
+      const hist = priceHistRef.current
+      if (!hist.length) return null
+      const target = Date.now() - msAgo
+      let best: { t: number; price: number } | null = null
+      for (const s of hist) {
+        if (s.t <= target) best = s
+        else break
+      }
+      // 目標時刻に近いサンプルが無い／古すぎる場合は先頭でも可（±20秒以内）
+      if (best && target - best.t <= 20_000) return best.price
+      if (!best && hist[0] && Math.abs(hist[0].t - target) <= 20_000) {
+        return hist[0].price
+      }
+      return best?.price ?? null
+    }
+
     const speakNow = () => {
       if (bid === '—' || ask === '—') return
+      if (!Number.isFinite(Number(midText))) return
       const rateAct =
         raw.action === 'BUY'
           ? 'LONG'
@@ -387,15 +421,33 @@ export default function App() {
               : raw.action === 'READY_SELL'
                 ? 'READY_SELL'
                 : 'WAIT'
-      const minuteKey = Math.floor(Date.now() / 60_000)
+      const now = Date.now()
+      const minuteKey = Math.floor(now / 60_000)
       if (lastSpokenBar.current === minuteKey) return
       lastSpokenBar.current = minuteKey
-      speakRate(pair.label, midText, rateAct, { bid, ask })
+
+      const cur = Number(midText)
+      const p1 = priceAgo(60_000)
+      const p5 = priceAgo(5 * 60_000)
+      const pips1m =
+        p1 != null ? (cur - p1) / pair.pip : null
+      const pips5m =
+        p5 != null ? (cur - p5) / pair.pip : null
+
+      const fiveKey = Math.floor(now / (5 * 60_000))
+      const include5m = lastFiveSpoken.current !== fiveKey
+      if (include5m) lastFiveSpoken.current = fiveKey
+
+      speakRate(pair.label, midText, rateAct, { bid, ask }, {
+        pips1m,
+        pips5m,
+        include5m,
+      })
     }
     speakNow()
     const id = window.setInterval(speakNow, 60_000)
     return () => window.clearInterval(id)
-  }, [voiceOn, bid, ask, midText, pair.label, raw.action, rateVoice])
+  }, [voiceOn, bid, ask, midText, pair.label, pair.pip, raw.action, rateVoice])
 
   async function handleUnlockVoice() {
     unlockAudio()
