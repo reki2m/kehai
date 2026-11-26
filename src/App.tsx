@@ -86,7 +86,8 @@ const OVERLAYS: { id: OverlayId; label: string }[] = [
 export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
-  const [overlays, setOverlays] = useState<OverlayId[]>(['ut', 'ssl', 'vwap'])
+  // Clean TradingView-style candles by default; UT/SSL etc. are opt-in
+  const [overlays, setOverlays] = useState<OverlayId[]>([])
   const [candles, setCandles] = useState<Candle[]>([])
   const [archiveSignals, setArchiveSignals] = useState<HistSignal[]>([])
   const [livePrice, setLivePrice] = useState<number | null>(null)
