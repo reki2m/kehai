@@ -60,8 +60,8 @@ export const SIMPLE = {
   wtAgainstAbs: 55,
   /** Skip lifeless tape. */
   minAtrPips: 1.0,
-  /** Skip first/last N minutes of each session window. */
-  sessionEdgeMin: 5,
+  /** Skip first/last N minutes of each session window (0 while window is 1h). */
+  sessionEdgeMin: 0,
   /** Higher-TF SSL proxy on 1m (≈ SSL10 on 5m) — prime confirm. */
   htfSslLen: 50,
   pip: 0.01,

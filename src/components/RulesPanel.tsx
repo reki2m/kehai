@@ -3,7 +3,8 @@ import { BROKER_SPREAD_PIPS } from '../lib/filters'
 import { SIMPLE } from '../lib/simpleSignal'
 
 export function RulesPanel() {
-  const sessions = [SESSION_PROFILES.tokyo, SESSION_PROFILES.london, SESSION_PROFILES.ny]
+  // TEMP: only noon JST window is live
+  const sessions = [SESSION_PROFILES.tokyo]
   return (
     <section className="rules-panel" aria-label="ルール">
       <h2>ルール</h2>
