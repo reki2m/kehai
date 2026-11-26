@@ -451,13 +451,14 @@ export default function App() {
       const key = `${side}-${Math.floor(bar / 180)}`
       if (lastReadyKey.current !== key) {
         lastReadyKey.current = key
-        announceReady(side, raw.trailDistancePips)
+        announceReady(side, raw.trailDistancePips, raw.entryPrice, pair.digits)
       }
     }
   }, [
     last,
     midText,
     raw.action,
+    raw.entryPrice,
     raw.grade,
     raw.sessionLabel,
     raw.trailDistancePips,

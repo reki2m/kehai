@@ -962,6 +962,60 @@
   color: var(--muted);
 }
 
+.ready-levels {
+  margin: 0.55rem auto 0;
+  padding: 0.55rem 0.75rem;
+  max-width: 16rem;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.ready-levels.levels-buy {
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.ready-levels.levels-sell {
+  border-color: rgba(240, 113, 103, 0.35);
+}
+
+.ready-entry {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.ready-entry-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.ready-entry-num {
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: clamp(1.45rem, 5.5vw, 1.9rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.levels-buy .ready-entry-num {
+  color: var(--sea);
+}
+
+.levels-sell .ready-entry-num {
+  color: var(--coral);
+}
+
+.ready-sltp {
+  margin: 0.28rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .ind-layers {
   margin: 0.75rem 0 0;
   padding: 0;

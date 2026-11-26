@@ -64,6 +64,55 @@ export function SimpleBoard({
             <span className="simple-grade-score"> · {signal.quality}</span>
           </p>
         )}
+        {signal.entryPrice != null &&
+          (signal.action === 'READY_BUY' ||
+            signal.action === 'READY_SELL' ||
+            signal.action === 'BUY' ||
+            signal.action === 'SELL') && (
+            <div
+              className={`ready-levels ${
+                signal.action === 'READY_BUY' || signal.action === 'BUY'
+                  ? 'levels-buy'
+                  : 'levels-sell'
+              }`}
+              aria-label="エントリー目安"
+            >
+              <p className="ready-entry">
+                <span className="ready-entry-label">
+                  {signal.action === 'READY_BUY'
+                    ? '買い目安'
+                    : signal.action === 'READY_SELL'
+                      ? '売り目安'
+                      : signal.action === 'BUY'
+                        ? '買い参考'
+                        : '売り参考'}
+                </span>
+                <span className="ready-entry-num">
+                  {signal.entryPrice.toFixed(pair.digits)}
+                </span>
+              </p>
+              {(signal.stopPrice != null || signal.takeProfitPrice != null) && (
+                <p className="ready-sltp">
+                  {signal.stopPrice != null && (
+                    <>
+                      SL {signal.stopPrice.toFixed(pair.digits)}
+                    </>
+                  )}
+                  {signal.stopPrice != null && signal.takeProfitPrice != null
+                    ? ' · '
+                    : ''}
+                  {signal.takeProfitPrice != null && (
+                    <>TP {signal.takeProfitPrice.toFixed(pair.digits)}</>
+                  )}
+                  {signal.trailDistancePips != null &&
+                  (signal.action === 'READY_BUY' ||
+                    signal.action === 'READY_SELL')
+                    ? ` · あと ${signal.trailDistancePips.toFixed(1)}p`
+                    : ''}
+                </p>
+              )}
+            </div>
+          )}
         <p className="simple-reason">{signal.reason}</p>
 
         {signal.layers.length > 0 && (
@@ -120,7 +169,7 @@ export function SimpleBoard({
 
       <ol className="simple-howto">
         <li>
-          READY↑/↓ は準備警告（あと{SIMPLE.readyPips}p以内）· まだ入らない
+          READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
           BUY / SELL は品質 A〜S 優先 · C は見送り推奨

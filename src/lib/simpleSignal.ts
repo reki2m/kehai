@@ -74,6 +74,13 @@ export interface SimpleSignal {
   filtersOk: boolean
   /** Pips from close to UT trail (positive). */
   trailDistancePips: number | null
+  /** UT trail price (flip level to watch on READY). */
+  trailPrice: number | null
+  /** Suggested entry price when READY/BUY/SELL (UT flip level or last close). */
+  entryPrice: number | null
+  /** Absolute SL / TP from entryPrice (fixed pip distances). */
+  stopPrice: number | null
+  takeProfitPrice: number | null
   readySide: 'BUY' | 'SELL' | null
   grade: QualityGrade
   quality: number
@@ -117,6 +124,10 @@ export function evaluateSimple(
     sslSide: 'flat',
     filtersOk: false,
     trailDistancePips: null,
+    trailPrice: null,
+    entryPrice: null,
+    stopPrice: null,
+    takeProfitPrice: null,
     readySide: null,
     grade: '—',
     quality: 0,
@@ -367,15 +378,47 @@ export function evaluateSimple(
     ? `${profile.labelJa} (${profile.jst})`
     : null
 
+  const digits = pair?.digits ?? 3
+  const trailPrice =
+    trail && Number.isFinite(trail.value) ? trail.value : null
+
+  // READY: watch UT trail flip. BUY/SELL: fill reference is last close.
+  let entryPrice: number | null = null
+  if (action === 'READY_BUY' || action === 'READY_SELL') {
+    entryPrice = trailPrice
+  } else if (action === 'BUY' || action === 'SELL') {
+    entryPrice = price
+  }
+
+  let stopPrice: number | null = null
+  let takeProfitPrice: number | null = null
+  if (entryPrice != null) {
+    const longSide = action === 'BUY' || action === 'READY_BUY'
+    stopPrice = longSide
+      ? entryPrice - SIMPLE.slPips * pip
+      : entryPrice + SIMPLE.slPips * pip
+    takeProfitPrice = longSide
+      ? entryPrice + SIMPLE.tpPips * pip
+      : entryPrice - SIMPLE.tpPips * pip
+  }
+
+  const fmt = (n: number | null) =>
+    n != null && Number.isFinite(n) ? n.toFixed(digits) : null
+  const entryTxt = fmt(entryPrice)
+
   let reason = '待機'
   if (action === 'BUY')
-    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · 品質${grade}`
+    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · 品質${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'SELL')
-    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · 品質${grade}`
+    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · 品質${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'READY_BUY')
-    reason = `準備・買い · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p · 品質${grade}`
+    reason = entryTxt
+      ? `準備・買い · ${entryTxt} で買い検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
+      : `準備・買い · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p · 品質${grade}`
   else if (action === 'READY_SELL')
-    reason = `準備・売り · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p · 品質${grade}`
+    reason = entryTxt
+      ? `準備・売り · ${entryTxt} で売り検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
+      : `準備・売り · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p · 品質${grade}`
   else if (!windowOk) reason = 'セッション外'
   else if (!newsOk) reason = `ニュース回避 (${news!.label})`
   else if (!spreadOk) reason = 'スプレッド拡大'
@@ -409,6 +452,10 @@ export function evaluateSimple(
     sslSide: sslLong ? 'buy' : sslShort ? 'sell' : 'flat',
     filtersOk,
     trailDistancePips,
+    trailPrice,
+    entryPrice,
+    stopPrice,
+    takeProfitPrice,
     readySide: readyBuy ? 'BUY' : readySell ? 'SELL' : null,
     grade,
     quality,

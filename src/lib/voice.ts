@@ -370,14 +370,20 @@ export function announceEntry(
 export function announceReady(
   side: 'BUY' | 'SELL',
   trailPips: number | null,
+  entryPrice?: number | null,
+  digits = 3,
 ): void {
   if (entrySoundOn) playReadyBeep(side)
   const dir = side === 'BUY' ? '買い' : '売り'
+  const level =
+    entryPrice != null && Number.isFinite(entryPrice)
+      ? `${dir}目安 ${entryPrice.toFixed(digits)}。`
+      : ''
   const dist =
     trailPips != null && Number.isFinite(trailPips)
-      ? `トレールまであと${trailPips.toFixed(1)}ピプス。`
+      ? `あと${trailPips.toFixed(1)}ピプス。`
       : ''
-  speak(`準備警告。${dir}寄り。${dist}まだ入らないで。フリップ待ち。`, {
+  speak(`準備警告。${dir}寄り。${level}${dist}まだ入らないで。フリップ待ち。`, {
     force: true,
     priority: 0,
     interrupt: true,

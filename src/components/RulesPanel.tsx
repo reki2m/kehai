@@ -16,7 +16,7 @@ export function RulesPanel() {
           <strong>サイン</strong>
           <span>
             UT Bot フリップ ＋ SSL 確認 → BUY / SELL。確認済みでUTまで
-            {SIMPLE.readyPips}p以内なら READY（準備警告・まだ入らない）
+            {SIMPLE.readyPips}p以内なら READY（買い/売り目安の数値を表示・まだ入らない）
           </span>
         </li>
         <li>
