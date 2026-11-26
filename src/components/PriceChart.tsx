@@ -6,7 +6,6 @@ import {
   createSeriesMarkers,
   HistogramSeries,
   LineSeries,
-  type AutoscaleInfo,
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
@@ -48,6 +47,22 @@ interface Props {
   histSignals?: HistSignal[]
 }
 
+const UP = '#26A69A'
+const DOWN = '#EF5350'
+const UP_VOL = 'rgba(38, 166, 154, 0.55)'
+const DOWN_VOL = 'rgba(239, 83, 80, 0.55)'
+
+/** ~1.5h of M1 — matches typical TradingView scalp zoom. */
+const VISIBLE_BARS = 90
+
+/** Overlays must not drive the Y-axis. */
+const OVERLAY_SCALE = {
+  priceLineVisible: false,
+  lastValueVisible: false,
+  crosshairMarkerVisible: false,
+  autoscaleInfoProvider: () => null,
+} as const
+
 function toLine(pts: { time: number; value: number }[]): LineData<Time>[] {
   return pts.map((p) => ({
     time: p.time as UTCTimestamp,
@@ -59,53 +74,20 @@ function toVolumeBars(bars: Candle[]): HistogramData<Time>[] {
   return bars.map((c) => ({
     time: c.time as UTCTimestamp,
     value: Math.max(0, c.volume || 0),
-    color:
-      c.close >= c.open
-        ? 'rgba(94, 234, 212, 0.55)'
-        : 'rgba(240, 113, 103, 0.55)',
+    color: c.close >= c.open ? UP_VOL : DOWN_VOL,
   }))
 }
 
-/** How many M1 bars fill the viewport — larger = fatter candles. */
-const VISIBLE_BARS = 72
-
 function fitVisibleBars(chart: IChartApi, barCount: number): void {
   if (barCount <= 0) return
-  const from = Math.max(-0.5, barCount - VISIBLE_BARS)
   try {
     chart.timeScale().setVisibleLogicalRange({
-      from,
+      from: Math.max(-0.5, barCount - VISIBLE_BARS),
       to: barCount + 2,
     })
   } catch {
     /* ignore */
   }
-}
-
-/** Overlays must not drive the Y-axis — that was a main source of jitter. */
-const OVERLAY_SCALE = {
-  priceLineVisible: false,
-  lastValueVisible: false,
-  crosshairMarkerVisible: false,
-  autoscaleInfoProvider: () => null,
-} as const
-
-function rangeFromBars(
-  bars: Candle[],
-  pip: number,
-): { from: number; to: number } | null {
-  if (!bars.length) return null
-  let lo = Infinity
-  let hi = -Infinity
-  for (const c of bars) {
-    if (!Number.isFinite(c.low) || !Number.isFinite(c.high)) continue
-    lo = Math.min(lo, c.low)
-    hi = Math.max(hi, c.high)
-  }
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null
-  // Wide pad so live ticks rarely leave the window (avoids Y recentre)
-  const pad = Math.max((hi - lo) * 0.45, pip * 40)
-  return { from: lo - pad, to: hi + pad }
 }
 
 /** Split trail into up/down segments with gaps at flips. */
@@ -164,59 +146,63 @@ export function PriceChart({
   const macdSignal = useRef<ISeriesApi<'Line'> | null>(null)
   const rsiLine = useRef<ISeriesApi<'Line'> | null>(null)
   const volHist = useRef<ISeriesApi<'Histogram'> | null>(null)
-  /** Locked visible Y range — updated only near edges / new bars. */
-  const stickyPrice = useRef<{ from: number; to: number } | null>(null)
   const lastBarTime = useRef<number | null>(null)
   const markersKey = useRef('')
   const sizeRef = useRef({ w: 0, h: 0 })
+  const prevLen = useRef(0)
+  const overlayKeyRef = useRef('')
 
   useEffect(() => {
     const el = hostRef.current
     if (!el) return
-    stickyPrice.current = null
     lastBarTime.current = null
     markersKey.current = ''
     sizeRef.current = { w: 0, h: 0 }
+    prevLen.current = 0
 
     const chart = createChart(el, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: 'rgba(214, 228, 232, 0.55)',
+        textColor: 'rgba(214, 228, 232, 0.62)',
         fontFamily: "'IBM Plex Mono', monospace",
         fontSize: 11,
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: 'rgba(94, 234, 212, 0.04)' },
-        horzLines: { color: 'rgba(94, 234, 212, 0.05)' },
+        vertLines: { color: 'rgba(148, 185, 198, 0.08)' },
+        horzLines: { color: 'rgba(148, 185, 198, 0.1)' },
       },
       crosshair: {
+        mode: 1,
         vertLine: {
-          color: 'rgba(232, 196, 124, 0.35)',
+          color: 'rgba(148, 185, 198, 0.35)',
           labelBackgroundColor: '#1A2E34',
+          width: 1,
+          style: 3,
         },
         horzLine: {
-          color: 'rgba(232, 196, 124, 0.35)',
+          color: 'rgba(148, 185, 198, 0.35)',
           labelBackgroundColor: '#1A2E34',
+          width: 1,
+          style: 3,
         },
       },
       rightPriceScale: {
-        borderColor: 'rgba(94, 234, 212, 0.08)',
-        // Leave the bottom ~22% for the volume pane
-        scaleMargins: { top: 0.06, bottom: 0.26 },
-        autoScale: false,
-        // Lock label column width — prevents whole plot shifting horizontally
-        minimumWidth: 80,
+        borderColor: 'rgba(148, 185, 198, 0.14)',
+        // Main pane leaves ~28% for volume — TradingView-style split
+        scaleMargins: { top: 0.04, bottom: 0.28 },
+        autoScale: true,
+        minimumWidth: 72,
         entireTextOnly: true,
       },
       timeScale: {
-        borderColor: 'rgba(94, 234, 212, 0.08)',
+        borderColor: 'rgba(148, 185, 198, 0.14)',
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 4,
-        barSpacing: 11,
-        minBarSpacing: 7,
-        shiftVisibleRangeOnNewBar: false,
+        barSpacing: 9,
+        minBarSpacing: 5,
+        shiftVisibleRangeOnNewBar: true,
         fixLeftEdge: false,
         fixRightEdge: true,
       },
@@ -227,99 +213,92 @@ export function PriceChart({
         mouseWheel: true,
       },
       handleScale: {
-        axisPressedMouseMove: { time: true, price: false },
-        axisDoubleClickReset: { time: true, price: false },
+        axisPressedMouseMove: { time: true, price: true },
+        axisDoubleClickReset: { time: true, price: true },
         mouseWheel: true,
-        pinch: false,
+        pinch: true,
       },
       width: el.clientWidth,
       height: el.clientHeight,
     })
 
     candleSeries.current = chart.addSeries(CandlestickSeries, {
-      upColor: '#5EEAD4',
-      downColor: '#F07167',
-      borderUpColor: '#5EEAD4',
-      borderDownColor: '#F07167',
-      wickUpColor: 'rgba(94, 234, 212, 0.85)',
-      wickDownColor: 'rgba(240, 113, 103, 0.85)',
-      priceLineVisible: false,
-      lastValueVisible: false,
+      upColor: UP,
+      downColor: DOWN,
+      borderUpColor: UP,
+      borderDownColor: DOWN,
+      wickUpColor: UP,
+      wickDownColor: DOWN,
+      // TradingView-style last price tag on the right
+      priceLineVisible: true,
+      priceLineWidth: 1,
+      priceLineColor: 'rgba(38, 166, 154, 0.55)',
+      lastValueVisible: true,
       priceFormat: {
         type: 'price',
         precision: pair.digits,
         minMove: pair.pip,
-      },
-      // Always report the frozen window so LWC never auto-recentres on ticks
-      autoscaleInfoProvider: (): AutoscaleInfo | null => {
-        const locked = stickyPrice.current
-        if (!locked) return null
-        return { priceRange: { minValue: locked.from, maxValue: locked.to } }
       },
     })
     markersApi.current = createSeriesMarkers(candleSeries.current, [], {
       zOrder: 'top',
     })
 
-    // No series titles / last-value badges — they cover the M1 candles on the right.
     utUp.current = chart.addSeries(LineSeries, {
-      color: 'rgba(94, 234, 212, 0.85)',
+      color: 'rgba(94, 234, 212, 0.75)',
       lineWidth: 2,
       ...OVERLAY_SCALE,
     })
     utDown.current = chart.addSeries(LineSeries, {
-      color: 'rgba(240, 113, 103, 0.85)',
+      color: 'rgba(240, 113, 103, 0.75)',
       lineWidth: 2,
       ...OVERLAY_SCALE,
     })
     sslHi.current = chart.addSeries(LineSeries, {
-      color: 'rgba(94, 234, 212, 0.4)',
+      color: 'rgba(94, 234, 212, 0.35)',
       lineWidth: 1,
       lineStyle: 2,
       ...OVERLAY_SCALE,
     })
     sslLo.current = chart.addSeries(LineSeries, {
-      color: 'rgba(240, 113, 103, 0.4)',
+      color: 'rgba(240, 113, 103, 0.35)',
       lineWidth: 1,
       lineStyle: 2,
       ...OVERLAY_SCALE,
     })
     vwapLine.current = chart.addSeries(LineSeries, {
-      color: 'rgba(232, 196, 124, 0.75)',
+      color: 'rgba(232, 196, 124, 0.7)',
       lineWidth: 1,
-      lineStyle: 0,
       ...OVERLAY_SCALE,
     })
-
     emaFast.current = chart.addSeries(LineSeries, {
       color: '#E8C47C',
       lineWidth: 2,
       ...OVERLAY_SCALE,
     })
     emaSlow.current = chart.addSeries(LineSeries, {
-      color: 'rgba(148, 185, 198, 0.9)',
+      color: 'rgba(148, 185, 198, 0.85)',
       lineWidth: 2,
       ...OVERLAY_SCALE,
     })
     bbUpper.current = chart.addSeries(LineSeries, {
-      color: 'rgba(94, 234, 212, 0.35)',
+      color: 'rgba(94, 234, 212, 0.3)',
       lineWidth: 1,
       lineStyle: 2,
       ...OVERLAY_SCALE,
     })
     bbMid.current = chart.addSeries(LineSeries, {
-      color: 'rgba(232, 196, 124, 0.45)',
+      color: 'rgba(232, 196, 124, 0.4)',
       lineWidth: 1,
       ...OVERLAY_SCALE,
     })
     bbLower.current = chart.addSeries(LineSeries, {
-      color: 'rgba(240, 113, 103, 0.35)',
+      color: 'rgba(240, 113, 103, 0.3)',
       lineWidth: 1,
       lineStyle: 2,
       ...OVERLAY_SCALE,
     })
 
-    // Volume always sits in the bottom strip (tick / broker activity per bar)
     volHist.current = chart.addSeries(HistogramSeries, {
       priceScaleId: 'vol',
       priceFormat: { type: 'volume' },
@@ -328,7 +307,7 @@ export function PriceChart({
       base: 0,
     })
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0.02 },
+      scaleMargins: { top: 0.76, bottom: 0.02 },
       borderVisible: false,
       entireTextOnly: true,
     })
@@ -351,9 +330,8 @@ export function PriceChart({
       priceScaleId: 'macd',
       ...OVERLAY_SCALE,
     })
-    // MACD sits above volume when enabled
     chart.priceScale('macd').applyOptions({
-      scaleMargins: { top: 0.58, bottom: 0.24 },
+      scaleMargins: { top: 0.55, bottom: 0.26 },
       borderVisible: false,
     })
 
@@ -364,7 +342,7 @@ export function PriceChart({
       ...OVERLAY_SCALE,
     })
     chart.priceScale('rsi').applyOptions({
-      scaleMargins: { top: 0.58, bottom: 0.24 },
+      scaleMargins: { top: 0.55, bottom: 0.26 },
       borderVisible: false,
     })
 
@@ -375,7 +353,6 @@ export function PriceChart({
       if (!hostRef.current || !chartRef.current) return
       const w = hostRef.current.clientWidth
       const h = hostRef.current.clientHeight
-      // Ignore sub-pixel / 1px thrash from layout
       if (
         Math.abs(w - sizeRef.current.w) < 2 &&
         Math.abs(h - sizeRef.current.h) < 2
@@ -404,52 +381,10 @@ export function PriceChart({
     }
   }, [pair.digits, pair.pip])
 
-  const prevLen = useRef(0)
-  const overlayKeyRef = useRef('')
-
-  function applyLockedRange(
-    bars: Candle[],
-    price: number,
-    mode: 'init' | 'guard',
-  ): void {
-    if (!candleSeries.current) return
-    const prev = stickyPrice.current
-
-    // After first paint: never recentre. Only expand if price left the window.
-    if (mode === 'guard' && prev) {
-      if (price >= prev.from && price <= prev.to) return
-      const span = prev.to - prev.from
-      const chunk = Math.max(span * 0.25, pair.pip * 25)
-      stickyPrice.current = {
-        from: price < prev.from ? price - chunk : prev.from,
-        to: price > prev.to ? price + chunk : prev.to,
-      }
-    } else {
-      const lookback = bars.slice(-120)
-      const next = rangeFromBars(lookback, pair.pip)
-      if (!next) return
-      stickyPrice.current = next
-    }
-
-    const r = stickyPrice.current
-    if (!r) return
-    try {
-      const scale = candleSeries.current.priceScale()
-      scale.applyOptions({ autoScale: false })
-      scale.setAutoScale(false)
-      scale.setVisibleRange({ from: r.from, to: r.to })
-    } catch {
-      /* ignore */
-    }
-  }
-
   useEffect(() => {
     if (!candleSeries.current || candles.length === 0) return
 
-    // Live chart only needs a recent window — full Nov archive makes redraws heavy
-    const view =
-      candles.length > 480 ? candles.slice(-480) : candles
-
+    const view = candles.length > 480 ? candles.slice(-480) : candles
     const last = view[view.length - 1]
     const lastBar: CandlestickData<Time> = {
       time: last.time as UTCTimestamp,
@@ -465,7 +400,12 @@ export function PriceChart({
     const overlayChanged = overlayKeyRef.current !== overlayKey
     overlayKeyRef.current = overlayKey
 
-    // Fast path for tip updates — skip heavy overlay rebuilds + don't touch Y
+    const bull = last.close >= last.open
+    candleSeries.current.applyOptions({
+      priceLineColor: bull ? 'rgba(38, 166, 154, 0.55)' : 'rgba(239, 83, 80, 0.55)',
+    })
+
+    // Fast tip path — autoScale keeps bodies readable like TradingView
     if (
       !overlayChanged &&
       prevLen.current > 0 &&
@@ -477,19 +417,16 @@ export function PriceChart({
         volHist.current?.update({
           time: last.time as UTCTimestamp,
           value: Math.max(0, last.volume || 0),
-          color:
-            last.close >= last.open
-              ? 'rgba(94, 234, 212, 0.55)'
-              : 'rgba(240, 113, 103, 0.55)',
+          color: bull ? UP_VOL : DOWN_VOL,
         })
         prevLen.current = view.length
         lastBarTime.current = last.time
-        // Only expand if price left the frozen window — never recentre
-        applyLockedRange(view, last.close, 'guard')
-        if (newBar && chartRef.current) fitVisibleBars(chartRef.current, view.length)
+        if (newBar && chartRef.current) {
+          fitVisibleBars(chartRef.current, view.length)
+        }
         return
       } catch {
-        /* fall through to full setData */
+        /* fall through */
       }
     }
 
@@ -511,12 +448,6 @@ export function PriceChart({
         candleSeries.current.setData(candleData)
         prevLen.current = view.length
         lastBarTime.current = last.time
-        // Init once / overlay change only — new bars must NOT recentre Y
-        applyLockedRange(
-          view,
-          last.close,
-          firstPaint || overlayChanged ? 'init' : 'guard',
-        )
       } catch {
         prevLen.current = 0
         return
@@ -530,7 +461,6 @@ export function PriceChart({
     const showBb = overlays.includes('bb')
     const showMacd = overlays.includes('macd')
     const showRsi = overlays.includes('rsi')
-
     const utKey = signalParams?.utKey ?? 2
     const utAtr = signalParams?.utAtr ?? 7
     const sslLen = signalParams?.sslLen ?? 10
@@ -560,11 +490,7 @@ export function PriceChart({
     }
 
     if (vwapLine.current) {
-      if (showVwap) {
-        vwapLine.current.setData(toLine(sessionVwap(overlaySrc)))
-      } else {
-        vwapLine.current.setData([])
-      }
+      vwapLine.current.setData(showVwap ? toLine(sessionVwap(overlaySrc)) : [])
     }
 
     if (emaFast.current && emaSlow.current) {
@@ -614,8 +540,8 @@ export function PriceChart({
             value: p.histogram,
             color:
               p.histogram >= 0
-                ? 'rgba(94, 234, 212, 0.45)'
-                : 'rgba(240, 113, 103, 0.45)',
+                ? 'rgba(38, 166, 154, 0.45)'
+                : 'rgba(239, 83, 80, 0.45)',
           })) as HistogramData<Time>[],
         )
         macdLine.current.setData(
@@ -638,24 +564,16 @@ export function PriceChart({
     }
 
     if (rsiLine.current) {
-      if (showRsi) {
-        rsiLine.current.setData(toLine(rsi(overlaySrc)))
-      } else {
-        rsiLine.current.setData([])
-      }
+      rsiLine.current.setData(showRsi ? toLine(rsi(overlaySrc)) : [])
     }
 
-    if (volHist.current) {
-      volHist.current.setData(toVolumeBars(overlaySrc))
-    }
+    volHist.current?.setData(toVolumeBars(overlaySrc))
 
-    // Zoom to ~72 fat M1 bars on first paint / new bar (not every tick)
-    if ((firstPaint || newBar) && chartRef.current) {
+    if ((firstPaint || newBar || overlayChanged) && chartRef.current) {
       fitVisibleBars(chartRef.current, view.length)
     }
-  }, [candles, overlays, signalParams])
+  }, [candles, overlays, signalParams, pair.digits, pair.pip])
 
-  // Depend on histSignals + window start only — not every live tick
   const markerWindowStart =
     candles.length > 0
       ? candles[Math.max(0, candles.length - 480)]!.time
@@ -667,7 +585,6 @@ export function PriceChart({
     const key = visible.map((s) => `${s.time}:${s.side}:${s.prime ? 1 : 0}`).join('|')
     if (key === markersKey.current) return
     markersKey.current = key
-    // 推奨 (prime/A/S) = bright + large; 標準 = softer but still visible
     const markers: SeriesMarker<Time>[] = visible.map((s) => {
       const recommended =
         s.prime === true || s.grade === 'S' || s.grade === 'A'
@@ -693,6 +610,12 @@ export function PriceChart({
     markersApi.current.setMarkers(markers)
   }, [histSignals, markerWindowStart])
 
-
-  return <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
+  return (
+    <div className="chart-shell">
+      <span className="chart-vol-tag" aria-hidden>
+        出来高
+      </span>
+      <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
+    </div>
+  )
 }
