@@ -92,7 +92,8 @@ export function listHistoricalSignals(
   for (let i = 1; i < candles.length; i++) {
     const c = candles[i]
     if (c.time < fromUnix) continue
-    if (i - lastSignalIndex < 2) continue
+    // Same-bar only — consecutive flips can fire (manual companion wants more chances)
+    if (i === lastSignalIndex) continue
 
     const fxSession =
       !pair || pair.kind === 'fx' ? detectFxSession(c.time) : null

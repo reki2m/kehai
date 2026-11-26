@@ -43,9 +43,9 @@ export const SIMPLE = {
   /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
   /** Soft floor: below this ADX, treat as dead range (no new entries). */
-  adxMin: 18,
+  adxMin: 14,
   /** Soft block when WaveTrend is strongly against the flip. */
-  wtAgainstAbs: 50,
+  wtAgainstAbs: 60,
   pip: 0.01,
 } as const
 
