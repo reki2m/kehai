@@ -45,6 +45,7 @@ import {
   announceHeadline,
   announceReady,
   announceSpeech,
+  announceBriefNow,
   announceUpcomingBrief,
   getVoicePrefs,
   isVoiceUnlocked,
@@ -89,6 +90,7 @@ export default function App() {
   const lastEntryKey = useRef<string | null>(null)
   const lastReadyKey = useRef<string | null>(null)
   const warnedEvents = useRef<Set<string>>(new Set())
+  const urgentWarned = useRef<Set<string>>(new Set())
   const spokenResults = useRef<Set<string>>(new Set())
   const spokenHeadlines = useRef<Set<string>>(new Set())
   const spokenSpeeches = useRef<Set<string>>(new Set())
@@ -336,63 +338,79 @@ export default function App() {
     briefDone.current = false
   }
 
-  // 指標5分前・結果・要人・新着ニュースの読み上げ
+  // 指標5分前・1分前・結果・要人・新着ニュースの読み上げ（20秒ごとに時刻チェック）
   useEffect(() => {
     if (!voiceOn || !newsVoice) return
-    const now = Date.now() / 1000
 
-    const due = eventsDueSoon(events, now, 5 * 60, 3)
-    for (const e of due) {
-      if (warnedEvents.current.has(e.id)) continue
-      warnedEvents.current.add(e.id)
-      announceEventWarning(e, (e.time - now) / 60)
-      setAlertIds((prev) => new Set(prev).add(e.id))
-    }
+    const tick = () => {
+      const now = Date.now() / 1000
 
-    for (const e of events) {
-      if (!e.actual) continue
-      const key = `${e.id}|${e.actual}`
-      if (spokenResults.current.has(key)) continue
-      // only announce if event is recent (within 2h)
-      if (e.time < now - 2 * 3600 || e.time > now + 60) continue
-      spokenResults.current.add(key)
-      announceEventResult(e)
-    }
-
-    for (const e of events) {
-      if (e.kind !== 'speech') continue
-      if (e.importance < 3) continue
-      if (spokenSpeeches.current.has(e.id)) continue
-      const mins = (e.time - now) / 60
-      // announce once when within 60 minutes (or just started)
-      if (mins > 60 || mins < -15) continue
-      spokenSpeeches.current.add(e.id)
-      announceSpeech(e, mins)
-    }
-
-    // New headlines (skip first paint flood — mark existing, then speak new)
-    if (spokenHeadlines.current.size === 0 && headlines.length > 0) {
-      for (const h of headlines.slice(0, 12)) spokenHeadlines.current.add(h.id)
-    } else {
-      for (const h of headlines.slice(0, 8)) {
-        if (spokenHeadlines.current.has(h.id)) continue
-        spokenHeadlines.current.add(h.id)
-        announceHeadline(h.title)
-        break // one at a time
+      const due = eventsDueSoon(events, now, 5 * 60, 3)
+      for (const e of due) {
+        if (warnedEvents.current.has(e.id)) continue
+        warnedEvents.current.add(e.id)
+        announceEventWarning(e, (e.time - now) / 60)
+        setAlertIds((prev) => new Set(prev).add(e.id))
       }
-    }
 
-    if (!briefDone.current && events.length > 0) {
-      const upcoming = events
-        .filter((e) => e.importance >= 4 && e.time >= now - 60 && e.time <= now + 6 * 3600)
-        .slice(0, 4)
-      if (upcoming.length) {
-        briefDone.current = true
-        window.setTimeout(() => announceUpcomingBrief(upcoming), 2500)
+      // 重要度4+ は1分前にも再アラート
+      const urgent = eventsDueSoon(events, now, 60, 4)
+      for (const e of urgent) {
+        if (urgentWarned.current.has(e.id)) continue
+        urgentWarned.current.add(e.id)
+        announceEventWarning(e, (e.time - now) / 60, { urgent: true })
+        setAlertIds((prev) => new Set(prev).add(e.id))
+      }
+
+      for (const e of events) {
+        if (!e.actual) continue
+        const key = `${e.id}|${e.actual}`
+        if (spokenResults.current.has(key)) continue
+        if (e.time < now - 2 * 3600 || e.time > now + 60) continue
+        spokenResults.current.add(key)
+        announceEventResult(e)
+      }
+
+      for (const e of events) {
+        if (e.kind !== 'speech') continue
+        if (e.importance < 3) continue
+        if (spokenSpeeches.current.has(e.id)) continue
+        const mins = (e.time - now) / 60
+        if (mins > 60 || mins < -15) continue
+        spokenSpeeches.current.add(e.id)
+        announceSpeech(e, mins)
+      }
+
+      if (spokenHeadlines.current.size === 0 && headlines.length > 0) {
+        for (const h of headlines.slice(0, 12)) spokenHeadlines.current.add(h.id)
       } else {
+        for (const h of headlines.slice(0, 8)) {
+          if (spokenHeadlines.current.has(h.id)) continue
+          spokenHeadlines.current.add(h.id)
+          announceHeadline(h.title)
+          break
+        }
+      }
+
+      if (!briefDone.current && events.length > 0) {
+        const upcoming = events
+          .filter(
+            (e) =>
+              e.importance >= 4 &&
+              e.time >= now - 60 &&
+              e.time <= now + 6 * 3600,
+          )
+          .slice(0, 4)
         briefDone.current = true
+        if (upcoming.length) {
+          window.setTimeout(() => announceUpcomingBrief(upcoming), 2500)
+        }
       }
     }
+
+    tick()
+    const id = window.setInterval(tick, 20_000)
+    return () => window.clearInterval(id)
   }, [events, headlines, voiceOn, newsVoice])
 
   const sourceLabel = liveSource
@@ -508,8 +526,9 @@ export default function App() {
                     setRateVoice(n)
                     setRateVoiceOn(n)
                   }}
+                  title="1分ごとのレート読み上げ"
                 >
-                  読上
+                  レート
                 </button>
                 <button
                   type="button"
@@ -519,6 +538,7 @@ export default function App() {
                     setEntrySound(n)
                     setEntrySoundOn(n)
                   }}
+                  title="エントリー／準備の効果音"
                 >
                   音
                 </button>
@@ -530,8 +550,28 @@ export default function App() {
                     setNewsVoice(n)
                     setNewsVoiceOn(n)
                   }}
+                  title="指標・要人・ニュース読み上げ"
                 >
-                  ニュース
+                  指標
+                </button>
+                <button
+                  type="button"
+                  className="voice-btn"
+                  title="直近の注目指標を今すぐ読み上げ"
+                  onClick={() => {
+                    const now = Date.now() / 1000
+                    const upcoming = events
+                      .filter(
+                        (e) =>
+                          e.importance >= 3 &&
+                          e.time >= now - 60 &&
+                          e.time <= now + 8 * 3600,
+                      )
+                      .slice(0, 5)
+                    announceBriefNow(upcoming)
+                  }}
+                >
+                  まとめ
                 </button>
               </>
             )}

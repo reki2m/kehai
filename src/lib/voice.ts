@@ -1,4 +1,4 @@
-/** Browser TTS + entry beep for KEHAI Apex. */
+/** Browser TTS + entry beep for KEHAI — 日本語ボイス優先・優先度キュー対応. */
 
 import type { CalendarEvent } from './newsFeed'
 
@@ -6,6 +6,19 @@ let unlocked = false
 let rateVoiceOn = true
 let entrySoundOn = true
 let newsVoiceOn = true
+let cachedJaVoice: SpeechSynthesisVoice | null | undefined
+
+type Priority = 0 | 1 | 2 | 3 // 0=critical(entry) 1=alert 2=news 3=rate
+
+interface QueueItem {
+  text: string
+  priority: Priority
+  force: boolean
+}
+
+const queue: QueueItem[] = []
+let speaking = false
+let voicesReady = false
 
 export function isVoiceUnlocked() {
   return unlocked
@@ -27,11 +40,190 @@ export function setNewsVoiceOn(v: boolean) {
   newsVoiceOn = v
 }
 
+function refreshVoices(): void {
+  if (!('speechSynthesis' in window)) return
+  const voices = window.speechSynthesis.getVoices()
+  if (!voices.length) return
+  voicesReady = true
+  const preferred = [
+    /google.*(日本語|japanese)/i,
+    /microsoft.*(nanami|haruka|ayumi|ichiro)/i,
+    /kyoko/i,
+    /otoya/i,
+    /haruka/i,
+    /japanese/i,
+  ]
+  for (const re of preferred) {
+    const hit = voices.find((v) => re.test(v.name) || re.test(v.lang))
+    if (hit) {
+      cachedJaVoice = hit
+      return
+    }
+  }
+  cachedJaVoice =
+    voices.find((v) => v.lang.toLowerCase().startsWith('ja')) ?? null
+}
+
+function ensureVoices(): SpeechSynthesisVoice | null {
+  if (cachedJaVoice !== undefined && voicesReady) return cachedJaVoice
+  refreshVoices()
+  return cachedJaVoice ?? null
+}
+
+/** TTS向けに国名・記号・数字を読みやすく整形 */
+export function forSpeech(raw: string): string {
+  let s = raw
+  const country: Record<string, string> = {
+    USD: 'アメリカ',
+    JPY: '日本',
+    EUR: 'ユーロ圏',
+    GBP: 'イギリス',
+    AUD: 'オーストラリア',
+    CAD: 'カナダ',
+    CHF: 'スイス',
+    NZD: 'ニュージーランド',
+    CNY: '中国',
+  }
+  // 通貨ペアを先に（国名置換で壊さない）
+  s = s.replace(/\bUSD\/JPY\b/gi, 'ドル円')
+  s = s.replace(/\bEUR\/USD\b/gi, 'ユーロドル')
+  s = s.replace(/\bGBP\/JPY\b/gi, 'ポンド円')
+  s = s.replace(/\bEUR\/JPY\b/gi, 'ユーロ円')
+  s = s.replace(/\bAUD\/USD\b/gi, 'オージードル')
+  s = s.replace(/\bUSD\/CHF\b/gi, 'ドルスイス')
+  s = s.replace(/\b(USD|JPY|EUR|GBP|AUD|CAD|CHF|NZD|CNY)\b/g, (m) => country[m] ?? m)
+  s = s.replace(/%/g, 'パーセント')
+  s = s.replace(/\bpips?\b/gi, 'ピプス')
+  s = s.replace(/\bFOMC\b/g, 'エフオーエムシー')
+  s = s.replace(/\bECB\b/g, 'イーシービー')
+  s = s.replace(/\bBOJ\b/gi, '日銀')
+  s = s.replace(/\bNFP\b/g, '雇用統計')
+  s = s.replace(/\bCPI\b/g, 'シーピーアイ')
+  s = s.replace(/\bPCE\b/g, 'ピーシーイー')
+  s = s.replace(/\bGDP\b/g, 'ジーディーピー')
+  s = s.replace(/\bPMI\b/g, 'ピーエムアイ')
+  s = s.replace(/\bISM\b/g, 'アイエスエム')
+  s = s.replace(/\bPPI\b/g, 'ピーピーアイ')
+  s = s.replace(/\bMPC\b/g, 'エムピーシー')
+  s = s.replace(/\bFRB\b/g, 'エフアールビー')
+  // 小数点を「てん」に（価格・指標の読み上げ用）
+  s = s.replace(/(\d)\.(\d+)/g, '$1てん$2')
+  return s.replace(/\s{2,}/g, ' ').trim()
+}
+
+function figuresLine(e: CalendarEvent): string {
+  const parts: string[] = []
+  if (e.previous) parts.push(`前回 ${e.previous}`)
+  if (e.forecast) parts.push(`予想 ${e.forecast}`)
+  if (e.actual) parts.push(`結果 ${e.actual}`)
+  return parts.length ? parts.join('、') : '数値未掲載'
+}
+
+function parseFigure(v?: string): number | null {
+  if (!v) return null
+  const n = Number.parseFloat(v.replace(/[%KMB,]/gi, '').trim())
+  return Number.isFinite(n) ? n : null
+}
+
+/** 結果と予想の比較コメント */
+function resultVerdict(e: CalendarEvent): string {
+  const a = parseFigure(e.actual)
+  const f = parseFigure(e.forecast)
+  if (a == null || f == null) return ''
+  if (Math.abs(a - f) < 1e-9) return '予想どおり。'
+  // 失業率などは低い方が良いが、汎用で上振れ/下振れのみ伝える
+  return a > f ? '予想を上回りました。' : '予想を下回りました。'
+}
+
+function drainQueue(): void {
+  if (speaking) return
+  if (!('speechSynthesis' in window)) return
+  if (queue.length === 0) return
+
+  // 優先度の高いものから
+  queue.sort((a, b) => a.priority - b.priority)
+  const next = queue.shift()!
+  if (!unlocked && !next.force) {
+    drainQueue()
+    return
+  }
+
+  speaking = true
+  try {
+    const u = new SpeechSynthesisUtterance(forSpeech(next.text))
+    u.lang = 'ja-JP'
+    u.rate = next.priority <= 1 ? 1.0 : 1.08
+    u.pitch = 1
+    u.volume = 1
+    const voice = ensureVoices()
+    if (voice) u.voice = voice
+    u.onend = () => {
+      speaking = false
+      // 短い間を空けて次へ
+      window.setTimeout(drainQueue, 180)
+    }
+    u.onerror = () => {
+      speaking = false
+      window.setTimeout(drainQueue, 80)
+    }
+    window.speechSynthesis.speak(u)
+  } catch {
+    speaking = false
+  }
+}
+
+/**
+ * 読み上げ。priority が低いほど優先。
+ * critical は進行中を中断して即読み。rate(3) はキューが空のときだけ。
+ */
+export function speak(
+  text: string,
+  opts?: { force?: boolean; priority?: Priority; interrupt?: boolean },
+): void {
+  if (!unlocked && !opts?.force) return
+  if (!('speechSynthesis' in window)) return
+  const priority = opts?.priority ?? 2
+  const force = !!opts?.force
+  const interrupt = opts?.interrupt ?? priority === 0
+
+  // レート読み上げは、他が待ち／発話中ならスキップ（邪魔しない）
+  if (priority >= 3 && (speaking || queue.length > 0)) return
+
+  if (interrupt) {
+    try {
+      window.speechSynthesis.cancel()
+    } catch {
+      /* ignore */
+    }
+    speaking = false
+    // critical 以外の待ちは残す / critical 時は低優先を落とす
+    for (let i = queue.length - 1; i >= 0; i--) {
+      if (queue[i].priority >= 2) queue.splice(i, 1)
+    }
+  }
+
+  queue.push({ text, priority, force })
+  drainQueue()
+}
+
 /** Must be called from a user gesture (click). */
 export function unlockAudio(): void {
   unlocked = true
+  refreshVoices()
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.addEventListener('voiceschanged', refreshVoices)
+    // iOS: getVoices が空のことがあるので一度ダミー発話で起こす
+    try {
+      window.speechSynthesis.getVoices()
+    } catch {
+      /* ignore */
+    }
+  }
   try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
     const ctx = new Ctx()
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -44,31 +236,11 @@ export function unlockAudio(): void {
   } catch {
     /* ignore */
   }
-  try {
-    const u = new SpeechSynthesisUtterance('音声オン')
-    u.lang = 'ja-JP'
-    u.rate = 1.05
-    u.volume = 0.01
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(u)
-  } catch {
-    /* ignore */
-  }
-}
-
-export function speak(text: string, opts?: { force?: boolean }): void {
-  if (!unlocked && !opts?.force) return
-  if (!('speechSynthesis' in window)) return
-  try {
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'ja-JP'
-    u.rate = 1.05
-    u.pitch = 1
-    window.speechSynthesis.speak(u)
-  } catch {
-    /* ignore */
-  }
+  speak('音声オン。指標とサインを読み上げます。', {
+    force: true,
+    priority: 0,
+    interrupt: true,
+  })
 }
 
 export function speakRate(
@@ -91,7 +263,7 @@ export function speakRate(
   const rates = quote
     ? `売値 ${quote.bid}、買値 ${quote.ask}`
     : `現在値 ${price}`
-  speak(`${pairLabel}、${rates}。シグナルは${act}。`)
+  speak(`${pairLabel}、${rates}。シグナルは${act}。`, { priority: 3 })
 }
 
 export function announceEntry(
@@ -107,7 +279,7 @@ export function announceEntry(
   const sess = risk?.session ? `${risk.session}。` : ''
   speak(
     `${sess}${side}エントリー。価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`,
-    { force: true },
+    { force: true, priority: 0, interrupt: true },
   )
 }
 
@@ -122,7 +294,11 @@ export function announceReady(
     trailPips != null && Number.isFinite(trailPips)
       ? `トレールまであと${trailPips.toFixed(1)}ピプス。`
       : ''
-  speak(`準備。${dir}寄り。${dist}フリップ待ち。`, { force: true })
+  speak(`準備警告。${dir}寄り。${dist}まだ入らないで。フリップ待ち。`, {
+    force: true,
+    priority: 0,
+    interrupt: true,
+  })
 }
 
 export function playReadyBeep(side: 'BUY' | 'SELL'): void {
@@ -155,7 +331,10 @@ export function playReadyBeep(side: 'BUY' | 'SELL'): void {
 export function playEntryBeep(action: 'LONG' | 'SHORT'): void {
   if (!unlocked || !entrySoundOn) return
   try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
     const ctx = new Ctx()
     void ctx.resume()
     const now = ctx.currentTime
@@ -181,7 +360,10 @@ export function playEntryBeep(action: 'LONG' | 'SHORT'): void {
 function playAlertBeep(importance: number): void {
   if (!unlocked) return
   try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
     const ctx = new Ctx()
     void ctx.resume()
     const now = ctx.currentTime
@@ -205,23 +387,25 @@ function playAlertBeep(importance: number): void {
   }
 }
 
-function figuresLine(e: CalendarEvent): string {
-  const parts: string[] = []
-  if (e.previous) parts.push(`前回 ${e.previous}`)
-  if (e.forecast) parts.push(`予想 ${e.forecast}`)
-  if (e.actual) parts.push(`結果 ${e.actual}`)
-  return parts.length ? parts.join('、') : '数値未掲載'
-}
-
-/** ~5分前アラート: 重要度・前回・予想（結果があれば結果）を読み上げ */
-export function announceEventWarning(e: CalendarEvent, minutesLeft: number): void {
+/** ~5分前（または lead）アラート */
+export function announceEventWarning(
+  e: CalendarEvent,
+  minutesLeft: number,
+  opts?: { urgent?: boolean },
+): void {
   if (!newsVoiceOn) return
   playAlertBeep(e.importance)
   const mins = Math.max(0, Math.round(minutesLeft))
   const kind = e.kind === 'speech' ? '要人発言' : '経済指標'
+  const urgency =
+    opts?.urgent || mins <= 1
+      ? 'まもなく発表。'
+      : mins <= 5
+        ? `あと約${mins}分。`
+        : `約${mins}分後。`
   speak(
-    `${kind}アラート。重要度${e.importance}。${e.country}、${e.title}。あと約${mins}分。${figuresLine(e)}。`,
-    { force: true },
+    `${kind}アラート。重要度${e.importance}。${e.country}、${e.title}。${urgency}${figuresLine(e)}。`,
+    { force: true, priority: 1 },
   )
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
@@ -238,16 +422,18 @@ export function announceEventWarning(e: CalendarEvent, minutesLeft: number): voi
 /** 結果反映時の読み上げ（actual が入ったとき） */
 export function announceEventResult(e: CalendarEvent): void {
   if (!newsVoiceOn) return
+  const verdict = resultVerdict(e)
   speak(
-    `指標結果。${e.country}、${e.title}。${figuresLine(e)}。`,
-    { force: true },
+    `指標結果。${e.country}、${e.title}。${figuresLine(e)}。${verdict}`,
+    { force: true, priority: 1 },
   )
 }
 
-/** 最新ヘッドライン */
+/** 最新ヘッドライン（長文は短く） */
 export function announceHeadline(title: string): void {
   if (!newsVoiceOn) return
-  speak(`最新ニュース。${title}。`, { force: true })
+  const short = title.length > 72 ? `${title.slice(0, 70)}、以下略` : title
+  speak(`為替ニュース。${short}。`, { force: true, priority: 2 })
 }
 
 /** 要人発言の予告（当日〜直近） */
@@ -256,14 +442,16 @@ export function announceSpeech(e: CalendarEvent, minutesLeft: number): void {
   playAlertBeep(e.importance)
   const mins = Math.max(0, Math.round(minutesLeft))
   const when =
-    mins <= 5
-      ? `あと約${mins}分`
-      : mins <= 60
-        ? `約${mins}分後`
-        : `約${Math.round(mins / 60)}時間後`
+    mins <= 1
+      ? 'まもなく'
+      : mins <= 5
+        ? `あと約${mins}分`
+        : mins <= 60
+          ? `約${mins}分後`
+          : `約${Math.round(mins / 60)}時間後`
   speak(
     `要人発言。重要度${e.importance}。${e.country}、${e.title}。${when}。`,
-    { force: true },
+    { force: true, priority: 1 },
   )
 }
 
@@ -273,9 +461,20 @@ export function announceUpcomingBrief(events: CalendarEvent[]): void {
   const lines = events.slice(0, 4).map((e) => {
     const mins = Math.max(0, Math.round((e.time - Date.now() / 1000) / 60))
     const kind = e.kind === 'speech' ? '発言' : '指標'
-    return `${kind}、${e.country}、${e.title}、重要度${e.importance}、あと約${mins}分`
+    const when =
+      mins <= 0 ? 'まもなく' : mins < 60 ? `あと${mins}分` : `あと${Math.round(mins / 60)}時間`
+    return `${kind}、${e.country}、${e.title}、重要度${e.importance}、${when}`
   })
-  speak(`経済指標まとめ。${lines.join('。')}。`, { force: true })
+  speak(`本日の注目。${lines.join('。')}。`, { force: true, priority: 2 })
+}
+
+/** 手動で指標まとめを再読み上げ */
+export function announceBriefNow(events: CalendarEvent[]): void {
+  if (!events.length) {
+    speak('直近の高重要度指標はありません。', { force: true, priority: 2 })
+    return
+  }
+  announceUpcomingBrief(events)
 }
 
 export async function requestNotifyPermission(): Promise<void> {
