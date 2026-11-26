@@ -51,3 +51,15 @@ export function liveTickUrl(pairId: string): string {
   }
   return `${LIVE_DATA_RAW}/tick_${pairId}.json?t=${bust}`
 }
+
+/** Bundled November+ archive (shipped with Pages build). */
+export function histCandlesUrl(pairId: string, timeframe: string): string {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}live/hist_${pairId}_${timeframe}.json?t=${Date.now()}`
+}
+
+/** Precomputed BUY/SELL markers for the archive window. */
+export function histSignalsUrl(pairId: string, timeframe: string): string {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}live/signals_${pairId}_${timeframe}.json?t=${Date.now()}`
+}

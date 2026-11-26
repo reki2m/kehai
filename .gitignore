@@ -34,3 +34,6 @@ backtest/data/usdjpy_m1_dukascopy_*.json
 # Live snapshots generated in CI
 public/live/*.json
 !public/live/.gitkeep
+# Bundled November archive + precomputed markers (USDJPY 1m)
+!public/live/hist_USDJPY_1m.json
+!public/live/signals_USDJPY_1m.json
