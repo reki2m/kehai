@@ -219,11 +219,7 @@ export default function App() {
             setLivePrice(live.lastPrice)
           }
           if (initial) {
-            setLiveSource(
-              archive.length
-                ? `${live.source} · 11月〜履歴`
-                : live.source,
-            )
+            setLiveSource(live.source)
           }
           setLiveError(null)
         } else throw new Error('足が足りません')
@@ -305,13 +301,12 @@ export default function App() {
       if (tickFlushTimer.current == null) {
         tickFlushTimer.current = window.setTimeout(flushTickToChart, 500)
       }
-      const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
       const tag =
         q.source === 'biquote' && streaming
           ? 'biquote WS'
           : q.source
-      // Stable label only — age in the string reflows chart-meta every second
-      setLiveSource(tag)
+      // Stable label only — age/sec text used to reflow chart-meta every tick
+      setLiveSource((prev) => (prev === tag ? prev : tag))
       setLiveError(null)
 
       if (shockAlert && shockRef.current) {
