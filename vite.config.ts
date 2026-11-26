@@ -20,11 +20,17 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ff/, ''),
       },
-      // FX headline RSS
+      // FX headline RSS (EN fallback)
       '/api/investing-rss': {
         target: 'https://www.investing.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/investing-rss/, ''),
+      },
+      // 日本語・外為ニュース RSS
+      '/api/investing-jp': {
+        target: 'https://jp.investing.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/investing-jp/, ''),
       },
     },
   },

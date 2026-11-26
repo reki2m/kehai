@@ -41,9 +41,9 @@ export function NewsPanel({ events, headlines, loading, error, alertIds }: Props
   return (
     <aside className="news-panel" aria-label="ニュースと要人発言">
       <div className="news-head">
-        <h2>News / Speeches</h2>
+        <h2>指標・要人発言</h2>
         <p className="news-source">
-          重要度1–5 · 5分前/結果/要人/新着を読み上げ · FF · Investing · JST
+          重要度1–5 · 5分前/結果/要人/新着を読み上げ · FF · Investing日本語 · JST
         </p>
       </div>
 
@@ -88,7 +88,7 @@ export function NewsPanel({ events, headlines, loading, error, alertIds }: Props
                 <span className="news-time">{fmt(e.time)}</span>
                 <span className="news-ccy">{e.country}</span>
                 <span className="news-title">
-                  {e.kind === 'speech' ? 'SPEECH · ' : ''}
+                  {e.kind === 'speech' ? '発言 · ' : ''}
                   {e.title}
                 </span>
               </li>
@@ -121,7 +121,7 @@ export function NewsPanel({ events, headlines, loading, error, alertIds }: Props
       </section>
 
       <section className="news-section">
-        <h3>FXヘッドライン</h3>
+        <h3>為替ヘッドライン</h3>
         <ul className="news-list">
           {headlines.slice(0, 8).map((h) => (
             <li key={h.id} className="news-item">

@@ -1,4 +1,5 @@
 import { apiUrl, liveNewsUrl } from './http'
+import { translateEventTitle } from './jaNews'
 
 export type NewsImpact = 'High' | 'Medium' | 'Low' | 'Holiday' | string
 
@@ -81,7 +82,7 @@ function parseCalendarRows(rows: FfRow[]): CalendarEvent[] {
       id: `${Math.floor(t / 1000)}-${country}-${title}`,
       time: Math.floor(t / 1000),
       country,
-      title,
+      title: translateEventTitle(title),
       impact,
       importance,
       forecast: r.forecast || undefined,
@@ -94,6 +95,13 @@ function parseCalendarRows(rows: FfRow[]): CalendarEvent[] {
   return out
 }
 
+function localizeEvents(events: CalendarEvent[]): CalendarEvent[] {
+  return events.map((e) => ({
+    ...e,
+    title: translateEventTitle(e.title),
+  }))
+}
+
 /** Forex Factory calendar (USD/JPY focus) via faireconomy mirror / CI snapshot. */
 export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
   if (!import.meta.env.DEV) {
@@ -101,7 +109,7 @@ export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
     if (!res.ok) throw new Error(`calendar snapshot ${res.status}`)
     const data = (await res.json()) as { events?: CalendarEvent[] }
     if (!data.events?.length) throw new Error('calendar empty')
-    return data.events
+    return localizeEvents(data.events)
   }
   const res = await fetch(apiUrl('/api/ff/ff_calendar_thisweek.json'))
   if (!res.ok) throw new Error(`calendar ${res.status}`)
@@ -124,7 +132,7 @@ export function eventsDueSoon(
   )
 }
 
-/** Investing.com FX news headlines (RSS) / CI snapshot. */
+/** Investing.com 日本語・外為ニュース (RSS) / CI snapshot. */
 export async function fetchHeadlines(): Promise<Headline[]> {
   if (!import.meta.env.DEV) {
     const res = await fetch(liveNewsUrl('headlines'))
@@ -132,7 +140,7 @@ export async function fetchHeadlines(): Promise<Headline[]> {
     const data = (await res.json()) as { headlines?: Headline[] }
     return data.headlines ?? []
   }
-  const res = await fetch(apiUrl('/api/investing-rss/rss/news_25.rss'))
+  const res = await fetch(apiUrl('/api/investing-jp/rss/news_1.rss'))
   if (!res.ok) throw new Error(`rss ${res.status}`)
   const xml = await res.text()
   const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 20)

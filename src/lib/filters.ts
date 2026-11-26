@@ -29,7 +29,7 @@ function nfpFridays(y0: number, y1: number): NewsWindow[] {
       const d = new Date(Date.UTC(y, m, 1))
       while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1)
       const start = Date.UTC(y, m, d.getUTCDate(), 12, 0) / 1000
-      out.push({ start, end: start + 2.5 * 3600, label: 'NFP' })
+      out.push({ start, end: start + 2.5 * 3600, label: '米雇用統計' })
     }
   }
   return out
@@ -51,7 +51,7 @@ function cpiWindows(): NewsWindow[] {
   return days.map((iso) => {
     const [y, m, d] = iso.split('-').map(Number)
     const start = Date.UTC(y, m - 1, d, 12, 0) / 1000
-    return { start, end: start + 2 * 3600, label: 'US CPI' }
+    return { start, end: start + 2 * 3600, label: '米CPI' }
   })
 }
 
@@ -86,7 +86,7 @@ function bojWindows(): NewsWindow[] {
   return days.map((iso) => {
     const [y, m, d] = iso.split('-').map(Number)
     const start = Date.UTC(y, m - 1, d, 2, 0) / 1000
-    return { start, end: start + 6 * 3600, label: 'BoJ' }
+    return { start, end: start + 6 * 3600, label: '日銀' }
   })
 }
 

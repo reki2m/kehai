@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-/** Fetch FF calendar + Investing RSS into public/live for GitHub Pages. */
+/** Fetch FF calendar + Investing JP RSS into public/live for GitHub Pages. */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { translateEventTitle } from './jaNews.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'live')
@@ -63,15 +64,16 @@ for (const r of rows) {
   if (!['USD', 'JPY', 'EUR', 'GBP'].includes(country)) continue
   const impact = r.impact ?? 'Low'
   if (impact === 'Holiday') continue
-  const title = r.title ?? ''
+  const titleEn = r.title ?? ''
   const t = Date.parse(r.date ?? '')
   if (!Number.isFinite(t)) continue
-  const speech = SPEECH_RE.test(title)
+  const speech = SPEECH_RE.test(titleEn)
   const kind = speech ? 'speech' : 'calendar'
-  const importance = impactToImportance(impact, title, kind)
+  const importance = impactToImportance(impact, titleEn, kind)
   if (importance < 2 && impact === 'Low' && !speech) continue
+  const title = translateEventTitle(titleEn)
   events.push({
-    id: `${Math.floor(t / 1000)}-${country}-${title}`,
+    id: `${Math.floor(t / 1000)}-${country}-${titleEn}`,
     time: Math.floor(t / 1000),
     country,
     title,
@@ -87,7 +89,7 @@ events.sort((a, b) => a.time - b.time || b.importance - a.importance)
 
 let headlines = []
 try {
-  const rssRes = await fetch('https://www.investing.com/rss/news_25.rss', {
+  const rssRes = await fetch('https://jp.investing.com/rss/news_1.rss', {
     headers: { 'User-Agent': 'Mozilla/5.0 KEHAI-news' },
   })
   if (rssRes.ok) {
