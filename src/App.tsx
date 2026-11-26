@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NewsPanel } from './components/NewsPanel'
+import { PriceChart, type OverlayId } from './components/PriceChart'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
@@ -54,10 +55,17 @@ import {
 } from './lib/voice'
 import './App.css'
 
+const OVERLAYS: { id: OverlayId; label: string }[] = [
+  { id: 'ema', label: 'EMA' },
+  { id: 'bb', label: 'BB' },
+]
+
 export default function App() {
   const [pairId, setPairId] = useState<PairId>('USDJPY')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
+  const [overlays, setOverlays] = useState<OverlayId[]>(['ema'])
   const [candles, setCandles] = useState<Candle[]>([])
+  const [livePrice, setLivePrice] = useState<number | null>(null)
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
@@ -103,6 +111,7 @@ export default function App() {
         if (cancelled) return
         if (live.candles.length >= 30) {
           setCandles(live.candles)
+          if (live.lastPrice != null) setLivePrice(live.lastPrice)
           setLiveSource(live.source)
           setLiveError(null)
         } else throw new Error('足が足りません')
@@ -118,15 +127,15 @@ export default function App() {
     }
 
     void load(true)
-    // History refresh (Actions snapshot) — CDN/cron can be slow
-    timer = window.setInterval(() => void load(false), 60_000)
+    // Refresh OHLC history often (Twelve Data in browser)
+    timer = window.setInterval(() => void load(false), 20_000)
     return () => {
       cancelled = true
       if (timer) window.clearInterval(timer)
     }
   }, [pairId, timeframe, pair])
 
-  // Live tick ~1s — scalp needs sub-10s movement
+  // Live tick ~1s — updates chart tip + bid/ask
   useEffect(() => {
     let cancelled = false
     let inFlight = false
@@ -136,11 +145,12 @@ export default function App() {
       try {
         const px = await fetchLiveTick(pairId)
         if (cancelled || px == null) return
+        setLivePrice(px)
         setCandles((prev) => {
           if (prev.length < 30) return prev
           return applyLiveTick(prev, px, timeframe)
         })
-        setLiveSource('ライブ 約1秒更新')
+        setLiveSource('ライブ 1秒更新')
         setLiveError(null)
       } catch {
         /* keep chart; history still shown */
@@ -235,7 +245,12 @@ export default function App() {
   const last = candles[candles.length - 1]
   const change = last && first ? last.close - first.close : 0
   const changePct = last && first ? (change / first.close) * 100 : 0
-  const mid = last ? last.close : NaN
+  const mid =
+    livePrice != null && Number.isFinite(livePrice)
+      ? livePrice
+      : last
+        ? last.close
+        : NaN
   const halfSpread = ((raw.spreadPips || 0.2) * pair.pip) / 2
   const bidNum = Number.isFinite(mid) ? mid - halfSpread : NaN
   const askNum = Number.isFinite(mid) ? mid + halfSpread : NaN
@@ -395,7 +410,7 @@ export default function App() {
         <div className="brand-block">
           <p className="brand">KEHAI</p>
           <p className="tagline">
-            {SIMPLE.stack} · GMO併用サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
+            {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
           </p>
         </div>
 
@@ -439,6 +454,24 @@ export default function App() {
             ))}
           </div>
 
+          <div className="segmented overlays" role="group" aria-label="表示">
+            {OVERLAYS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                className={overlays.includes(o.id) ? 'active' : ''}
+                onClick={() =>
+                  setOverlays((prev) =>
+                    prev.includes(o.id)
+                      ? prev.filter((x) => x !== o.id)
+                      : [...prev, o.id],
+                  )
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
 
           <div className="voice-controls" role="group" aria-label="ポジション">
             {!inPosition ? (
@@ -504,8 +537,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className="workspace workspace-signal">
-        <section className="hero-signal">
+      <main className="workspace">
+        <section className="hero-chart">
           <div className="chart-meta">
             <h1>
               {pair.label}
@@ -514,14 +547,22 @@ export default function App() {
               </span>
             </h1>
             <p className="sample-note">
-              レート・チャートはGMOで見る · ここはBUY/SELLサインと読み上げ
+              {sourceLabel}
               {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ' · セッション外'}
-            </p>
-            <p className="sample-note">
-              参考フィード {sourceLabel}
+              {' · '}BUY/SELLのみ · 1本
               {liveError ? ` · ${liveError}` : ''}
             </p>
           </div>
+          {candles.length >= 30 ? (
+            <PriceChart candles={candles} pair={pair} overlays={overlays} />
+          ) : (
+            <p className="sample-note" style={{ padding: '1.2rem' }}>
+              {liveLoading ? 'チャート読み込み中…' : '足データ待ち…'}
+            </p>
+          )}
+        </section>
+
+        <div className="side-stack">
           <SimpleBoard
             signal={signal}
             bid={bid}
@@ -532,9 +573,6 @@ export default function App() {
             pair={pair}
             inPosition={inPosition}
           />
-        </section>
-
-        <div className="side-stack">
           <SessionStatsPanel
             stats={stats}
             rangeDays={statsRange}

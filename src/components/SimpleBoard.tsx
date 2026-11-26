@@ -94,16 +94,16 @@ export function SimpleBoard({
       </div>
 
       <ol className="simple-howto">
-        <li>チャートと約定レートは GMOクリック証券で見る</li>
         <li>
           READY↑/↓ は準備警告（あと{SIMPLE.readyPips}p以内）· まだ入らない
         </li>
-        <li>BUY / SELL が出たら GMO で手動エントリー（1本のみ）</li>
+        <li>BUY / SELL が出たら手動エントリー（1本のみ）</li>
         <li>
           損切り {SIMPLE.slPips}
           {unitLabel(pair)} · 利確 {SIMPLE.tpPips}
           {unitLabel(pair)} を固定
         </li>
+        <li>約定の最終確認はGMOの板で行う</li>
         <li>音声オンでサイン・指標・ニュースを読み上げ</li>
       </ol>
     </aside>

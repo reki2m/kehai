@@ -159,7 +159,15 @@ async function fetchYahooDirect(
   return { candles: out.slice(-360), lastPrice, source: 'Yahoo Finance' }
 }
 
-/** Browser-live tick (CORS). Used to move the forming candle every few seconds. */
+const TWELVE_INTERVAL: Partial<Record<Timeframe, string>> = {
+  '1m': '1min',
+  '5m': '5min',
+  '15m': '15min',
+  '1H': '1h',
+  '1D': '1day',
+}
+
+/** Browser-live tick (CORS). Used to move the forming candle every second. */
 export async function fetchLiveTick(pairId: PairId): Promise<number | null> {
   const symbol = TWELVE_SYMBOLS[pairId]
   if (!symbol) return null
@@ -170,6 +178,58 @@ export async function fetchLiveTick(pairId: PairId): Promise<number | null> {
   if (data.code && data.code !== 200) throw new Error(data.message ?? 'tick error')
   const px = Number(data.close)
   return Number.isFinite(px) ? px : null
+}
+
+/** Browser M1/M5 candles via Twelve Data (CORS) — fresher than GH Pages snapshots. */
+export async function fetchTwelveCandles(
+  pairId: PairId,
+  timeframe: Timeframe,
+): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
+  const symbol = TWELVE_SYMBOLS[pairId]
+  const interval =
+    timeframe === '4H' ? '1h' : (TWELVE_INTERVAL[timeframe] ?? '1min')
+  if (!symbol) throw new Error('twelve symbol missing')
+  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=300&apikey=demo`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`twelve ${res.status}`)
+  const data = (await res.json()) as {
+    values?: Array<{
+      datetime: string
+      open: string
+      high: string
+      low: string
+      close: string
+    }>
+    code?: number
+    message?: string
+  }
+  if (data.code && data.code !== 200) throw new Error(data.message ?? 'twelve error')
+  if (!data.values?.length) throw new Error('twelve empty')
+  // Twelve returns newest-first
+  let candles: Candle[] = data.values
+    .slice()
+    .reverse()
+    .map((v) => {
+      const t = Math.floor(new Date(v.datetime.replace(' ', 'T') + 'Z').getTime() / 1000)
+      return {
+        time: t,
+        open: Number(v.open),
+        high: Number(v.high),
+        low: Number(v.low),
+        close: Number(v.close),
+        volume: 0,
+      }
+    })
+    .filter(
+      (c) =>
+        Number.isFinite(c.time) &&
+        Number.isFinite(c.open) &&
+        Number.isFinite(c.close),
+    )
+  if (timeframe === '4H') candles = resample(candles, 4)
+  if (candles.length < 30) throw new Error('twelve short')
+  const lastPrice = candles[candles.length - 1].close
+  return { candles: candles.slice(-360), lastPrice, source: 'Twelve Data' }
 }
 
 /** Apply a live price onto the current timeframe bar (opens a new bar when needed). */
@@ -209,6 +269,14 @@ export async function fetchLiveCandles(
   pairId: PairId,
   timeframe: Timeframe,
 ): Promise<{ candles: Candle[]; lastPrice: number | null; source: string }> {
+  // Browser: Twelve Data first (CORS + fresh). Snapshot/Yahoo as fallback.
+  if (TWELVE_SYMBOLS[pairId]) {
+    try {
+      return await fetchTwelveCandles(pairId, timeframe)
+    } catch {
+      /* fall through */
+    }
+  }
   if (!import.meta.env.DEV) {
     try {
       return await fetchSnapshot(pairId, timeframe)

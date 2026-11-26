@@ -13,12 +13,6 @@ export function RulesPanel() {
       </p>
       <ol className="rules-list">
         <li>
-          <strong>使い方</strong>
-          <span>
-            チャートと約定はGMO。KEHAIはBUY/SELL/READYと読み上げ専用（自動売買しない）
-          </span>
-        </li>
-        <li>
           <strong>サイン</strong>
           <span>
             UT Bot フリップ ＋ SSL 確認 → BUY / SELL。確認済みでUTまで
