@@ -704,13 +704,15 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [events, headlines, voiceOn, newsVoice])
 
-  const sourceLabel = liveSource
-    ? `ライブ · ${liveSource}`
-    : liveLoading
-      ? 'レート取得中…'
-      : liveError
-        ? `レート取得失敗 · 再読み込み`
-        : 'レート待機中'
+  // Never show "ライブ ライブ …" even if a source string already starts with ライブ
+  const sourceLabel = (() => {
+    if (liveLoading && !liveSource) return 'レート取得中…'
+    if (!liveSource) {
+      return liveError ? 'レート取得失敗 · 再読み込み' : 'レート待機中'
+    }
+    const cleaned = liveSource.replace(/^ライブ\s*[·•.\-:]?\s*/u, '').trim()
+    return cleaned ? `ライブ · ${cleaned}` : 'ライブ'
+  })()
 
   return (
     <div className={`app ${booted ? 'is-ready' : ''}`}>
