@@ -27,12 +27,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Fetch Yahoo + news
+      - name: Fetch Yahoo + Swissquote ticks + news
         run: |
           mkdir -p public/live
           node scripts/fetch_live.mjs
           node scripts/fetch_news.mjs
-          # Prevent Vercel from treating this JSON branch as a Vite app
+          # refresh FX ticks again right before publish (Swissquote BBO)
+          sleep 12
+          node scripts/fetch_live.mjs
           printf '%s\n' '{"git":{"deploymentEnabled":false}}' > public/live/vercel.json
       - name: Publish to live-data branch
         uses: peaceiris/actions-gh-pages@v4

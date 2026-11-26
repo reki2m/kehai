@@ -41,3 +41,13 @@ export function liveNewsUrl(name: 'calendar' | 'headlines'): string {
   }
   return `${LIVE_DATA_RAW}/${name}.json?t=${bust}`
 }
+
+/** Swissquote 等を CI が書いた最新ティック（Pages CDN を避けて raw 参照） */
+export function liveTickUrl(pairId: string): string {
+  const bust = Date.now()
+  if (import.meta.env.DEV) {
+    const base = import.meta.env.BASE_URL || '/'
+    return `${base}live/tick_${pairId}.json?t=${bust}`
+  }
+  return `${LIVE_DATA_RAW}/tick_${pairId}.json?t=${bust}`
+}

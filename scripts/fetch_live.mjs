@@ -67,10 +67,68 @@ function toCandles(data) {
   return { candles: candles.slice(-360), lastPrice }
 }
 
+const SQ_SYMBOLS = {
+  USDJPY: 'USD/JPY',
+  EURUSD: 'EUR/USD',
+  GBPJPY: 'GBP/JPY',
+  EURJPY: 'EUR/JPY',
+  AUDUSD: 'AUD/USD',
+  USDCHF: 'USD/CHF',
+}
+
+async function fetchSwissquote(pairPath) {
+  const url = `https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/${pairPath}`
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 KEHAI-live-fetcher' },
+  })
+  if (!res.ok) throw new Error(`Swissquote ${res.status}`)
+  const rows = await res.json()
+  const prices = rows?.[0]?.spreadProfilePrices
+  if (!Array.isArray(prices) || !prices.length) throw new Error('Swissquote empty')
+  // Prefer tighter retail-like profiles when present
+  const prefer = ['prime', 'premium', 'standard', 'market']
+  let best = prices[0]
+  for (const name of prefer) {
+    const hit = prices.find((p) => p.spreadProfile === name)
+    if (hit) {
+      best = hit
+      break
+    }
+  }
+  const bid = Number(best.bid)
+  const ask = Number(best.ask)
+  if (!Number.isFinite(bid) || !Number.isFinite(ask)) throw new Error('Swissquote bad')
+  return { bid, ask, mid: (bid + ask) / 2, profile: best.spreadProfile }
+}
+
 mkdirSync(OUT, { recursive: true })
 const fetchedAt = Math.floor(Date.now() / 1000)
 let ok = 0
 let fail = 0
+
+// FX ticks first (Swissquote BBO) — browser polls these every second
+for (const [pairId, path] of Object.entries(SQ_SYMBOLS)) {
+  try {
+    const q = await fetchSwissquote(path)
+    const payload = {
+      pairId,
+      source: 'Swissquote',
+      fetchedAt,
+      bid: q.bid,
+      ask: q.ask,
+      mid: q.mid,
+      lastPrice: q.mid,
+      profile: q.profile,
+    }
+    writeFileSync(join(OUT, `tick_${pairId}.json`), JSON.stringify(payload))
+    ok++
+    console.log('tick', pairId, q.bid, q.ask)
+    await new Promise((r) => setTimeout(r, 120))
+  } catch (e) {
+    fail++
+    console.error('tick fail', pairId, e.message || e)
+  }
+}
 
 for (const [pairId, symbol] of Object.entries(SYMBOLS)) {
   for (const [tf, { interval, range }] of Object.entries(TFS)) {

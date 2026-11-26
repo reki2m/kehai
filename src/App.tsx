@@ -9,7 +9,8 @@ import type { FxSession } from './lib/apex'
 import {
   applyLiveTick,
   fetchLiveCandles,
-  fetchLiveTick,
+  fetchLiveQuote,
+  mergeRemoteCandles,
   sanitizeCandles,
 } from './lib/liveRates'
 import type { Candle } from './lib/marketData'
@@ -74,6 +75,8 @@ export default function App() {
   const [overlays, setOverlays] = useState<OverlayId[]>(['ema'])
   const [candles, setCandles] = useState<Candle[]>([])
   const [livePrice, setLivePrice] = useState<number | null>(null)
+  const [liveBid, setLiveBid] = useState<number | null>(null)
+  const [liveAsk, setLiveAsk] = useState<number | null>(null)
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
@@ -116,6 +119,7 @@ export default function App() {
   /** 変動読み上げ用の価格履歴 {t:ms, price} */
   const priceHistRef = useRef<{ t: number; price: number }[]>([])
   const lastFiveSpoken = useRef<number | null>(null)
+  const livePriceRef = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -142,25 +146,39 @@ export default function App() {
         const live = await fetchLiveCandles(pairId, timeframe)
         if (cancelled) return
         if (live.candles.length >= 30) {
-          setCandles(sanitizeCandles(live.candles))
-          if (live.lastPrice != null) setLivePrice(live.lastPrice)
-          setLiveSource(live.source)
+          setCandles((prev) =>
+            initial || prev.length < 30
+              ? sanitizeCandles(live.candles)
+              : mergeRemoteCandles(
+                  live.candles,
+                  prev,
+                  timeframe,
+                  livePriceRef.current,
+                ),
+          )
+          if (live.lastPrice != null && livePriceRef.current == null) {
+            setLivePrice(live.lastPrice)
+          }
+          if (initial) setLiveSource(live.source)
           setLiveError(null)
         } else throw new Error('足が足りません')
       } catch (e) {
         if (cancelled) return
         setLiveError(e instanceof Error ? e.message : '取得失敗')
-        setLiveSource(null)
-        // Do not paint fake 151-yen sample as if it were live.
-        if (initial) setCandles([])
+        if (initial) {
+          setLiveSource(null)
+          setCandles([])
+        }
       } finally {
         if (!cancelled && initial) setLiveLoading(false)
       }
     }
 
+    setLiveBid(null)
+    setLiveAsk(null)
     void load(true)
-    // Refresh OHLC history often (Twelve Data in browser)
-    timer = window.setInterval(() => void load(false), 20_000)
+    // 履歴だけゆっくり更新（形成中足はティック側が担当）
+    timer = window.setInterval(() => void load(false), 60_000)
     return () => {
       cancelled = true
       if (timer) window.clearInterval(timer)
@@ -187,6 +205,7 @@ export default function App() {
 
   // ライブ価格を履歴に積む（変動読み上げ用・最大12分）
   useEffect(() => {
+    livePriceRef.current = livePrice
     if (livePrice == null || !Number.isFinite(livePrice)) return
     const now = Date.now()
     const hist = priceHistRef.current
@@ -195,7 +214,7 @@ export default function App() {
     while (hist.length && hist[0].t < cut) hist.shift()
   }, [livePrice])
 
-  // Live tick ~1s — updates chart tip + bid/ask + 急変検知＋原因調査
+  // Live tick ~0.8s — multi-source quote + chart tip + 急変
   useEffect(() => {
     let cancelled = false
     let inFlight = false
@@ -203,14 +222,22 @@ export default function App() {
       if (inFlight) return
       inFlight = true
       try {
-        const px = await fetchLiveTick(pairId)
-        if (cancelled || px == null) return
+        const q = await fetchLiveQuote(pairId)
+        if (cancelled || !q) return
+        const px = q.price
         setLivePrice(px)
+        if (q.bid != null) setLiveBid(q.bid)
+        if (q.ask != null) setLiveAsk(q.ask)
         setCandles((prev) => {
           if (prev.length < 30) return prev
           return applyLiveTick(prev, px, timeframe)
         })
-        setLiveSource('ライブ 1秒更新')
+        const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
+        setLiveSource(
+          age <= 2
+            ? `ライブ ${q.source}`
+            : `ライブ ${q.source} · ${age}秒前`,
+        )
         setLiveError(null)
 
         if (shockAlert && shockRef.current) {
@@ -251,7 +278,7 @@ export default function App() {
       }
     }
     void tick()
-    const id = window.setInterval(() => void tick(), 1_000)
+    const id = window.setInterval(() => void tick(), 800)
     return () => {
       cancelled = true
       window.clearInterval(id)
@@ -344,8 +371,18 @@ export default function App() {
         ? last.close
         : NaN
   const halfSpread = ((raw.spreadPips || 0.2) * pair.pip) / 2
-  const bidNum = Number.isFinite(mid) ? mid - halfSpread : NaN
-  const askNum = Number.isFinite(mid) ? mid + halfSpread : NaN
+  const bidNum =
+    liveBid != null && Number.isFinite(liveBid)
+      ? liveBid
+      : Number.isFinite(mid)
+        ? mid - halfSpread
+        : NaN
+  const askNum =
+    liveAsk != null && Number.isFinite(liveAsk)
+      ? liveAsk
+      : Number.isFinite(mid)
+        ? mid + halfSpread
+        : NaN
   const bid = Number.isFinite(bidNum) ? bidNum.toFixed(pair.digits) : '—'
   const ask = Number.isFinite(askNum) ? askNum.toFixed(pair.digits) : '—'
   const midText = Number.isFinite(mid) ? mid.toFixed(pair.digits) : '—'

@@ -1,7 +1,15 @@
 import type { Candle } from './marketData'
 import type { PairId, Timeframe } from './pairs'
 import { TIMEFRAMES } from './pairs'
-import { apiUrl, liveSnapshotUrl } from './http'
+import { apiUrl, liveSnapshotUrl, liveTickUrl } from './http'
+
+export interface LiveQuote {
+  price: number
+  bid?: number
+  ask?: number
+  source: string
+  at: number // unix sec
+}
 
 /** Yahoo Finance symbols for each instrument. */
 export const YAHOO_SYMBOLS: Record<PairId, string> = {
@@ -167,17 +175,105 @@ const TWELVE_INTERVAL: Partial<Record<Timeframe, string>> = {
   '1D': '1day',
 }
 
-/** Browser-live tick (CORS). Used to move the forming candle every second. */
-export async function fetchLiveTick(pairId: PairId): Promise<number | null> {
+const TWELVE_KEY =
+  (typeof import.meta !== 'undefined' &&
+    (import.meta.env.VITE_TWELVE_API_KEY as string | undefined)) ||
+  'demo'
+
+function twelveUrl(path: string, symbol: string): string {
+  return `https://api.twelvedata.com/${path}?symbol=${encodeURIComponent(symbol)}&apikey=${TWELVE_KEY}&_=${Date.now()}`
+}
+
+async function fetchTwelveQuote(pairId: PairId): Promise<LiveQuote | null> {
   const symbol = TWELVE_SYMBOLS[pairId]
   if (!symbol) return null
-  const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=demo`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`tick ${res.status}`)
-  const data = (await res.json()) as { close?: string; code?: number; message?: string }
-  if (data.code && data.code !== 200) throw new Error(data.message ?? 'tick error')
+  const res = await fetch(twelveUrl('quote', symbol))
+  if (!res.ok) throw new Error(`twelve quote ${res.status}`)
+  const data = (await res.json()) as {
+    close?: string
+    last_quote_at?: number
+    code?: number
+    message?: string
+  }
+  if (data.code && data.code !== 200) throw new Error(data.message ?? 'quote error')
   const px = Number(data.close)
-  return Number.isFinite(px) ? px : null
+  if (!Number.isFinite(px)) return null
+  return {
+    price: px,
+    source: 'Twelve',
+    at: data.last_quote_at ?? Math.floor(Date.now() / 1000),
+  }
+}
+
+async function fetchTwelvePrice(pairId: PairId): Promise<LiveQuote | null> {
+  const symbol = TWELVE_SYMBOLS[pairId]
+  if (!symbol) return null
+  const res = await fetch(twelveUrl('price', symbol))
+  if (!res.ok) throw new Error(`twelve price ${res.status}`)
+  const data = (await res.json()) as { price?: string; code?: number; message?: string }
+  if (data.code && data.code !== 200) throw new Error(data.message ?? 'price error')
+  const px = Number(data.price)
+  if (!Number.isFinite(px)) return null
+  return {
+    price: px,
+    source: 'Twelve',
+    at: Math.floor(Date.now() / 1000),
+  }
+}
+
+/** CI が Swissquote/Yahoo で書いたティック（CORS不要・raw.githubusercontent） */
+async function fetchSnapshotTick(pairId: PairId): Promise<LiveQuote | null> {
+  const res = await fetch(liveTickUrl(pairId))
+  if (!res.ok) throw new Error(`tick snap ${res.status}`)
+  const data = (await res.json()) as {
+    mid?: number
+    bid?: number
+    ask?: number
+    lastPrice?: number
+    fetchedAt?: number
+    source?: string
+  }
+  const bid = data.bid != null && Number.isFinite(data.bid) ? data.bid : undefined
+  const ask = data.ask != null && Number.isFinite(data.ask) ? data.ask : undefined
+  const price =
+    data.mid ??
+    data.lastPrice ??
+    (bid != null && ask != null ? (bid + ask) / 2 : null)
+  if (price == null || !Number.isFinite(price)) return null
+  return {
+    price,
+    bid,
+    ask,
+    source: data.source ?? 'live-data',
+    at: data.fetchedAt ?? Math.floor(Date.now() / 1000),
+  }
+}
+
+/**
+ * 複数ソースを並列に取り、いちばん新しい（同点ならスプレッド付き）を採用。
+ * ブラウザから直接 Yahoo/Swissquote は CORS で落ちるため、Twelve + CI tick を併用。
+ */
+export async function fetchLiveQuote(pairId: PairId): Promise<LiveQuote | null> {
+  const tasks: Promise<LiveQuote | null>[] = [
+    fetchTwelvePrice(pairId).catch(() => null),
+    fetchTwelveQuote(pairId).catch(() => null),
+    fetchSnapshotTick(pairId).catch(() => null),
+  ]
+  const results = (await Promise.all(tasks)).filter((q): q is LiveQuote => !!q)
+  if (!results.length) return null
+  results.sort((a, b) => {
+    if (b.at !== a.at) return b.at - a.at
+    const aBa = a.bid != null && a.ask != null ? 1 : 0
+    const bBa = b.bid != null && b.ask != null ? 1 : 0
+    return bBa - aBa
+  })
+  return results[0]
+}
+
+/** @deprecated use fetchLiveQuote — kept for call sites expecting a number */
+export async function fetchLiveTick(pairId: PairId): Promise<number | null> {
+  const q = await fetchLiveQuote(pairId)
+  return q?.price ?? null
 }
 
 /** Browser M1/M5 candles via Twelve Data (CORS) — fresher than GH Pages snapshots. */
@@ -189,7 +285,7 @@ export async function fetchTwelveCandles(
   const interval =
     timeframe === '4H' ? '1h' : (TWELVE_INTERVAL[timeframe] ?? '1min')
   if (!symbol) throw new Error('twelve symbol missing')
-  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=300&apikey=demo`
+  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=300&apikey=${TWELVE_KEY}&_=${Date.now()}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`twelve ${res.status}`)
   const data = (await res.json()) as {
@@ -289,6 +385,73 @@ export function applyLiveTick(
   last.high = Math.max(last.high, price)
   last.low = Math.min(last.low, price)
   return out
+}
+
+/**
+ * リモート足で履歴を更新しつつ、ローカルで進めた形成中足は潰さない。
+ * （Twelve の遅延 OHLC で毎20秒チャートが巻き戻るのが遅さの主因だった）
+ */
+export function mergeRemoteCandles(
+  remote: Candle[],
+  local: Candle[],
+  timeframe: Timeframe,
+  livePrice?: number | null,
+): Candle[] {
+  const step = tfSeconds(timeframe)
+  const now = Math.floor(Date.now() / 1000)
+  const barTime = now - (now % step)
+  const remoteClean = sanitizeCandles(remote)
+  if (!local.length) {
+    let out = remoteClean
+    if (livePrice != null) out = applyLiveTick(out, livePrice, timeframe)
+    return out
+  }
+  const localLast = local[local.length - 1]
+  // リモートは「今のバーより前」だけ採用
+  const hist = remoteClean.filter((c) => c.time < barTime)
+  const byTime = new Map<number, Candle>()
+  for (const c of hist) byTime.set(c.time, { ...c })
+  // ローカルの過去バーも穴埋めに使う
+  for (const c of local) {
+    if (c.time < barTime && !byTime.has(c.time)) byTime.set(c.time, { ...c })
+  }
+  let out = [...byTime.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, c]) => c)
+
+  const localForming = localLast.time >= barTime ? localLast : null
+  const remoteForming = remoteClean.find((c) => c.time === barTime)
+  let forming: Candle
+  if (localForming) {
+    forming = { ...localForming }
+    if (remoteForming) {
+      forming.open = remoteForming.open
+      forming.high = Math.max(forming.high, remoteForming.high, forming.close)
+      forming.low = Math.min(forming.low, remoteForming.low, forming.close)
+    }
+  } else if (remoteForming) {
+    forming = { ...remoteForming }
+  } else {
+    const seed =
+      livePrice ??
+      (out.length ? out[out.length - 1].close : null)
+    if (seed == null) return out.slice(-360)
+    forming = {
+      time: barTime,
+      open: seed,
+      high: seed,
+      low: seed,
+      close: seed,
+      volume: 0,
+    }
+  }
+  if (livePrice != null && Number.isFinite(livePrice)) {
+    forming.close = livePrice
+    forming.high = Math.max(forming.high, livePrice)
+    forming.low = Math.min(forming.low, livePrice)
+  }
+  out.push(forming)
+  return out.slice(-360)
 }
 
 export async function fetchLiveCandles(
