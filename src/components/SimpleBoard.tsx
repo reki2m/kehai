@@ -54,14 +54,14 @@ export function SimpleBoard({
         </p>
         <p className="simple-reason">{signal.reason}</p>
 
-        <div className="rate-board" aria-label="売値と買値">
+        <div className="rate-board" aria-label="売り値と買い値">
           <div className="rate-side rate-bid">
-            <span className="rate-label">売</span>
+            <span className="rate-label">売り値</span>
             <span className="rate-num">{bid}</span>
           </div>
           <div className="rate-divider" aria-hidden />
           <div className="rate-side rate-ask">
-            <span className="rate-label">買</span>
+            <span className="rate-label">買い値</span>
             <span className="rate-num">{ask}</span>
           </div>
         </div>
