@@ -308,7 +308,7 @@ export default function App() {
       // Chart: coalesce WS spam (~4Hz). Board mid/bid/ask stay realtime.
       pendingTickRef.current = px
       if (tickFlushTimer.current == null) {
-        tickFlushTimer.current = window.setTimeout(flushTickToChart, 250)
+        tickFlushTimer.current = window.setTimeout(flushTickToChart, 500)
       }
       const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
       const tag =
@@ -435,6 +435,8 @@ export default function App() {
     return evaluateSimple(window, pair, stats.disabledSessions)
   }, [candles, pair, stats.disabledSessions])
 
+  // Tip ticks must not rebuild markers — only when a new bar opens
+  const lastCandleTime = candles[candles.length - 1]?.time ?? 0
   const histSignals = useMemo(() => {
     // Extra bars for indicator warmup, then only emit after warmup.
     const need = 1400
@@ -446,7 +448,9 @@ export default function App() {
         : HIST_FROM_UNIX
     const recent = listHistoricalSignals(slice, pair, from)
     return mergeHistSignals(archiveSignals, recent)
-  }, [archiveSignals, candles, pair])
+    // candles read intentionally; invalidate on bar time / length only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archiveSignals, lastCandleTime, pair, candles.length])
   const signal = useMemo(() => {
     if (!inPosition) return raw
     return {
