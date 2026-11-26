@@ -76,7 +76,8 @@ function rangeFromBars(
     hi = Math.max(hi, c.high)
   }
   if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null
-  const pad = Math.max((hi - lo) * 0.18, pip * 18)
+  // Wide pad so live ticks rarely leave the window (avoids Y recentre)
+  const pad = Math.max((hi - lo) * 0.45, pip * 40)
   return { from: lo - pad, to: hi + pad }
 }
 
@@ -173,23 +174,32 @@ export function PriceChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
-        scaleMargins: { top: 0.1, bottom: 0.22 },
+        scaleMargins: { top: 0.12, bottom: 0.18 },
         autoScale: false,
         // Lock label column width — prevents whole plot shifting horizontally
-        minimumWidth: 72,
+        minimumWidth: 80,
         entireTextOnly: true,
       },
       timeScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 6,
+        rightOffset: 8,
         shiftVisibleRangeOnNewBar: false,
         fixLeftEdge: false,
-        fixRightEdge: false,
+        fixRightEdge: true,
       },
       handleScroll: {
         vertTouchDrag: false,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        mouseWheel: true,
+      },
+      handleScale: {
+        axisPressedMouseMove: { time: true, price: false },
+        axisDoubleClickReset: { time: true, price: false },
+        mouseWheel: false,
+        pinch: false,
       },
       width: el.clientWidth,
       height: el.clientHeight,
@@ -202,20 +212,18 @@ export function PriceChart({
       borderDownColor: '#F07167',
       wickUpColor: 'rgba(94, 234, 212, 0.85)',
       wickDownColor: 'rgba(240, 113, 103, 0.85)',
+      priceLineVisible: false,
+      lastValueVisible: false,
       priceFormat: {
         type: 'price',
         precision: pair.digits,
         minMove: pair.pip,
       },
-      // With autoScale:false we drive range manually — provider unused but safe
-      autoscaleInfoProvider: (
-        original: () => AutoscaleInfo | null,
-      ): AutoscaleInfo | null => {
+      // Always report the frozen window so LWC never auto-recentres on ticks
+      autoscaleInfoProvider: (): AutoscaleInfo | null => {
         const locked = stickyPrice.current
-        if (locked) {
-          return { priceRange: { minValue: locked.from, maxValue: locked.to } }
-        }
-        return original()
+        if (!locked) return null
+        return { priceRange: { minValue: locked.from, maxValue: locked.to } }
       },
     })
     markersApi.current = createSeriesMarkers(candleSeries.current, [], {
@@ -356,30 +364,32 @@ export function PriceChart({
   function applyLockedRange(
     bars: Candle[],
     price: number,
-    force: boolean,
+    mode: 'init' | 'guard',
   ): void {
     if (!candleSeries.current) return
-    const lookback = bars.slice(-100)
-    const next = rangeFromBars(lookback, pair.pip)
-    if (!next) return
     const prev = stickyPrice.current
-    if (!force && prev) {
+
+    // After first paint: never recentre. Only expand if price left the window.
+    if (mode === 'guard' && prev) {
+      if (price >= prev.from && price <= prev.to) return
       const span = prev.to - prev.from
-      const margin = span * 0.15
-      // Price still comfortable inside locked window — do nothing
-      if (price >= prev.from + margin && price <= prev.to - margin) return
-      // Expand just enough; don't recentre every tick
+      const chunk = Math.max(span * 0.25, pair.pip * 25)
       stickyPrice.current = {
-        from: Math.min(prev.from, next.from),
-        to: Math.max(prev.to, next.to),
+        from: price < prev.from ? price - chunk : prev.from,
+        to: price > prev.to ? price + chunk : prev.to,
       }
     } else {
+      const lookback = bars.slice(-120)
+      const next = rangeFromBars(lookback, pair.pip)
+      if (!next) return
       stickyPrice.current = next
     }
+
     const r = stickyPrice.current
     if (!r) return
     try {
       const scale = candleSeries.current.priceScale()
+      scale.applyOptions({ autoScale: false })
       scale.setAutoScale(false)
       scale.setVisibleRange({ from: r.from, to: r.to })
     } catch {
@@ -409,7 +419,7 @@ export function PriceChart({
     const overlayChanged = overlayKeyRef.current !== overlayKey
     overlayKeyRef.current = overlayKey
 
-    // Fast path for tip updates — skip heavy overlay rebuilds + don't scroll
+    // Fast path for tip updates — skip heavy overlay rebuilds + don't touch Y
     if (
       !overlayChanged &&
       prevLen.current > 0 &&
@@ -420,8 +430,8 @@ export function PriceChart({
         candleSeries.current.update(lastBar)
         prevLen.current = view.length
         lastBarTime.current = last.time
-        // Keep Y locked; only expand when price nears the edge
-        applyLockedRange(view, last.close, false)
+        // Only expand if price left the frozen window — never recentre
+        applyLockedRange(view, last.close, 'guard')
         if (newBar) chartRef.current?.timeScale().scrollToRealTime()
         return
       } catch {
@@ -447,7 +457,12 @@ export function PriceChart({
         candleSeries.current.setData(candleData)
         prevLen.current = view.length
         lastBarTime.current = last.time
-        applyLockedRange(view, last.close, firstPaint || overlayChanged || newBar)
+        // Init once / overlay change only — new bars must NOT recentre Y
+        applyLockedRange(
+          view,
+          last.close,
+          firstPaint || overlayChanged ? 'init' : 'guard',
+        )
       } catch {
         prevLen.current = 0
         return
@@ -582,13 +597,15 @@ export function PriceChart({
     }
   }, [candles, overlays, signalParams])
 
-  useEffect(() => {
-    if (!markersApi.current) return
-    // Only markers that fall inside the visible chart window (~last 480 bars)
-    const tMin = candles.length
+  // Depend on histSignals + window start only — not every live tick
+  const markerWindowStart =
+    candles.length > 0
       ? candles[Math.max(0, candles.length - 480)]!.time
       : 0
-    const visible = histSignals.filter((s) => s.time >= tMin)
+
+  useEffect(() => {
+    if (!markersApi.current) return
+    const visible = histSignals.filter((s) => s.time >= markerWindowStart)
     const key = visible.map((s) => `${s.time}:${s.side}:${s.prime ? 1 : 0}`).join('|')
     if (key === markersKey.current) return
     markersKey.current = key
@@ -616,7 +633,7 @@ export function PriceChart({
       }
     })
     markersApi.current.setMarkers(markers)
-  }, [histSignals, candles])
+  }, [histSignals, markerWindowStart])
 
 
   return <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
