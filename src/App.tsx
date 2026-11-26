@@ -960,6 +960,9 @@ export default function App() {
               title={[
                 sourceLabel,
                 signal.sessionLabel ?? 'セッション外',
+                candles.length
+                  ? `出来高 ${Math.round(candles[candles.length - 1]?.volume ?? 0).toLocaleString('ja-JP')}`
+                  : null,
                 histSignals.length > 0
                   ? `過去サイン ${histSignals.length}（11月〜）`
                   : null,
@@ -971,6 +974,9 @@ export default function App() {
               {sourceLabel}
               {' · '}
               {signal.sessionLabel ?? 'セッション外'}
+              {candles.length
+                ? ` · 出来高 ${Math.round(candles[candles.length - 1]?.volume ?? 0).toLocaleString('ja-JP')}`
+                : ''}
               {histSignals.length > 0
                 ? ` · 過去 ${histSignals.length}`
                 : ''}
