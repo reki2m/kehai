@@ -1,16 +1,16 @@
-# KEHAI Edge Pro
+# KEHAI Simple Pro
 
-1分足スキャルピング向けの合成インジケータ。定評のある要素をゲート付きで組み合わせています。
+1分足スキャルピング向けの手動サイン。Bakeoff勝ちの UT×SSL を核に、品質ゲートを載せています。
 
-## Edge Pro スタック（TradingView由来含む）
+## サインスタック
 
-- 気配コンフルエンス（EMA / RSI / MACD / Bollinger / Stochastic）
-- ADX(14) ≥ 22（レンジ回避）
-- Supertrend(10,2) 方向一致
-- MTFバイアス（EMA105/275 ≒ 5分足 21/55）
-- 東京 9–15 / ロンドン 16–24（JST）
-- エントリー: スコア ±65 クロス
-- SL 1.2×ATR / TP 2.0×ATR / 決済後12本クールダウン
+- **トリガー**: UT Bot Alerts（セッション別 key/ATR）
+- **確認**: SSL Channel
+- **品質**: ADX(14)≥18 · WaveTrend強い逆行は見送り · 品質 S/A/B/C
+- **セッション**: 東京 / ロンドン Mid / NY Mid（EMA・VWAPは帯ごと）
+- **READY**: 確認済み＋UTトレイルまで2p以内
+- **決済**: 固定 SL7 / TP10 · 1本のみ
+- **チャート**: UTトレイル / SSL / VWAP を標準オーバーレイ
 
 ## デモ成績（研究用BT）
 
@@ -22,6 +22,12 @@ Yahoo Finance USDJPY 60分足から再構成した1分足でのウォークフ�
 | 2026（検証〜11/25） | +5,570 pips | 60.4% | 2.18 | ≈6.7万円 |
 
 0.1ロット・スプレッド0.8pips想定。実口座成績ではありません。
+
+## ライブレート
+
+- **biquote**（無料・キー不要）: REST + SignalR WebSocket。bid/ask 付き
+- Twelve Data / GitHub Actions の Swissquote tick も並列フォールバック
+- GMO板そのものではないので、約定はGMO側で最終確認
 
 ## 開発
 
