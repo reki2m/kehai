@@ -66,8 +66,8 @@ function toVolumeBars(bars: Candle[]): HistogramData<Time>[] {
   }))
 }
 
-/** How many M1 bars fill the viewport — larger = fatter candles. */
-const VISIBLE_BARS = 72
+/** How many M1 bars fill the viewport — fewer = fatter / taller-looking candles. */
+const VISIBLE_BARS = 40
 
 function fitVisibleBars(chart: IChartApi, barCount: number): void {
   if (barCount <= 0) return
@@ -75,7 +75,7 @@ function fitVisibleBars(chart: IChartApi, barCount: number): void {
   try {
     chart.timeScale().setVisibleLogicalRange({
       from,
-      to: barCount + 2,
+      to: barCount + 1.5,
     })
   } catch {
     /* ignore */
@@ -103,8 +103,15 @@ function rangeFromBars(
     hi = Math.max(hi, c.high)
   }
   if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null
-  // Wide pad so live ticks rarely leave the window (avoids Y recentre)
-  const pad = Math.max((hi - lo) * 0.45, pip * 40)
+  // Tight pad — previous 40-pip pad flattened M1 bodies into horizontal lines
+  const span = hi - lo
+  const pad = Math.max(span * 0.1, pip * 5)
+  // Enforce a readable minimum window (~18 pips) without over-zooming noise
+  const minSpan = pip * 18
+  if (span + pad * 2 < minSpan) {
+    const mid = (hi + lo) / 2
+    return { from: mid - minSpan / 2, to: mid + minSpan / 2 }
+  }
   return { from: lo - pad, to: hi + pad }
 }
 
@@ -203,7 +210,7 @@ export function PriceChart({
       rightPriceScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
         // Leave the bottom ~22% for the volume pane
-        scaleMargins: { top: 0.06, bottom: 0.26 },
+        scaleMargins: { top: 0.04, bottom: 0.24 },
         autoScale: false,
         // Lock label column width — prevents whole plot shifting horizontally
         minimumWidth: 80,
@@ -213,9 +220,9 @@ export function PriceChart({
         borderColor: 'rgba(94, 234, 212, 0.08)',
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 4,
-        barSpacing: 11,
-        minBarSpacing: 7,
+        rightOffset: 3,
+        barSpacing: 16,
+        minBarSpacing: 10,
         shiftVisibleRangeOnNewBar: false,
         fixLeftEdge: false,
         fixRightEdge: true,
@@ -415,17 +422,18 @@ export function PriceChart({
     if (!candleSeries.current) return
     const prev = stickyPrice.current
 
-    // After first paint: never recentre. Only expand if price left the window.
+    // After first paint: never recentre mid-bar. Only expand if price left the window.
     if (mode === 'guard' && prev) {
-      if (price >= prev.from && price <= prev.to) return
-      const span = prev.to - prev.from
-      const chunk = Math.max(span * 0.25, pair.pip * 25)
+      const margin = (prev.to - prev.from) * 0.08
+      if (price >= prev.from + margin && price <= prev.to - margin) return
+      const chunk = Math.max((prev.to - prev.from) * 0.12, pair.pip * 6)
       stickyPrice.current = {
-        from: price < prev.from ? price - chunk : prev.from,
-        to: price > prev.to ? price + chunk : prev.to,
+        from: price < prev.from + margin ? Math.min(prev.from, price - chunk) : prev.from,
+        to: price > prev.to - margin ? Math.max(prev.to, price + chunk) : prev.to,
       }
     } else {
-      const lookback = bars.slice(-120)
+      // Fit Y to the same window the user sees (~40 bars) so bodies look tall
+      const lookback = bars.slice(-VISIBLE_BARS)
       const next = rangeFromBars(lookback, pair.pip)
       if (!next) return
       stickyPrice.current = next
@@ -484,8 +492,8 @@ export function PriceChart({
         })
         prevLen.current = view.length
         lastBarTime.current = last.time
-        // Only expand if price left the frozen window — never recentre
-        applyLockedRange(view, last.close, 'guard')
+        // New bar: refit Y to last ~40 bars so candles stay tall; tip: guard only
+        applyLockedRange(view, last.close, newBar ? 'init' : 'guard')
         if (newBar && chartRef.current) fitVisibleBars(chartRef.current, view.length)
         return
       } catch {
@@ -511,11 +519,11 @@ export function PriceChart({
         candleSeries.current.setData(candleData)
         prevLen.current = view.length
         lastBarTime.current = last.time
-        // Init once / overlay change only — new bars must NOT recentre Y
+        // Recentre Y on first paint, overlay change, or new bar (keeps M1 tall)
         applyLockedRange(
           view,
           last.close,
-          firstPaint || overlayChanged ? 'init' : 'guard',
+          firstPaint || overlayChanged || newBar ? 'init' : 'guard',
         )
       } catch {
         prevLen.current = 0
