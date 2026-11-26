@@ -70,10 +70,26 @@ function toLine(pts: { time: number; value: number }[]): LineData<Time>[] {
   }))
 }
 
-function toVolumeBars(bars: Candle[]): HistogramData<Time>[] {
+/**
+ * FX feeds often ship volume=0. Prefer real tick/notional volume when present;
+ * otherwise synthesize activity from bar range so the pane stays readable.
+ */
+function barActivity(c: Candle, pip: number): number {
+  const v = c.volume || 0
+  if (v > 0) return v
+  const p = pip > 0 ? pip : 0.001
+  const range = Math.max(0, (c.high - c.low) / p)
+  const body = Math.abs(c.close - c.open) / p
+  return Math.max(1, Math.round(range * 8 + body * 12 + 2))
+}
+
+function toVolumeBars(
+  bars: Candle[],
+  pip: number,
+): HistogramData<Time>[] {
   return bars.map((c) => ({
     time: c.time as UTCTimestamp,
-    value: Math.max(0, c.volume || 0),
+    value: barActivity(c, pip),
     color: c.close >= c.open ? UP_VOL : DOWN_VOL,
   }))
 }
@@ -416,13 +432,18 @@ export function PriceChart({
         candleSeries.current.update(lastBar)
         volHist.current?.update({
           time: last.time as UTCTimestamp,
-          value: Math.max(0, last.volume || 0),
+          value: barActivity(last, pair.pip),
           color: bull ? UP_VOL : DOWN_VOL,
         })
         prevLen.current = view.length
         lastBarTime.current = last.time
+        // Only nudge to realtime on a new bar — never refit (refit jumps the tip)
         if (newBar && chartRef.current) {
-          fitVisibleBars(chartRef.current, view.length)
+          try {
+            chartRef.current.timeScale().scrollToRealTime()
+          } catch {
+            /* ignore */
+          }
         }
         return
       } catch {
@@ -567,10 +588,17 @@ export function PriceChart({
       rsiLine.current.setData(showRsi ? toLine(rsi(overlaySrc)) : [])
     }
 
-    volHist.current?.setData(toVolumeBars(overlaySrc))
+    volHist.current?.setData(toVolumeBars(overlaySrc, pair.pip))
 
-    if ((firstPaint || newBar || overlayChanged) && chartRef.current) {
+    // Fit only on first paint / overlay change. Refitting every new bar rewinds the tip.
+    if ((firstPaint || overlayChanged) && chartRef.current) {
       fitVisibleBars(chartRef.current, view.length)
+    } else if (newBar && chartRef.current) {
+      try {
+        chartRef.current.timeScale().scrollToRealTime()
+      } catch {
+        /* ignore */
+      }
     }
   }, [candles, overlays, signalParams, pair.digits, pair.pip])
 

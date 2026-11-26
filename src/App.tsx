@@ -14,6 +14,7 @@ import {
   fetchLiveQuote,
   mergeArchiveCandles,
   mergeRemoteCandles,
+  preserveLiveTip,
   sanitizeCandles,
   type LiveQuote,
 } from './lib/liveRates'
@@ -174,6 +175,7 @@ export default function App() {
           if (data.candles?.length) {
             archive = sanitizeCandles(
               data.candles.filter((c) => c.time >= HIST_FROM_UNIX),
+              60,
             )
           }
         }
@@ -202,9 +204,11 @@ export default function App() {
         if (cancelled) return
         if (live.candles.length >= 30) {
           setCandles((prev) => {
+            const step =
+              TIMEFRAMES.find((t) => t.id === timeframe)?.seconds ?? 60
             const tip =
               initial || prev.length < 30
-                ? sanitizeCandles(live.candles)
+                ? sanitizeCandles(live.candles, step)
                 : mergeRemoteCandles(
                     live.candles,
                     prev.length > archive.length
@@ -213,8 +217,10 @@ export default function App() {
                     timeframe,
                     livePriceRef.current,
                   )
-            if (!archive.length) return tip
-            return mergeArchiveCandles(archive, tip)
+            const merged = archive.length
+              ? mergeArchiveCandles(archive, tip, step)
+              : tip
+            return preserveLiveTip(prev, merged, livePriceRef.current)
           })
           if (live.lastPrice != null && livePriceRef.current == null) {
             setLivePrice(live.lastPrice)

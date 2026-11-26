@@ -105,8 +105,10 @@ async function fetchSnapshot(
   if (timeframe === '4H') out = resample(out, 4)
   const lastPrice =
     data.lastPrice ?? (out.length ? out[out.length - 1].close : null)
+  const step = tfSeconds(timeframe)
+  out = sanitizeCandles(out, step)
   if (out.length && lastPrice != null) {
-    const last = out[out.length - 1]
+    const last = out[out.length - 1]!
     last.close = lastPrice
     last.high = Math.max(last.high, lastPrice)
     last.low = Math.min(last.low, lastPrice)
@@ -164,10 +166,11 @@ async function fetchYahooDirect(
 
   let out = candles
   if (timeframe === '4H') out = resample(candles, 4)
+  out = sanitizeCandles(out, tfSeconds(timeframe))
 
   const lastPrice =
     result?.meta?.regularMarketPrice ??
-    (out.length ? out[out.length - 1].close : null)
+    (out.length ? out[out.length - 1]!.close : null)
 
   return { candles: out.slice(-360), lastPrice, source: 'Yahoo Finance' }
 }
@@ -342,20 +345,29 @@ export async function fetchTwelveCandles(
   return { candles: candles.slice(-360), lastPrice, source: 'Twelve Data' }
 }
 
-/** Archive under live tip — live bars win on the same timestamp. */
+/** Align unix time down to the timeframe bucket (drops Yahoo fetchAt junk tips). */
+export function alignBarTime(unixSec: number, stepSec: number): number {
+  if (!(stepSec > 0) || !Number.isFinite(unixSec)) return unixSec
+  return unixSec - (unixSec % stepSec)
+}
+
+/** Archive under live tip — live bars win; never re-inject a stale/unaligned tip. */
 export function mergeArchiveCandles(
   archive: Candle[],
   live: Candle[],
+  stepSec = 60,
 ): Candle[] {
-  if (!archive.length) return sanitizeCandles(live)
-  if (!live.length) return sanitizeCandles(archive)
+  const liveClean = sanitizeCandles(live, stepSec)
+  if (!archive.length) return liveClean
+  if (!liveClean.length) return sanitizeCandles(archive, stepSec)
+  const liveLast = liveClean[liveClean.length - 1]!.time
   const byTime = new Map<number, Candle>()
-  for (const c of archive) {
-    if (!Number.isFinite(c.time)) continue
+  for (const c of sanitizeCandles(archive, stepSec)) {
+    // Keep archive strictly before the live tip bucket
+    if (c.time >= liveLast) continue
     byTime.set(c.time, c)
   }
-  for (const c of live) {
-    if (!Number.isFinite(c.time)) continue
+  for (const c of liveClean) {
     byTime.set(c.time, c)
   }
   return [...byTime.entries()]
@@ -363,11 +375,18 @@ export function mergeArchiveCandles(
     .map(([, c]) => c)
 }
 
-/** Keep ascending unique times and valid OHLC for lightweight-charts. */
-export function sanitizeCandles(candles: Candle[]): Candle[] {
+/**
+ * Keep ascending unique times and valid OHLC for lightweight-charts.
+ * Aligns to stepSec so fetchAt / quote stamps cannot create a rogue tip bar.
+ */
+export function sanitizeCandles(
+  candles: Candle[],
+  stepSec = 60,
+): Candle[] {
   const byTime = new Map<number, Candle>()
   for (const c of candles) {
     if (!Number.isFinite(c.time) || !Number.isFinite(c.close)) continue
+    const time = alignBarTime(c.time, stepSec)
     const open = Number.isFinite(c.open) ? c.open : c.close
     const close = c.close
     const high = Math.max(
@@ -376,14 +395,20 @@ export function sanitizeCandles(candles: Candle[]): Candle[] {
       Number.isFinite(c.high) ? c.high : close,
     )
     const low = Math.min(open, close, Number.isFinite(c.low) ? c.low : close)
-    byTime.set(c.time, {
-      time: c.time,
-      open,
-      high,
-      low,
-      close,
-      volume: c.volume || 0,
-    })
+    const volume = Math.max(0, c.volume || 0)
+    const prev = byTime.get(time)
+    if (prev) {
+      byTime.set(time, {
+        time,
+        open: prev.open,
+        high: Math.max(prev.high, high),
+        low: Math.min(prev.low, low),
+        close,
+        volume: Math.max(prev.volume || 0, volume),
+      })
+    } else {
+      byTime.set(time, { time, open, high, low, close, volume })
+    }
   }
   return [...byTime.entries()]
     .sort((a, b) => a[0] - b[0])
@@ -399,11 +424,29 @@ export function applyLiveTick(
   if (!candles.length || !Number.isFinite(price)) return candles
   const step = tfSeconds(timeframe)
   const now = Math.floor(Date.now() / 1000)
-  const barTime = now - (now % step)
+  const barTime = alignBarTime(now, step)
   // Avoid full sanitize on every tick — history can be 20k+ bars (Nov archive).
   const out = candles.slice()
-  const last = { ...out[out.length - 1] }
-  out[out.length - 1] = last
+  let last = { ...out[out.length - 1]! }
+  // Repair a rogue unaligned tip (Yahoo fetchAt / quote stamp) in place
+  if (last.time !== alignBarTime(last.time, step)) {
+    last = { ...last, time: alignBarTime(last.time, step) }
+    // If alignment collapses onto the previous bar, merge then drop the tip
+    if (out.length >= 2 && out[out.length - 2]!.time === last.time) {
+      const prev = out[out.length - 2]!
+      out[out.length - 2] = {
+        time: prev.time,
+        open: prev.open,
+        high: Math.max(prev.high, last.high, price),
+        low: Math.min(prev.low, last.low, price),
+        close: price,
+        volume: Math.max(prev.volume || 0, last.volume || 0) + 1,
+      }
+      out.pop()
+      return out
+    }
+    out[out.length - 1] = last
+  }
   // Never rewrite last.time backward — that duplicates the previous bar and crashes the chart.
   if (last.time < barTime) {
     out.push({
@@ -417,10 +460,24 @@ export function applyLiveTick(
     })
     return out
   }
+  // If tip is somehow ahead of "now" bucket, snap it back to the live bucket
+  if (last.time > barTime) {
+    last = {
+      time: barTime,
+      open: price,
+      high: price,
+      low: price,
+      close: price,
+      volume: Math.max(1, last.volume || 0),
+    }
+    out[out.length - 1] = last
+    return out
+  }
   last.close = price
   last.high = Math.max(last.high, price)
   last.low = Math.min(last.low, price)
   last.volume = (last.volume || 0) + 1
+  out[out.length - 1] = last
   return out
 }
 
@@ -436,20 +493,21 @@ export function mergeRemoteCandles(
 ): Candle[] {
   const step = tfSeconds(timeframe)
   const now = Math.floor(Date.now() / 1000)
-  const barTime = now - (now % step)
-  const remoteClean = sanitizeCandles(remote)
-  if (!local.length) {
+  const barTime = alignBarTime(now, step)
+  const remoteClean = sanitizeCandles(remote, step)
+  const localClean = sanitizeCandles(local, step)
+  if (!localClean.length) {
     let out = remoteClean
     if (livePrice != null) out = applyLiveTick(out, livePrice, timeframe)
     return out
   }
-  const localLast = local[local.length - 1]
+  const localLast = localClean[localClean.length - 1]!
   // リモートは「今のバーより前」だけ採用
   const hist = remoteClean.filter((c) => c.time < barTime)
   const byTime = new Map<number, Candle>()
   for (const c of hist) byTime.set(c.time, { ...c })
   // ローカルの過去バーも穴埋めに使う
-  for (const c of local) {
+  for (const c of localClean) {
     if (c.time < barTime && !byTime.has(c.time)) byTime.set(c.time, { ...c })
   }
   let out = [...byTime.entries()]
@@ -460,20 +518,22 @@ export function mergeRemoteCandles(
   const remoteForming = remoteClean.find((c) => c.time === barTime)
   let forming: Candle
   if (localForming) {
-    forming = { ...localForming }
+    // Local tip owns close/volume — remote may only widen the range / set open
+    forming = { ...localForming, time: barTime }
     if (remoteForming) {
       forming.open = remoteForming.open
       forming.high = Math.max(forming.high, remoteForming.high, forming.close)
       forming.low = Math.min(forming.low, remoteForming.low, forming.close)
-      // Keep the richer of broker tickVolume vs local tick count
-      forming.volume = Math.max(forming.volume || 0, remoteForming.volume || 0)
+      if ((remoteForming.volume || 0) > (forming.volume || 0)) {
+        forming.volume = remoteForming.volume
+      }
     }
   } else if (remoteForming) {
-    forming = { ...remoteForming }
+    forming = { ...remoteForming, time: barTime }
   } else {
     const seed =
       livePrice ??
-      (out.length ? out[out.length - 1].close : null)
+      (out.length ? out[out.length - 1]!.close : null)
     if (seed == null) return out.slice(-360)
     forming = {
       time: barTime,
@@ -493,6 +553,55 @@ export function mergeRemoteCandles(
   return out.slice(-360)
 }
 
+/**
+ * Never let a remote/archive refresh rewind the tip behind what the user
+ * already sees (or strip the live quote off the forming bar).
+ */
+export function preserveLiveTip(
+  prev: Candle[],
+  next: Candle[],
+  livePrice: number | null | undefined,
+): Candle[] {
+  if (!next.length) return next
+  if (!prev.length) {
+    if (livePrice == null || !Number.isFinite(livePrice)) return next
+    const tip = { ...next[next.length - 1]! }
+    tip.close = livePrice
+    tip.high = Math.max(tip.high, livePrice)
+    tip.low = Math.min(tip.low, livePrice)
+    return [...next.slice(0, -1), tip]
+  }
+  const p = prev[prev.length - 1]!
+  const n = next[next.length - 1]!
+  if (p.time > n.time) {
+    const base = next.filter((c) => c.time < p.time)
+    const close =
+      livePrice != null && Number.isFinite(livePrice) ? livePrice : p.close
+    base.push({
+      ...p,
+      close,
+      high: Math.max(p.high, close),
+      low: Math.min(p.low, close),
+    })
+    return base
+  }
+  if (p.time === n.time) {
+    const close =
+      livePrice != null && Number.isFinite(livePrice) ? livePrice : n.close
+    return [
+      ...next.slice(0, -1),
+      {
+        ...n,
+        close,
+        high: Math.max(n.high, p.high, close),
+        low: Math.min(n.low, p.low, close),
+        volume: Math.max(n.volume || 0, p.volume || 0),
+      },
+    ]
+  }
+  return next
+}
+
 export async function fetchLiveCandles(
   pairId: PairId,
   timeframe: Timeframe,
@@ -503,7 +612,7 @@ export async function fetchLiveCandles(
       const live = await fetchBiquoteCandles(pairId, timeframe)
       return {
         ...live,
-        candles: sanitizeCandles(live.candles),
+        candles: sanitizeCandles(live.candles, tfSeconds(timeframe)),
       }
     } catch {
       /* fall through */
