@@ -24,8 +24,8 @@ export function RulesPanel() {
           <span>
             上位SSL + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
             {SIMPLE.adxPrime} · クール{SIMPLE.entryCooldownBars}本 ·
-            目安{SIMPLE.verified.tradesPerDay}回/日 · 検証EV +
-            {SIMPLE.verified.evPips}p
+            単ペア検証 {SIMPLE.verified.tradesPerDay}回/日 EV +
+            {SIMPLE.verified.evPips}p · 6FXブックで目安10回/日
           </span>
         </li>
         <li>

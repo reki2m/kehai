@@ -1,4 +1,5 @@
 import type { HistTradeSummary } from '../lib/histTrades'
+import { expectedBookPace } from '../lib/peakBook'
 import { SIMPLE } from '../lib/simpleSignal'
 
 interface Props {
@@ -23,13 +24,14 @@ function fmtTime(unix: number): string {
 
 export function HistPerformancePanel({ summary, loading }: Props) {
   const recent = summary?.trades.slice(-12).reverse() ?? []
+  const book = expectedBookPace()
 
   return (
     <section className="hist-perf" aria-label="過去トレード成績">
       <div className="hist-perf-head">
         <h2>過去成績</h2>
         <p className="hist-perf-lead">
-          11月〜 Yahoo M1 · Peak Edge · ATR決済シミュ（0.2p・1本のみ）
+          表示ペアの11月〜 Yahoo M1 · Peak Edge · ATR決済シミュ
         </p>
       </div>
 
@@ -43,6 +45,12 @@ export function HistPerformancePanel({ summary, loading }: Props) {
         <span className={SIMPLE.verified.netPips >= 0 ? 'up' : 'down'}>
           {fmtPips(SIMPLE.verified.netPips)}
         </span>
+      </div>
+      <div className="hist-perf-verified book">
+        <span>6FXブック想定</span>
+        <span>{book.tradesPerDay.toFixed(1)}回/日</span>
+        <span className="up">EV {fmtPips(book.evPips)}</span>
+        <span className="up">日次約{fmtPips(book.dailyEdge)}</span>
       </div>
 
       {loading && <p className="hist-perf-empty">集計中…</p>}

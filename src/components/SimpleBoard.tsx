@@ -175,8 +175,8 @@ export function SimpleBoard({
           READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
-          Peak Edge · 質優先 · 目安{SIMPLE.verified.tradesPerDay}回/日 ·
-          枠外は ADX≥{SIMPLE.adxPrime} の推奨
+          Peak Edge · 質優先 · 単ペア約{SIMPLE.verified.tradesPerDay}
+          回/日 · 6FXブックで目安10回 · 枠外 ADX≥{SIMPLE.adxPrime} 推奨
         </li>
         <li>
           損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /

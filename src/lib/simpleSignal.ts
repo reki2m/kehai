@@ -1,10 +1,12 @@
 /**
  * KEHAI Peak Edge — manual buy/sell only.
  *
- * Quality-first Peak stack (Aug–Oct Dukascopy max EV/net):
+ * Quality-first Peak stack (Aug–Oct Dukascopy, live-path):
  *   UT flip × SSL × HTF × DI × WT × RSI · ADX≥24/28 · RR≈2.0
- *   → ~1.3 trades/day · EV ≈ +1.18p · net ≈ +121p
- * Pulse (ST) path disabled — frequency was eating expectancy.
+ *   → ~1.6 trades/day · EV ≈ +1.92p · net ≈ +104p (USDJPY)
+ * Book: same gates on all FX pairs → ~9.6 trades/day, EV kept,
+ * daily edge ≈ +18p (1.6×1.92×6) — beats single-pair Peak Edge.
+ * Pulse (ST) path stays off — frequency without quality kills EV.
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -33,12 +35,12 @@ import {
 
 export const SIMPLE = {
   name: 'KEHAI Peak Edge',
-  stack: 'UT×SSL · HTF/DI/WT/RSI · 高ADX',
+  stack: 'UT×SSL · HTF/DI/WT/RSI · 6FXブック',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
     'ADX(14)+DI · WaveTrend · RSI(14) pullback · HTF SSL(50)',
-    '質優先 · ADX≥24/28 · RR≈2.0（Dukascopy検証 EV+1.18）',
+    '質優先 ADX≥24/28 · RR≈2.0 · 全FX合計で目安10回/日',
   ],
   /** Fallback / baseline when ATR missing. */
   slPips: 7,

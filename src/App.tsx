@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
+import { BookPanel } from './components/BookPanel'
 import { HistPerformancePanel } from './components/HistPerformancePanel'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
@@ -20,6 +21,10 @@ import {
   type LiveQuote,
 } from './lib/liveRates'
 import { simulateHistTrades } from './lib/histTrades'
+import {
+  scanPeakBook,
+  type BookScanResult,
+} from './lib/peakBook'
 import {
   HIST_FROM_UNIX,
   listHistoricalSignals,
@@ -120,6 +125,8 @@ export default function App() {
   const [statsRange, setStatsRange] = useState<14 | 0>(14)
   const [slipInput, setSlipInput] = useState('0.2')
   const [otherPnl, setOtherPnl] = useState('')
+  const [book, setBook] = useState<BookScanResult | null>(null)
+  const [bookLoading, setBookLoading] = useState(false)
   const lastSpokenBar = useRef<number | null>(null)
   const lastEntryKey = useRef<string | null>(null)
   const lastReadyKey = useRef<string | null>(null)
@@ -454,6 +461,27 @@ export default function App() {
     if (candles.length < 80 || histSignals.length === 0) return null
     return simulateHistTrades(candles, histSignals, pair)
   }, [candles, histSignals, pair])
+
+  useEffect(() => {
+    let cancelled = false
+    async function scan() {
+      setBookLoading(true)
+      try {
+        const res = await scanPeakBook(stats.disabledSessions)
+        if (!cancelled) setBook(res)
+      } catch {
+        if (!cancelled) setBook(null)
+      } finally {
+        if (!cancelled) setBookLoading(false)
+      }
+    }
+    void scan()
+    const id = window.setInterval(() => void scan(), 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [stats.disabledSessions])
 
   const signal = useMemo(() => {
     if (!inPosition) return raw
@@ -1028,6 +1056,12 @@ export default function App() {
             changePct={changePct}
             pair={pair}
             inPosition={inPosition}
+          />
+          <BookPanel
+            book={book}
+            loading={bookLoading}
+            activePair={pairId}
+            onSelectPair={setPairId}
           />
           <HistPerformancePanel summary={histPerf} />
           <SessionStatsPanel

@@ -1197,11 +1197,115 @@
   margin-top: 0.25rem;
 }
 
+.book-panel {
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+}
+
+.book-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+}
+
+.book-lead,
+.book-empty,
+.book-reason {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.88;
+  line-height: 1.45;
+}
+
+.book-verified {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid rgba(94, 234, 212, 0.22);
+  background: rgba(94, 234, 212, 0.06);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.book-rows {
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.book-row {
+  border: 1px solid rgba(214, 228, 232, 0.08);
+}
+
+.book-row.active {
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.book-row-btn {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.book-row-top,
+.book-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: baseline;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-row-meta {
+  margin-top: 0.15rem;
+  opacity: 0.8;
+  font-size: 0.7rem;
+}
+
+.book-grade {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.book-panel .up {
+  color: var(--sea);
+}
+
+.book-panel .down {
+  color: var(--coral);
+}
+
 .hist-perf {
   padding: 0.9rem 1rem 1rem;
   border: 1px solid var(--line);
   background: var(--panel);
   backdrop-filter: blur(10px);
+}
+
+.hist-perf-verified.book {
+  border-color: rgba(255, 214, 102, 0.28);
+  background: rgba(255, 214, 102, 0.06);
 }
 
 .hist-perf-head h2 {
