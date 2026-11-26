@@ -15,18 +15,17 @@ export function RulesPanel() {
         <li>
           <strong>サイン</strong>
           <span>
-            二系統: UTフリップ または Supertrendフリップ ＋ SSL → BUY /
-            SELL。確認済みでUTまで{SIMPLE.readyPips}
-            p以内なら READY（まだ入らない）
+            UTフリップ ＋ SSL確認 → BUY / SELL。確認済みでUTまで
+            {SIMPLE.readyPips}p以内なら READY（まだ入らない）
           </span>
         </li>
         <li>
           <strong>品質ゲート</strong>
           <span>
-            UT系: 上位SSL + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
-            {SIMPLE.adxPrime} · ST系: 上位SSL + DI + WT · ADX≥
-            {SIMPLE.adxPulse}/{SIMPLE.adxPulseOff} · 目安10回/日前後 ·
-            クール{SIMPLE.entryCooldownBars}本
+            上位SSL + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
+            {SIMPLE.adxPrime} · クール{SIMPLE.entryCooldownBars}本 ·
+            目安{SIMPLE.verified.tradesPerDay}回/日 · 検証EV +
+            {SIMPLE.verified.evPips}p
           </span>
         </li>
         <li>

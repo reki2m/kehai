@@ -1,6 +1,6 @@
 /**
- * Replay KEHAI Peak Pulse entries across candle history (from a unix cutoff).
- * Same dual stack as evaluateSimple: UT path + Supertrend-flip path.
+ * Replay KEHAI Peak Edge entries across candle history (from a unix cutoff).
+ * Same stack as evaluateSimple: UT Peak path (Pulse optional / off by default).
  */
 
 import {
@@ -200,7 +200,7 @@ export function listHistoricalSignals(
 
     const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
     const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
-    // Path A: UT — ST not required (Pulse)
+    // Path A: UT Peak Edge
     if (buy && !htfLong) buy = false
     if (sell && !htfShort) sell = false
     if (buy && !diLong) buy = false
@@ -235,8 +235,14 @@ export function listHistoricalSignals(
       }
     }
 
-    // Path B: Supertrend flip fill (SSL only + HTF/DI/WT)
-    if (!buy && !sell && adxVal && adxVal.adx >= adxPulseFloor) {
+    // Path B: Supertrend pulse (off on Peak Edge)
+    if (
+      SIMPLE.pulseEnabled &&
+      !buy &&
+      !sell &&
+      adxVal &&
+      adxVal.adx >= adxPulseFloor
+    ) {
       let stBuy = stFlipLong && sslLong
       let stSell = stFlipShort && sslShort
       if (stBuy && !htfLong) stBuy = false

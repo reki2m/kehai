@@ -22,7 +22,7 @@ const payload = {
   timeframe: '1m',
   from: HIST_FROM_UNIX,
   count: signals.length,
-  stack: 'peak_pulse_ten_degree',
+  stack: 'peak_edge',
   params: {
     adxMin: SIMPLE.adxMin,
     adxPrime: SIMPLE.adxPrime,

@@ -1,11 +1,10 @@
 /**
- * KEHAI Peak Pulse — manual buy/sell only.
+ * KEHAI Peak Edge — manual buy/sell only.
  *
- * Dual stack tuned for ~10 trades/day (degree, not exact) with +EV
- * on Aug–Oct Dukascopy (peak+ST ADX15/19 · WT · cool 5 → ~9.6/日 EV+0.18):
- *   A) UT flip × SSL × HTF × DI × WT × RSI  (Peak)
- *   B) Supertrend flip × SSL × HTF × DI × WT (Pulse ADX 15/19)
- * Risk: ATR-hybrid SL/TP · one position · entry cooldown bars
+ * Quality-first Peak stack (Aug–Oct Dukascopy max EV/net):
+ *   UT flip × SSL × HTF × DI × WT × RSI · ADX≥24/28 · RR≈2.0
+ *   → ~1.3 trades/day · EV ≈ +1.18p · net ≈ +121p
+ * Pulse (ST) path disabled — frequency was eating expectancy.
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -33,36 +32,37 @@ import {
 } from './apex'
 
 export const SIMPLE = {
-  name: 'KEHAI Peak Pulse',
-  stack: 'UT×SSL + STフリップ · HTF/DI/WT',
+  name: 'KEHAI Peak Edge',
+  stack: 'UT×SSL · HTF/DI/WT/RSI · 高ADX',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
-    'Supertrend flip path · ADX(14)+DI · WaveTrend · RSI(14) pullback',
-    'HTF SSL(50) · ATR risk · 目安10回/日前後（Dukascopy検証）',
+    'ADX(14)+DI · WaveTrend · RSI(14) pullback · HTF SSL(50)',
+    '質優先 · ADX≥24/28 · RR≈2.0（Dukascopy検証 EV+1.18）',
   ],
   /** Fallback / baseline when ATR missing. */
   slPips: 7,
-  tpPips: 10,
+  tpPips: 14,
   /** ATR-hybrid risk: SL = clamp(ATR×mult), TP = clamp(SL×rr). */
-  slAtrMult: 1.1,
-  slMin: 6,
+  slAtrMult: 1.0,
+  slMin: 7,
   slMax: 10,
-  tpRr: 1.45,
-  tpMin: 9,
-  tpMax: 14,
+  tpRr: 2.0,
+  tpMin: 12,
+  tpMax: 18,
   maxHoldBars: 45,
   /** Bars to wait after an entry signal before another (hist + fills). */
   entryCooldownBars: 5,
   /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
   /** UT path ADX floor in JST 12–0. */
-  adxMin: 18,
-  /** UT path off-window 推奨 ADX floor. */
-  adxPrime: 22,
-  /** Supertrend-flip path ADX (noon / off) — ~10/日帯の検証値. */
-  adxPulse: 15,
-  adxPulseOff: 19,
+  adxMin: 24,
+  /** UT path off-window / 推奨 ADX floor. */
+  adxPrime: 28,
+  /** Supertrend path disabled (kept for UI labels / future). */
+  pulseEnabled: false,
+  adxPulse: 99,
+  adxPulseOff: 99,
   /** Soft block leftover. */
   wtAgainstAbs: 55,
   /** Skip lifeless tape. */
@@ -83,10 +83,10 @@ export const SIMPLE = {
    */
   verified: {
     period: '2026-08〜10 Dukascopy',
-    tradesPerDay: 9.0,
-    winRate: 43.1,
-    evPips: 0.04,
-    netPips: 26.8,
+    tradesPerDay: 1.6,
+    winRate: 48.1,
+    evPips: 1.92,
+    netPips: 103.7,
   },
 } as const
 
@@ -324,7 +324,7 @@ export function evaluateSimple(
     rsiVal.value >= SIMPLE.rsiShortLo &&
     rsiVal.value <= SIMPLE.rsiShortHi
 
-  // Path A — UT Peak Pulse (ST not hard-required; keeps ~4/日 quality)
+  // Path A — UT Peak Edge (high ADX · full confirms)
   let qualityBlock: string | null = null
   if ((buy || sell) && !edgeOk) {
     qualityBlock = 'セッション端（見送り）'
@@ -364,8 +364,14 @@ export function evaluateSimple(
     sell = false
   }
 
-  // Path B — Supertrend flip (SSL only + HTF/DI/WT; session EMA/VWAP not required)
-  if (!buy && !sell && filtersOk && adxPulseOk) {
+  // Path B — Supertrend pulse (disabled on Peak Edge — frequency hurt EV)
+  if (
+    SIMPLE.pulseEnabled &&
+    !buy &&
+    !sell &&
+    filtersOk &&
+    adxPulseOk
+  ) {
     let stBuy = stFlipLong && sslLong
     let stSell = stFlipShort && sslShort
     if (stBuy && !htfLong) stBuy = false

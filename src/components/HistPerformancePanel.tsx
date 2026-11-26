@@ -29,7 +29,7 @@ export function HistPerformancePanel({ summary, loading }: Props) {
       <div className="hist-perf-head">
         <h2>過去成績</h2>
         <p className="hist-perf-lead">
-          11月〜 Yahoo M1 · ATR決済シミュ（0.2p・1本のみ）
+          11月〜 Yahoo M1 · Peak Edge · ATR決済シミュ（0.2p・1本のみ）
         </p>
       </div>
 
