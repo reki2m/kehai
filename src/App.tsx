@@ -952,27 +952,28 @@ export default function App() {
             <h1>
               {pair.label}
               <span className="tf-chip">
-                {timeframe} · {SIMPLE.stack}
+                {timeframe} · Peak
               </span>
             </h1>
-            <p className="sample-note" title={[
-              sourceLabel,
-              signal.sessionLabel ?? 'セッション外',
-              histSignals.length > 0
-                ? `過去サイン ${histSignals.length}（11月〜）`
-                : null,
-              liveError,
-            ].filter(Boolean).join(' · ')}>
-              <span className="sample-note-main">
-                {sourceLabel}
-                {' · '}
-                {signal.sessionLabel ?? 'セッション外'}
-              </span>
-              {histSignals.length > 0 ? (
-                <span className="sample-note-hist">
-                  {' · '}過去サイン {histSignals.length}（11月〜）
-                </span>
-              ) : null}
+            <p
+              className="sample-note"
+              title={[
+                sourceLabel,
+                signal.sessionLabel ?? 'セッション外',
+                histSignals.length > 0
+                  ? `過去サイン ${histSignals.length}（11月〜）`
+                  : null,
+                liveError,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            >
+              {sourceLabel}
+              {' · '}
+              {signal.sessionLabel ?? 'セッション外'}
+              {histSignals.length > 0
+                ? ` · 過去 ${histSignals.length}`
+                : ''}
             </p>
           </div>
           {candles.length >= 30 ? (

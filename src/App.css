@@ -197,7 +197,6 @@
   gap: 0.75rem;
   min-height: clamp(360px, 58vh, 680px);
   padding: 0.25rem;
-  animation: chart-rise 1000ms var(--ease) 160ms both;
 }
 
 .hero-signal .simple-board {
@@ -213,6 +212,8 @@
 
 .hero-chart {
   position: relative;
+  /* Fixed height band — prevents meta/chart from shoving each other vertically */
+  height: clamp(420px, 68vh, 760px);
   min-height: clamp(420px, 68vh, 760px);
   display: flex;
   flex-direction: column;
@@ -221,30 +222,22 @@
     linear-gradient(180deg, rgba(94, 234, 212, 0.03), transparent 28%),
     rgba(6, 20, 26, 0.35);
   overflow: hidden;
-  animation: chart-rise 1000ms var(--ease) 160ms both;
-}
-
-@keyframes chart-rise {
-  from {
-    opacity: 0;
-    clip-path: inset(8% 0 0 0);
-  }
-  to {
-    opacity: 1;
-    clip-path: inset(0);
-  }
+  /* No chart-rise clip-path — that animation made the whole panel slide vertically */
 }
 
 .chart-meta {
-  /* Always stacked — never flip beside/below the pair title (that reflows the chart) */
+  /* Always stacked under the pair title; locked height so the chart never jumps */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
-  padding: 0.9rem 1rem 0.45rem;
-  flex-shrink: 0;
-  min-height: 3.35rem;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem 0.4rem;
+  flex: 0 0 3.5rem;
+  height: 3.5rem;
+  max-height: 3.5rem;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .chart-meta h1 {
@@ -257,18 +250,23 @@
   align-items: center;
   gap: 0.65rem;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .tf-chip {
   font-size: 0.72rem;
   color: var(--gold);
   letter-spacing: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sample-note {
   margin: 0;
   width: 100%;
-  min-height: 1.1rem;
+  height: 1.05rem;
+  line-height: 1.05rem;
   font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.02em;
@@ -382,9 +380,11 @@
 }
 
 .chart-host {
-  flex: 1;
-  min-height: 360px;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
+  /* Occupy remaining hero height exactly — ResizeObserver won't chase meta reflow */
+  height: calc(100% - 3.5rem);
 }
 
 .side-stack {
@@ -1733,6 +1733,7 @@
   }
 
   .hero-chart {
+    height: 52vh;
     min-height: 52vh;
   }
 
