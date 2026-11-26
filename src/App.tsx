@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
+import { HistPerformancePanel } from './components/HistPerformancePanel'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
@@ -18,6 +19,7 @@ import {
   sanitizeCandles,
   type LiveQuote,
 } from './lib/liveRates'
+import { simulateHistTrades } from './lib/histTrades'
 import {
   HIST_FROM_UNIX,
   listHistoricalSignals,
@@ -447,6 +449,12 @@ export default function App() {
     // candles read intentionally; invalidate on bar time / length only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [archiveSignals, lastCandleTime, pair, candles.length])
+
+  const histPerf = useMemo(() => {
+    if (candles.length < 80 || histSignals.length === 0) return null
+    return simulateHistTrades(candles, histSignals, pair)
+  }, [candles, histSignals, pair])
+
   const signal = useMemo(() => {
     if (!inPosition) return raw
     return {
@@ -1021,6 +1029,7 @@ export default function App() {
             pair={pair}
             inPosition={inPosition}
           />
+          <HistPerformancePanel summary={histPerf} />
           <SessionStatsPanel
             stats={stats}
             rangeDays={statsRange}

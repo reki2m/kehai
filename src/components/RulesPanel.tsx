@@ -25,7 +25,8 @@ export function RulesPanel() {
           <span>
             UT系: 上位SSL + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
             {SIMPLE.adxPrime} · ST系: 上位SSL + DI + WT · ADX≥
-            {SIMPLE.adxPulse}/{SIMPLE.adxPulseOff} · 目安 ~8–9回/日
+            {SIMPLE.adxPulse}/{SIMPLE.adxPulseOff} · 目安10回/日前後 ·
+            クール{SIMPLE.entryCooldownBars}本
           </span>
         </li>
         <li>

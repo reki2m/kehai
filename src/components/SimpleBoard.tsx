@@ -175,8 +175,8 @@ export function SimpleBoard({
           READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
         </li>
         <li>
-          Pulse · UT/ST二系統 · 目安8–9回/日 · 枠外は ADX≥{SIMPLE.adxPrime}{' '}
-          の推奨
+          Pulse · UT/ST二系統 · 目安10回/日前後 · 枠外は ADX≥
+          {SIMPLE.adxPrime} の推奨
         </li>
         <li>
           損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /

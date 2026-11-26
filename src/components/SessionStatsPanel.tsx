@@ -129,10 +129,10 @@ export function SessionStatsPanel({
           </label>
           <div className="session-close-btns">
             <button type="button" onClick={() => onClose('TP')}>
-              TP +10
+              TP +{stats.open.tpPips ?? 10}
             </button>
             <button type="button" onClick={() => onClose('SL')}>
-              SL −7
+              SL −{stats.open.slPips ?? 7}
             </button>
           </div>
           <label className="session-field">

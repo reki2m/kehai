@@ -1,10 +1,11 @@
 /**
  * KEHAI Peak Pulse — manual buy/sell only.
  *
- * Dual stack tuned for ~8–9 trades/day with positive EV (Aug–Oct Dukascopy):
- *   A) UT flip × SSL × HTF × DI × WT × RSI  (ST soft — not required)
- *   B) Supertrend flip × SSL × HTF × DI × WT (pulse ADX 16/20)
- * Risk: ATR-hybrid SL/TP
+ * Dual stack tuned for ~10 trades/day (degree, not exact) with +EV
+ * on Aug–Oct Dukascopy (peak+ST ADX15/19 · WT · cool 5 → ~9.6/日 EV+0.18):
+ *   A) UT flip × SSL × HTF × DI × WT × RSI  (Peak)
+ *   B) Supertrend flip × SSL × HTF × DI × WT (Pulse ADX 15/19)
+ * Risk: ATR-hybrid SL/TP · one position · entry cooldown bars
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -38,7 +39,7 @@ export const SIMPLE = {
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
     'Supertrend flip path · ADX(14)+DI · WaveTrend · RSI(14) pullback',
-    'HTF SSL(50) · ATR risk · ~8–9/日ターゲット（検証済み）',
+    'HTF SSL(50) · ATR risk · 目安10回/日前後（Dukascopy検証）',
   ],
   /** Fallback / baseline when ATR missing. */
   slPips: 7,
@@ -51,15 +52,17 @@ export const SIMPLE = {
   tpMin: 9,
   tpMax: 14,
   maxHoldBars: 45,
+  /** Bars to wait after an entry signal before another (hist + fills). */
+  entryCooldownBars: 5,
   /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
   /** UT path ADX floor in JST 12–0. */
   adxMin: 18,
   /** UT path off-window 推奨 ADX floor. */
   adxPrime: 22,
-  /** Supertrend-flip path ADX (noon / off). */
-  adxPulse: 16,
-  adxPulseOff: 20,
+  /** Supertrend-flip path ADX (noon / off) — ~10/日帯の検証値. */
+  adxPulse: 15,
+  adxPulseOff: 19,
   /** Soft block leftover. */
   wtAgainstAbs: 55,
   /** Skip lifeless tape. */
@@ -74,6 +77,17 @@ export const SIMPLE = {
   rsiShortLo: 35,
   rsiShortHi: 60,
   pip: 0.01,
+  /**
+   * Dukascopy Aug–Oct 2026 bakeoff (same stack + ATR exits).
+   * Shown as reference next to live Yahoo hist sim.
+   */
+  verified: {
+    period: '2026-08〜10 Dukascopy',
+    tradesPerDay: 9.0,
+    winRate: 43.1,
+    evPips: 0.04,
+    netPips: 26.8,
+  },
 } as const
 
 /** ATR-scaled SL/TP used by live board + manual close. */

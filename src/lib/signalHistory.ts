@@ -106,12 +106,12 @@ export function listHistoricalSignals(
   const wt2Map = mapByTime(wt2)
   const htfMap = sslByLen.get(SIMPLE.htfSslLen)!
 
-  let lastSignalIndex = -999
+  let lastSignalIndex = -9999
 
   for (let i = 1; i < candles.length; i++) {
     const c = candles[i]
     if (c.time < fromUnix) continue
-    if (i === lastSignalIndex) continue
+    if (i - lastSignalIndex < SIMPLE.entryCooldownBars) continue
 
     const fxSession =
       !pair || pair.kind === 'fx' ? detectFxSession(c.time) : null
