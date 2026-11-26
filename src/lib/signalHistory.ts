@@ -1,6 +1,6 @@
 /**
- * Replay KEHAI Simple Pro entries across candle history (from a unix cutoff).
- * Same core as evaluateSimple: UT flip × SSL + session EMA/VWAP + quality gates.
+ * Replay KEHAI Peak entries across candle history (from a unix cutoff).
+ * Same stack as evaluateSimple: UT×SSL×ST + HTF/DI/WT/RSI.
  */
 
 import {
@@ -16,8 +16,10 @@ import {
   adx,
   atr,
   ema,
+  rsi,
   sessionVwap,
   sslDirection,
+  supertrendDirection,
   utBotTrail,
   wavetrend,
 } from './indicators'
@@ -29,7 +31,7 @@ export interface HistSignal {
   time: number
   side: 'BUY' | 'SELL'
   price: number
-  /** DI + ADX≥prime + WT agree + HTF SSL. */
+  /** Off-window or ADX≥prime. */
   prime?: boolean
   grade?: 'S' | 'A' | 'B' | 'C'
 }
@@ -53,28 +55,23 @@ export function listHistoricalSignals(
   const pip = pair?.pip ?? SIMPLE.pip
   const out: HistSignal[] = []
 
-  // Precompute with a mid session default; per-bar we re-read direction at that bar's knobs.
-  // UT/SSL lengths differ by session — compute the three profiles once.
   const profiles = [
     SESSION_PROFILES.tokyo,
     SESSION_PROFILES.london,
     SESSION_PROFILES.ny,
   ] as const
 
-  const utByProfile = new Map<
-    string,
-    { dir: Map<number, number>; trail: Map<number, number> }
-  >()
+  const utByProfile = new Map<string, Map<number, number>>()
   const sslByLen = new Map<number, Map<number, number>>()
 
   for (const p of profiles) {
     const key = `${p.utKey}/${p.utAtr}`
     if (!utByProfile.has(key)) {
-      const { direction, trail } = utBotTrail(candles, p.utKey, p.utAtr)
-      utByProfile.set(key, {
-        dir: new Map(direction.map((d) => [d.time, d.value])),
-        trail: new Map(trail.map((d) => [d.time, d.value])),
-      })
+      const { direction } = utBotTrail(candles, p.utKey, p.utAtr)
+      utByProfile.set(
+        key,
+        new Map(direction.map((d) => [d.time, d.value])),
+      )
     }
     if (!sslByLen.has(p.sslLen)) {
       sslByLen.set(
@@ -97,6 +94,10 @@ export function listHistoricalSignals(
   const ema55Map = mapByTime(ema(candles, 55))
   const adxMap = mapByTime(adx(candles, 14))
   const atrMap = mapByTime(atr(candles, 14))
+  const rsiMap = mapByTime(rsi(candles, 14))
+  const stMap = mapByTime(
+    supertrendDirection(candles, SIMPLE.stPeriod, SIMPLE.stMult),
+  )
   const { wt1, wt2 } = wavetrend(candles, 10, 21)
   const wt1Map = mapByTime(wt1)
   const wt2Map = mapByTime(wt2)
@@ -107,18 +108,16 @@ export function listHistoricalSignals(
   for (let i = 1; i < candles.length; i++) {
     const c = candles[i]
     if (c.time < fromUnix) continue
-    // Same-bar only — consecutive flips can fire (manual companion wants more chances)
     if (i === lastSignalIndex) continue
 
     const fxSession =
       !pair || pair.kind === 'fx' ? detectFxSession(c.time) : null
     const noonOk =
       !pair || pair.kind === 'fx' ? isNoonSignalWindow(c.time) : true
-    // Off-band weekdays still evaluate with Tokyo knobs for 推奨
     const profile = fxSession
       ? SESSION_PROFILES[fxSession]
       : !pair || pair.kind === 'fx'
-        ? SESSION_PROFILES.tokyo
+        ? SESSION_PROFILES.london
         : null
     if (!profile) continue
 
@@ -129,13 +128,13 @@ export function listHistoricalSignals(
     const requireEma = profile.requireEma
     const maxSpread = profile.maxSpread
 
-    const utPack = utByProfile.get(`${utKey}/${utAtr}`)
+    const utMap = utByProfile.get(`${utKey}/${utAtr}`)
     const sslMap = sslByLen.get(sslLen)
-    if (!utPack || !sslMap) continue
+    if (!utMap || !sslMap) continue
 
     const prev = candles[i - 1]
-    const ut = utPack.dir.get(c.time)
-    const utPrev = utPack.dir.get(prev.time)
+    const ut = utMap.get(c.time)
+    const utPrev = utMap.get(prev.time)
     if (ut == null || utPrev == null) continue
 
     const ssl = sslMap.get(c.time)
@@ -169,6 +168,9 @@ export function listHistoricalSignals(
     const htf = htfMap.get(c.time)
     const htfLong = htf != null && htf > 0
     const htfShort = htf != null && htf < 0
+    const st = stMap.get(c.time)?.value
+    const stLong = st != null && st > 0
+    const stShort = st != null && st < 0
     const e21 = ema21Map.get(c.time)?.value
     const e55 = ema55Map.get(c.time)?.value
     const emaLong = !requireEma || (!!e21 && !!e55 && e21 > e55)
@@ -185,38 +187,58 @@ export function listHistoricalSignals(
     let buy = utFlipLong && confirmLong
     let sell = utFlipShort && confirmShort
 
+    const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
     const adxVal = adxMap.get(c.time)
-    const adxOk = !adxVal || adxVal.adx >= SIMPLE.adxMin
-    if ((buy || sell) && !adxOk) {
+    if (!adxVal || adxVal.adx < adxFloor) {
       buy = false
       sell = false
     }
 
+    const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
+    const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
+    if (buy && !htfLong) buy = false
+    if (sell && !htfShort) sell = false
+    if (buy && !diLong) buy = false
+    if (sell && !diShort) sell = false
+    if (buy && !stLong) buy = false
+    if (sell && !stShort) sell = false
+
     const w1 = wt1Map.get(c.time)?.value
     const w2 = wt2Map.get(c.time)?.value
-    let wtAgreeLong = false
-    let wtAgreeShort = false
-    if (w1 != null && w2 != null) {
-      const wtAbs = Math.abs(w1)
-      wtAgreeLong = w1 > w2
-      wtAgreeShort = w1 < w2
-      if (buy && w1 < w2 && wtAbs >= SIMPLE.wtAgainstAbs) buy = false
-      if (sell && w1 > w2 && wtAbs >= SIMPLE.wtAgainstAbs) sell = false
+    if (w1 == null || w2 == null) {
+      buy = false
+      sell = false
+    } else {
+      if (buy && !(w1 > w2)) buy = false
+      if (sell && !(w1 < w2)) sell = false
+    }
+
+    const rv = rsiMap.get(c.time)?.value
+    if (rv == null) {
+      buy = false
+      sell = false
+    } else {
+      if (
+        buy &&
+        !(rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi)
+      ) {
+        buy = false
+      }
+      if (
+        sell &&
+        !(rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi)
+      ) {
+        sell = false
+      }
     }
 
     if (!buy && !sell) continue
 
-    const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
-    const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
     const side: 'BUY' | 'SELL' = buy ? 'BUY' : 'SELL'
     const prime =
-      !!adxVal &&
-      adxVal.adx >= SIMPLE.adxPrime &&
-      ((side === 'BUY' && diLong && wtAgreeLong && htfLong) ||
-        (side === 'SELL' && diShort && wtAgreeShort && htfShort))
-    // Off-noon: 推奨 only
-    if (!noonOk && !prime) continue
-    const grade = prime ? (adxVal && adxVal.adx >= 25 ? 'S' : 'A') : 'B'
+      !noonOk || (!!adxVal && adxVal.adx >= SIMPLE.adxPrime)
+    const grade =
+      prime && adxVal && adxVal.adx >= 25 ? 'S' : prime ? 'A' : 'A'
 
     out.push({ time: c.time, side, price, prime, grade })
     lastSignalIndex = i
