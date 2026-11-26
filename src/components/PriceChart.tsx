@@ -52,8 +52,8 @@ const DOWN = '#EF5350'
 const UP_VOL = 'rgba(38, 166, 154, 0.55)'
 const DOWN_VOL = 'rgba(239, 83, 80, 0.55)'
 
-/** ~1.5h of M1 — matches typical TradingView scalp zoom. */
-const VISIBLE_BARS = 90
+/** Fewer bars on a tall PC pane → fat readable M1 bodies (≈50–55 min). */
+const VISIBLE_BARS = 52
 
 /** Overlays must not drive the Y-axis. */
 const OVERLAY_SCALE = {
@@ -189,8 +189,8 @@ export function PriceChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(148, 185, 198, 0.14)',
-        // Main pane leaves ~28% for volume — TradingView-style split
-        scaleMargins: { top: 0.04, bottom: 0.28 },
+        // Slim volume strip — give candles most of the vertical room on PC
+        scaleMargins: { top: 0.02, bottom: 0.16 },
         autoScale: true,
         minimumWidth: 72,
         entireTextOnly: true,
@@ -199,9 +199,9 @@ export function PriceChart({
         borderColor: 'rgba(148, 185, 198, 0.14)',
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 4,
-        barSpacing: 9,
-        minBarSpacing: 5,
+        rightOffset: 3,
+        barSpacing: 16,
+        minBarSpacing: 10,
         shiftVisibleRangeOnNewBar: true,
         fixLeftEdge: false,
         fixRightEdge: true,
@@ -307,7 +307,7 @@ export function PriceChart({
       base: 0,
     })
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.76, bottom: 0.02 },
+      scaleMargins: { top: 0.86, bottom: 0.02 },
       borderVisible: false,
       entireTextOnly: true,
     })
