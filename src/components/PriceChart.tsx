@@ -166,7 +166,7 @@ export function PriceChart({
       zOrder: 'top',
     })
 
-    // No series titles / last-value badges — they cover candles on the right.
+    // No series titles / last-value badges — they cover the M1 candles on the right.
     utUp.current = chart.addSeries(LineSeries, {
       color: 'rgba(94, 234, 212, 0.85)',
       lineWidth: 2,

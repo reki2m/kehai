@@ -129,14 +129,14 @@ export function SimpleBoard({
           </ul>
         )}
 
-        <div className="rate-board" aria-label="売り値と買い値">
-          <div className="rate-side rate-bid">
-            <span className="rate-label">売り値</span>
-            <span className="rate-num">{bid}</span>
-          </div>
+        <div className="rate-board" aria-label="買い値と売り値">
           <div className="rate-side rate-ask">
             <span className="rate-label">買い値</span>
             <span className="rate-num">{ask}</span>
+          </div>
+          <div className="rate-side rate-bid">
+            <span className="rate-label">売り値</span>
+            <span className="rate-num">{bid}</span>
           </div>
         </div>
         <p className="rate-mid">
