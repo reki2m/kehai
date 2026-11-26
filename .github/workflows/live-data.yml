@@ -32,6 +32,8 @@ jobs:
           mkdir -p public/live
           node scripts/fetch_live.mjs
           node scripts/fetch_news.mjs
+          # Prevent Vercel from treating this JSON branch as a Vite app
+          printf '%s\n' '{"git":{"deploymentEnabled":false}}' > public/live/vercel.json
       - name: Publish to live-data branch
         uses: peaceiris/actions-gh-pages@v4
         with:
