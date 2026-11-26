@@ -55,6 +55,33 @@ function toLine(pts: { time: number; value: number }[]): LineData<Time>[] {
   }))
 }
 
+function toVolumeBars(bars: Candle[]): HistogramData<Time>[] {
+  return bars.map((c) => ({
+    time: c.time as UTCTimestamp,
+    value: Math.max(0, c.volume || 0),
+    color:
+      c.close >= c.open
+        ? 'rgba(94, 234, 212, 0.55)'
+        : 'rgba(240, 113, 103, 0.55)',
+  }))
+}
+
+/** How many M1 bars fill the viewport — larger = fatter candles. */
+const VISIBLE_BARS = 72
+
+function fitVisibleBars(chart: IChartApi, barCount: number): void {
+  if (barCount <= 0) return
+  const from = Math.max(-0.5, barCount - VISIBLE_BARS)
+  try {
+    chart.timeScale().setVisibleLogicalRange({
+      from,
+      to: barCount + 2,
+    })
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Overlays must not drive the Y-axis — that was a main source of jitter. */
 const OVERLAY_SCALE = {
   priceLineVisible: false,
@@ -136,6 +163,7 @@ export function PriceChart({
   const macdLine = useRef<ISeriesApi<'Line'> | null>(null)
   const macdSignal = useRef<ISeriesApi<'Line'> | null>(null)
   const rsiLine = useRef<ISeriesApi<'Line'> | null>(null)
+  const volHist = useRef<ISeriesApi<'Histogram'> | null>(null)
   /** Locked visible Y range — updated only near edges / new bars. */
   const stickyPrice = useRef<{ from: number; to: number } | null>(null)
   const lastBarTime = useRef<number | null>(null)
@@ -174,7 +202,8 @@ export function PriceChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
-        scaleMargins: { top: 0.12, bottom: 0.18 },
+        // Leave the bottom ~22% for the volume pane
+        scaleMargins: { top: 0.06, bottom: 0.26 },
         autoScale: false,
         // Lock label column width — prevents whole plot shifting horizontally
         minimumWidth: 80,
@@ -184,7 +213,9 @@ export function PriceChart({
         borderColor: 'rgba(94, 234, 212, 0.08)',
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 8,
+        rightOffset: 4,
+        barSpacing: 11,
+        minBarSpacing: 7,
         shiftVisibleRangeOnNewBar: false,
         fixLeftEdge: false,
         fixRightEdge: true,
@@ -198,7 +229,7 @@ export function PriceChart({
       handleScale: {
         axisPressedMouseMove: { time: true, price: false },
         axisDoubleClickReset: { time: true, price: false },
-        mouseWheel: false,
+        mouseWheel: true,
         pinch: false,
       },
       width: el.clientWidth,
@@ -288,6 +319,20 @@ export function PriceChart({
       ...OVERLAY_SCALE,
     })
 
+    // Volume always sits in the bottom strip (tick / broker activity per bar)
+    volHist.current = chart.addSeries(HistogramSeries, {
+      priceScaleId: 'vol',
+      priceFormat: { type: 'volume' },
+      priceLineVisible: false,
+      lastValueVisible: true,
+      base: 0,
+    })
+    chart.priceScale('vol').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0.02 },
+      borderVisible: false,
+      entireTextOnly: true,
+    })
+
     macdHist.current = chart.addSeries(HistogramSeries, {
       priceScaleId: 'macd',
       priceLineVisible: false,
@@ -306,8 +351,9 @@ export function PriceChart({
       priceScaleId: 'macd',
       ...OVERLAY_SCALE,
     })
+    // MACD sits above volume when enabled
     chart.priceScale('macd').applyOptions({
-      scaleMargins: { top: 0.78, bottom: 0.02 },
+      scaleMargins: { top: 0.58, bottom: 0.24 },
       borderVisible: false,
     })
 
@@ -318,7 +364,7 @@ export function PriceChart({
       ...OVERLAY_SCALE,
     })
     chart.priceScale('rsi').applyOptions({
-      scaleMargins: { top: 0.78, bottom: 0.02 },
+      scaleMargins: { top: 0.58, bottom: 0.24 },
       borderVisible: false,
     })
 
@@ -428,11 +474,19 @@ export function PriceChart({
     ) {
       try {
         candleSeries.current.update(lastBar)
+        volHist.current?.update({
+          time: last.time as UTCTimestamp,
+          value: Math.max(0, last.volume || 0),
+          color:
+            last.close >= last.open
+              ? 'rgba(94, 234, 212, 0.55)'
+              : 'rgba(240, 113, 103, 0.55)',
+        })
         prevLen.current = view.length
         lastBarTime.current = last.time
         // Only expand if price left the frozen window — never recentre
         applyLockedRange(view, last.close, 'guard')
-        if (newBar) chartRef.current?.timeScale().scrollToRealTime()
+        if (newBar && chartRef.current) fitVisibleBars(chartRef.current, view.length)
         return
       } catch {
         /* fall through to full setData */
@@ -591,9 +645,13 @@ export function PriceChart({
       }
     }
 
-    // Initial / overlay rebuild only — avoid per-tick scroll jitter
-    if (firstPaint || newBar) {
-      chartRef.current?.timeScale().scrollToRealTime()
+    if (volHist.current) {
+      volHist.current.setData(toVolumeBars(overlaySrc))
+    }
+
+    // Zoom to ~72 fat M1 bars on first paint / new bar (not every tick)
+    if ((firstPaint || newBar) && chartRef.current) {
+      fitVisibleBars(chartRef.current, view.length)
     }
   }, [candles, overlays, signalParams])
 

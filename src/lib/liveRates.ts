@@ -412,13 +412,15 @@ export function applyLiveTick(
       high: price,
       low: price,
       close: price,
-      volume: 0,
+      // FX often has no notional volume — count ticks as activity
+      volume: 1,
     })
     return out
   }
   last.close = price
   last.high = Math.max(last.high, price)
   last.low = Math.min(last.low, price)
+  last.volume = (last.volume || 0) + 1
   return out
 }
 
@@ -463,6 +465,8 @@ export function mergeRemoteCandles(
       forming.open = remoteForming.open
       forming.high = Math.max(forming.high, remoteForming.high, forming.close)
       forming.low = Math.min(forming.low, remoteForming.low, forming.close)
+      // Keep the richer of broker tickVolume vs local tick count
+      forming.volume = Math.max(forming.volume || 0, remoteForming.volume || 0)
     }
   } else if (remoteForming) {
     forming = { ...remoteForming }
