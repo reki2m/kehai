@@ -1,10 +1,9 @@
 /**
- * KEHAI Peak — manual buy/sell only.
+ * KEHAI Peak Pulse — manual buy/sell only.
  *
- * Core: UT Bot flip × SSL Channel
- * Peak confirms (Aug–Nov bakeoff winner):
- *   Supertrend(10,3) · HTF SSL50 · DI · WaveTrend agree · RSI pullback
- *   ADX≥18 in JST 12:00–0:00 · ADX≥22 off-window (推奨 only)
+ * Dual stack tuned for ~8–9 trades/day with positive EV (Aug–Oct Dukascopy):
+ *   A) UT flip × SSL × HTF × DI × WT × RSI  (ST soft — not required)
+ *   B) Supertrend flip × SSL × HTF × DI × WT (pulse ADX 16/20)
  * Risk: ATR-hybrid SL/TP
  */
 
@@ -33,13 +32,13 @@ import {
 } from './apex'
 
 export const SIMPLE = {
-  name: 'KEHAI Peak',
-  stack: 'UT×SSL×ST + HTF/DI/WT/RSI',
+  name: 'KEHAI Peak Pulse',
+  stack: 'UT×SSL + STフリップ · HTF/DI/WT',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
-    'Supertrend(10,3) · ADX(14)+DI · WaveTrend · RSI(14) pullback',
-    'HTF SSL(50) · ATR risk · JST 12:00–0:00 + off-window 推奨',
+    'Supertrend flip path · ADX(14)+DI · WaveTrend · RSI(14) pullback',
+    'HTF SSL(50) · ATR risk · ~8–9/日ターゲット（検証済み）',
   ],
   /** Fallback / baseline when ATR missing. */
   slPips: 7,
@@ -54,11 +53,14 @@ export const SIMPLE = {
   maxHoldBars: 45,
   /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
-  /** Primary window (JST 12–0) ADX floor. */
+  /** UT path ADX floor in JST 12–0. */
   adxMin: 18,
-  /** Off-window 推奨 ADX floor. */
+  /** UT path off-window 推奨 ADX floor. */
   adxPrime: 22,
-  /** Soft block leftover (peak requires WT agree instead). */
+  /** Supertrend-flip path ADX (noon / off). */
+  adxPulse: 16,
+  adxPulseOff: 20,
+  /** Soft block leftover. */
   wtAgainstAbs: 55,
   /** Skip lifeless tape. */
   minAtrPips: 1.2,
@@ -66,7 +68,7 @@ export const SIMPLE = {
   htfSslLen: 50,
   stPeriod: 10,
   stMult: 3,
-  /** RSI pullback bands (avoid chase). */
+  /** RSI pullback bands (avoid chase) — UT path. */
   rsiLongLo: 40,
   rsiLongHi: 65,
   rsiShortLo: 35,
@@ -237,9 +239,13 @@ export function evaluateSimple(
   const trail = last(trailSeries)
   const ssl = last(sslDirection(candles, sslLen))
   const htfSsl = last(sslDirection(candles, SIMPLE.htfSslLen))
-  const stDir = last(
-    supertrendDirection(candles, SIMPLE.stPeriod, SIMPLE.stMult),
+  const stSeries = supertrendDirection(
+    candles,
+    SIMPLE.stPeriod,
+    SIMPLE.stMult,
   )
+  const stDir = last(stSeries)
+  const stPrev = stSeries.length >= 2 ? stSeries[stSeries.length - 2] : undefined
   const vwap = last(sessionVwap(candles))
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
@@ -251,6 +257,13 @@ export function evaluateSimple(
 
   const utFlipLong = !!(ut && utPrev && ut.value > 0 && utPrev.value <= 0)
   const utFlipShort = !!(ut && utPrev && ut.value < 0 && utPrev.value >= 0)
+  const stFlipLong = !!(stDir && stPrev && stDir.value > 0 && stPrev.value <= 0)
+  const stFlipShort = !!(
+    stDir &&
+    stPrev &&
+    stDir.value < 0 &&
+    stPrev.value >= 0
+  )
   const sslLong = !!ssl && ssl.value > 0
   const sslShort = !!ssl && ssl.value < 0
   const htfLong = !!htfSsl && htfSsl.value > 0
@@ -269,6 +282,7 @@ export function evaluateSimple(
 
   let buy = utFlipLong && confirmLong
   let sell = utFlipShort && confirmShort
+  let entryPath: 'ut' | 'st' | null = buy || sell ? 'ut' : null
 
   const newsOk = !news
   const spreadOk = spreadPips <= maxSpread
@@ -277,7 +291,9 @@ export function evaluateSimple(
   const filtersOk = windowOk && newsOk && spreadOk && edgeOk && atrFloorOk
 
   const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
+  const adxPulseFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
   const adxOk = !!adxVal && adxVal.adx >= adxFloor
+  const adxPulseOk = !!adxVal && adxVal.adx >= adxPulseFloor
   const adxStrong = !!adxVal && adxVal.adx >= 25
   const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
   const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
@@ -294,7 +310,7 @@ export function evaluateSimple(
     rsiVal.value >= SIMPLE.rsiShortLo &&
     rsiVal.value <= SIMPLE.rsiShortHi
 
-  // Peak stack — all confirms required
+  // Path A — UT Peak Pulse (ST not hard-required; keeps ~4/日 quality)
   let qualityBlock: string | null = null
   if ((buy || sell) && !edgeOk) {
     qualityBlock = 'セッション端（見送り）'
@@ -320,12 +336,6 @@ export function evaluateSimple(
   } else if (sell && !diShort) {
     qualityBlock = 'DI方向不一致'
     sell = false
-  } else if (buy && !stLong) {
-    qualityBlock = 'Supertrend逆行'
-    buy = false
-  } else if (sell && !stShort) {
-    qualityBlock = 'Supertrend逆行'
-    sell = false
   } else if (buy && !wtAgreeLong) {
     qualityBlock = 'WaveTrend不一致'
     buy = false
@@ -340,10 +350,25 @@ export function evaluateSimple(
     sell = false
   }
 
-  // Off-window (outside JST 12–0): only if peak stack already passed (=推奨)
-  if ((buy || sell) && !noonOk) {
-    // already required adxPrime via adxFloor; mark as prime path
+  // Path B — Supertrend flip (SSL only + HTF/DI/WT; session EMA/VWAP not required)
+  if (!buy && !sell && filtersOk && adxPulseOk) {
+    let stBuy = stFlipLong && sslLong
+    let stSell = stFlipShort && sslShort
+    if (stBuy && !htfLong) stBuy = false
+    if (stSell && !htfShort) stSell = false
+    if (stBuy && !diLong) stBuy = false
+    if (stSell && !diShort) stSell = false
+    if (stBuy && !wtAgreeLong) stBuy = false
+    if (stSell && !wtAgreeShort) stSell = false
+    if (stBuy || stSell) {
+      buy = stBuy
+      sell = stSell
+      entryPath = 'st'
+      qualityBlock = null
+    }
   }
+
+  if (!(buy || sell)) entryPath = null
 
   const trailDistancePips =
     trail && Number.isFinite(trail.value)
@@ -355,7 +380,6 @@ export function evaluateSimple(
   const peakLongReady =
     confirmLong &&
     htfLong &&
-    stLong &&
     diLong &&
     wtAgreeLong &&
     rsiLongOk &&
@@ -363,7 +387,6 @@ export function evaluateSimple(
   const peakShortReady =
     confirmShort &&
     htfShort &&
-    stShort &&
     diShort &&
     wtAgreeShort &&
     rsiShortOk &&
@@ -565,11 +588,12 @@ export function evaluateSimple(
   const entryTxt = fmt(entryPrice)
 
   const tierTxt = prime ? '推奨' : grade === 'A' || grade === 'S' ? '推奨' : '標準'
+  const pathTxt = entryPath === 'st' ? 'STフリップ' : 'UT'
   let reason = '待機'
   if (action === 'BUY')
-    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `${pathTxt}買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'SELL')
-    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `${pathTxt}売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'READY_BUY')
     reason = entryTxt
       ? `準備・買い · ${entryTxt} で買い検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
@@ -582,7 +606,8 @@ export function evaluateSimple(
   else if (!newsOk) reason = `ニュース回避 (${news!.label})`
   else if (!spreadOk) reason = 'スプレッド拡大'
   else if (qualityBlock) reason = qualityBlock
-  else if (!(utFlipLong || utFlipShort)) reason = 'UTフリップ待ち'
+  else if (!(utFlipLong || utFlipShort || stFlipLong || stFlipShort))
+    reason = 'UT/STフリップ待ち'
   else if ((utFlipLong && !sslLong) || (utFlipShort && !sslShort)) reason = 'SSL未確認'
   else if ((utFlipLong && !emaLong) || (utFlipShort && !emaShort)) reason = 'EMA不一致'
   else reason = 'VWAP不一致'

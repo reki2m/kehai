@@ -24,11 +24,50 @@ const SYMBOLS = {
 }
 
 const TFS = {
-  '1m': { interval: '1m', range: '5d' },
-  '5m': { interval: '5m', range: '10d' },
-  '15m': { interval: '15m', range: '1mo' },
-  '1H': { interval: '60m', range: '3mo' },
-  '1D': { interval: '1d', range: '2y' },
+  '1m': { interval: '1m', range: '5d', step: 60 },
+  '5m': { interval: '5m', range: '10d', step: 300 },
+  '15m': { interval: '15m', range: '1mo', step: 900 },
+  '1H': { interval: '60m', range: '3mo', step: 3600 },
+  '1D': { interval: '1d', range: '2y', step: 86400 },
+}
+
+/** Align + dedupe so Yahoo fetchAt / quote stamps never become a rogue tip bar. */
+function sanitizeCandles(candles, stepSec) {
+  const byTime = new Map()
+  for (const c of candles) {
+    if (!Number.isFinite(c.time) || !Number.isFinite(c.close)) continue
+    const time =
+      stepSec > 0 ? c.time - (c.time % stepSec) : c.time
+    const open = Number.isFinite(c.open) ? c.open : c.close
+    const close = c.close
+    const high = Math.max(
+      open,
+      close,
+      Number.isFinite(c.high) ? c.high : close,
+    )
+    const low = Math.min(
+      open,
+      close,
+      Number.isFinite(c.low) ? c.low : close,
+    )
+    const volume = Math.max(0, c.volume || 0)
+    const prev = byTime.get(time)
+    if (prev) {
+      byTime.set(time, {
+        time,
+        open: prev.open,
+        high: Math.max(prev.high, high),
+        low: Math.min(prev.low, low),
+        close,
+        volume: Math.max(prev.volume || 0, volume),
+      })
+    } else {
+      byTime.set(time, { time, open, high, low, close, volume })
+    }
+  }
+  return [...byTime.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, c]) => c)
 }
 
 async function fetchChart(symbol, interval, range) {
@@ -40,7 +79,7 @@ async function fetchChart(symbol, interval, range) {
   return res.json()
 }
 
-function toCandles(data) {
+function toCandles(data, stepSec = 60) {
   const result = data?.chart?.result?.[0]
   const ts = result?.timestamp ?? []
   const q = result?.indicators?.quote?.[0]
@@ -61,10 +100,17 @@ function toCandles(data) {
       volume: q.volume?.[i] ?? 0,
     })
   }
+  const clean = sanitizeCandles(candles, stepSec)
   const lastPrice =
     result?.meta?.regularMarketPrice ??
-    (candles.length ? candles[candles.length - 1].close : null)
-  return { candles: candles.slice(-360), lastPrice }
+    (clean.length ? clean[clean.length - 1].close : null)
+  if (clean.length && lastPrice != null) {
+    const last = clean[clean.length - 1]
+    last.close = lastPrice
+    last.high = Math.max(last.high, lastPrice)
+    last.low = Math.min(last.low, lastPrice)
+  }
+  return { candles: clean.slice(-360), lastPrice }
 }
 
 const SQ_SYMBOLS = {
@@ -131,10 +177,10 @@ for (const [pairId, path] of Object.entries(SQ_SYMBOLS)) {
 }
 
 for (const [pairId, symbol] of Object.entries(SYMBOLS)) {
-  for (const [tf, { interval, range }] of Object.entries(TFS)) {
+  for (const [tf, { interval, range, step }] of Object.entries(TFS)) {
     try {
       const data = await fetchChart(symbol, interval, range)
-      const { candles, lastPrice } = toCandles(data)
+      const { candles, lastPrice } = toCandles(data, step)
       const payload = {
         pairId,
         timeframe: tf,

@@ -1,0 +1,617 @@
+{
+  "target": "~10 trades/day, EV>0 (ATR-hybrid, spread 0.2)",
+  "sample": "Dukascopy M1 Aug\u2013Oct 2026",
+  "best_in_band_ev": [],
+  "best_in_band_ev_slip03": [],
+  "top20": [
+    {
+      "name": "sc5/6_cd8_SDR",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 8,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": false,
+        "di": true,
+        "wt": false,
+        "rsi": true
+      },
+      "n": 772,
+      "wr": 43.0,
+      "ev": -0.21,
+      "net": -162.0,
+      "tpd": 11.88,
+      "days": 65,
+      "ev_slip03": -0.794,
+      "wr_slip03": 40.7,
+      "net_slip03": -612.4
+    },
+    {
+      "name": "sc5/6_cd12_SDR",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 12,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": false,
+        "di": true,
+        "wt": false,
+        "rsi": true
+      },
+      "n": 762,
+      "wr": 43.0,
+      "ev": -0.215,
+      "net": -163.6,
+      "tpd": 11.72,
+      "days": 65,
+      "ev_slip03": -0.795,
+      "wr_slip03": 40.8,
+      "net_slip03": -604.2
+    },
+    {
+      "name": "sc5/6_cd6_SDR",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 6,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": false,
+        "di": true,
+        "wt": false,
+        "rsi": true
+      },
+      "n": 775,
+      "wr": 42.8,
+      "ev": -0.233,
+      "net": -180.6,
+      "tpd": 11.92,
+      "days": 65,
+      "ev_slip03": -0.816,
+      "wr_slip03": 40.6,
+      "net_slip03": -631.9
+    },
+    {
+      "name": "sc5/7_cd10_SDR",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        7
+      ],
+      "cooldown": 10,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": false,
+        "di": true,
+        "wt": false,
+        "rsi": true
+      },
+      "n": 662,
+      "wr": 42.7,
+      "ev": -0.244,
+      "net": -161.2,
+      "tpd": 10.18,
+      "days": 65,
+      "ev_slip03": -0.863,
+      "wr_slip03": 40.1,
+      "net_slip03": -570.4
+    },
+    {
+      "name": "sc5/7_cd10_SD",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        7
+      ],
+      "cooldown": 10,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": false,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 679,
+      "wr": 42.3,
+      "ev": -0.328,
+      "net": -222.8,
+      "tpd": 10.45,
+      "days": 65,
+      "ev_slip03": -0.952,
+      "wr_slip03": 39.6,
+      "net_slip03": -644.8
+    },
+    {
+      "name": "sc4/6_cd15_SDS",
+      "adx": [
+        16,
+        22
+      ],
+      "score": [
+        4,
+        6
+      ],
+      "cooldown": 15,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 621,
+      "wr": 41.4,
+      "ev": -0.462,
+      "net": -286.8,
+      "tpd": 9.55,
+      "days": 65,
+      "ev_slip03": -1.057,
+      "wr_slip03": 38.8,
+      "net_slip03": -653.4
+    },
+    {
+      "name": "sc4/6_cd15_SS",
+      "adx": [
+        16,
+        22
+      ],
+      "score": [
+        4,
+        6
+      ],
+      "cooldown": 15,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 659,
+      "wr": 41.4,
+      "ev": -0.475,
+      "net": -313.1,
+      "tpd": 10.14,
+      "days": 65,
+      "ev_slip03": -1.078,
+      "wr_slip03": 38.9,
+      "net_slip03": -707.3
+    },
+    {
+      "name": "sc5/6_cd12_SDS",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 12,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 572,
+      "wr": 41.1,
+      "ev": -0.515,
+      "net": -294.8,
+      "tpd": 8.8,
+      "days": 65,
+      "ev_slip03": -1.079,
+      "wr_slip03": 38.7,
+      "net_slip03": -613.7
+    },
+    {
+      "name": "sc3/5_cd15_SS",
+      "adx": [
+        16,
+        20
+      ],
+      "score": [
+        3,
+        5
+      ],
+      "cooldown": 15,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 734,
+      "wr": 41.8,
+      "ev": -0.491,
+      "net": -360.4,
+      "tpd": 11.29,
+      "days": 65,
+      "ev_slip03": -1.082,
+      "wr_slip03": 38.4,
+      "net_slip03": -792.0
+    },
+    {
+      "name": "sc4/5_cd15_SS",
+      "adx": [
+        16,
+        20
+      ],
+      "score": [
+        4,
+        5
+      ],
+      "cooldown": 15,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 734,
+      "wr": 41.8,
+      "ev": -0.491,
+      "net": -360.4,
+      "tpd": 11.29,
+      "days": 65,
+      "ev_slip03": -1.082,
+      "wr_slip03": 38.4,
+      "net_slip03": -792.0
+    },
+    {
+      "name": "sc5/6_cd8_SDS",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 8,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 576,
+      "wr": 41.0,
+      "ev": -0.529,
+      "net": -304.9,
+      "tpd": 8.86,
+      "days": 65,
+      "ev_slip03": -1.091,
+      "wr_slip03": 38.6,
+      "net_slip03": -625.0
+    },
+    {
+      "name": "sc5/6_cd6_SDS",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 6,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 577,
+      "wr": 40.9,
+      "ev": -0.539,
+      "net": -311.1,
+      "tpd": 8.88,
+      "days": 65,
+      "ev_slip03": -1.1,
+      "wr_slip03": 38.5,
+      "net_slip03": -631.5
+    },
+    {
+      "name": "sc3/5_cd15_SDS",
+      "adx": [
+        16,
+        20
+      ],
+      "score": [
+        3,
+        5
+      ],
+      "cooldown": 15,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 670,
+      "wr": 41.0,
+      "ev": -0.521,
+      "net": -348.8,
+      "tpd": 10.31,
+      "days": 65,
+      "ev_slip03": -1.102,
+      "wr_slip03": 38.2,
+      "net_slip03": -734.9
+    },
+    {
+      "name": "sc4/5_cd15_SDS",
+      "adx": [
+        16,
+        20
+      ],
+      "score": [
+        4,
+        5
+      ],
+      "cooldown": 15,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 670,
+      "wr": 41.0,
+      "ev": -0.521,
+      "net": -348.8,
+      "tpd": 10.31,
+      "days": 65,
+      "ev_slip03": -1.102,
+      "wr_slip03": 38.2,
+      "net_slip03": -734.9
+    },
+    {
+      "name": "sc5/6_cd8_SS",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 8,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 612,
+      "wr": 40.8,
+      "ev": -0.563,
+      "net": -344.4,
+      "tpd": 9.42,
+      "days": 65,
+      "ev_slip03": -1.114,
+      "wr_slip03": 38.6,
+      "net_slip03": -678.4
+    },
+    {
+      "name": "sc4/6_cd10_SDS",
+      "adx": [
+        16,
+        22
+      ],
+      "score": [
+        4,
+        6
+      ],
+      "cooldown": 10,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": true,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 635,
+      "wr": 40.9,
+      "ev": -0.53,
+      "net": -336.6,
+      "tpd": 9.77,
+      "days": 65,
+      "ev_slip03": -1.12,
+      "wr_slip03": 38.3,
+      "net_slip03": -708.0
+    },
+    {
+      "name": "sc5/6_cd6_SS",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 6,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 613,
+      "wr": 40.8,
+      "ev": -0.572,
+      "net": -350.6,
+      "tpd": 9.43,
+      "days": 65,
+      "ev_slip03": -1.123,
+      "wr_slip03": 38.5,
+      "net_slip03": -684.9
+    },
+    {
+      "name": "sc5/6_cd12_SS",
+      "adx": [
+        18,
+        22
+      ],
+      "score": [
+        5,
+        6
+      ],
+      "cooldown": 12,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 606,
+      "wr": 40.8,
+      "ev": -0.581,
+      "net": -351.9,
+      "tpd": 9.32,
+      "days": 65,
+      "ev_slip03": -1.131,
+      "wr_slip03": 38.5,
+      "net_slip03": -682.2
+    },
+    {
+      "name": "sc4/5_cd8_SS",
+      "adx": [
+        16,
+        20
+      ],
+      "score": [
+        4,
+        5
+      ],
+      "cooldown": 8,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 751,
+      "wr": 41.5,
+      "ev": -0.543,
+      "net": -407.6,
+      "tpd": 11.55,
+      "days": 65,
+      "ev_slip03": -1.131,
+      "wr_slip03": 37.9,
+      "net_slip03": -847.1
+    },
+    {
+      "name": "sc4/6_cd10_SS",
+      "adx": [
+        16,
+        22
+      ],
+      "score": [
+        4,
+        6
+      ],
+      "cooldown": 10,
+      "hard": {
+        "ssl": true,
+        "htf": false,
+        "st": true,
+        "di": false,
+        "wt": false,
+        "rsi": false
+      },
+      "n": 675,
+      "wr": 41.0,
+      "ev": -0.534,
+      "net": -360.3,
+      "tpd": 10.38,
+      "days": 65,
+      "ev_slip03": -1.134,
+      "wr_slip03": 38.4,
+      "net_slip03": -761.8
+    }
+  ],
+  "baseline_peak": {
+    "name": "peak_all_hard",
+    "adx": [
+      18,
+      22
+    ],
+    "score": [
+      7,
+      7
+    ],
+    "cooldown": 1,
+    "hard": {
+      "ssl": true,
+      "htf": true,
+      "st": true,
+      "di": true,
+      "wt": true,
+      "rsi": true
+    },
+    "n": 0,
+    "wr": 0.0,
+    "ev": 0.0,
+    "net": 0.0,
+    "tpd": 0.0,
+    "days": 0,
+    "ev_slip03": 0.0,
+    "wr_slip03": 0.0,
+    "net_slip03": 0.0
+  }
+}

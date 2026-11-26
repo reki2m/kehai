@@ -15,16 +15,17 @@ export function RulesPanel() {
         <li>
           <strong>サイン</strong>
           <span>
-            UT Bot フリップ ＋ SSL 確認 → BUY / SELL。確認済みでUTまで
-            {SIMPLE.readyPips}p以内なら READY（買い/売り目安の数値を表示・まだ入らない）
+            二系統: UTフリップ または Supertrendフリップ ＋ SSL → BUY /
+            SELL。確認済みでUTまで{SIMPLE.readyPips}
+            p以内なら READY（まだ入らない）
           </span>
         </li>
         <li>
           <strong>品質ゲート</strong>
           <span>
-            Peak確認: Supertrend + 上位SSL + DI + WT一致 + RSI帯 · 通常枠
-            12:00–0:00 JSTは ADX≥{SIMPLE.adxMin} · 枠外の推奨は ADX≥
-            {SIMPLE.adxPrime}
+            UT系: 上位SSL + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
+            {SIMPLE.adxPrime} · ST系: 上位SSL + DI + WT · ADX≥
+            {SIMPLE.adxPulse}/{SIMPLE.adxPulseOff} · 目安 ~8–9回/日
           </span>
         </li>
         <li>
