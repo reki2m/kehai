@@ -13,7 +13,7 @@ export function ImpactPanel({ impact, loading }: Props) {
   return (
     <section className={`impact-panel tone-${tone}`} aria-label="ドル円への影響評価">
       <div className="impact-head">
-        <h2>USD/JPY Impact</h2>
+        <h2>ドル円への影響</h2>
         <p className="impact-lead">
           ユーロドル・原油・日経・ダウ・VIXがドル円に与える短期圧力
         </p>

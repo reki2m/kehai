@@ -36,7 +36,7 @@ export interface PairMeta {
 export const PAIRS: PairMeta[] = [
   {
     id: 'USDJPY',
-    label: 'USD/JPY',
+    label: 'ドル円',
     base: 'USD',
     quote: 'JPY',
     kind: 'fx',
