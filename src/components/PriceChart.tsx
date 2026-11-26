@@ -6,6 +6,7 @@ import {
   createSeriesMarkers,
   HistogramSeries,
   LineSeries,
+  type AutoscaleInfo,
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
@@ -52,6 +53,31 @@ function toLine(pts: { time: number; value: number }[]): LineData<Time>[] {
     time: p.time as UTCTimestamp,
     value: p.value,
   }))
+}
+
+/** Overlays must not drive the Y-axis — that was a main source of jitter. */
+const OVERLAY_SCALE = {
+  priceLineVisible: false,
+  lastValueVisible: false,
+  crosshairMarkerVisible: false,
+  autoscaleInfoProvider: () => null,
+} as const
+
+function rangeFromBars(
+  bars: Candle[],
+  pip: number,
+): { from: number; to: number } | null {
+  if (!bars.length) return null
+  let lo = Infinity
+  let hi = -Infinity
+  for (const c of bars) {
+    if (!Number.isFinite(c.low) || !Number.isFinite(c.high)) continue
+    lo = Math.min(lo, c.low)
+    hi = Math.max(hi, c.high)
+  }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null
+  const pad = Math.max((hi - lo) * 0.18, pip * 18)
+  return { from: lo - pad, to: hi + pad }
 }
 
 /** Split trail into up/down segments with gaps at flips. */
@@ -109,10 +135,19 @@ export function PriceChart({
   const macdLine = useRef<ISeriesApi<'Line'> | null>(null)
   const macdSignal = useRef<ISeriesApi<'Line'> | null>(null)
   const rsiLine = useRef<ISeriesApi<'Line'> | null>(null)
+  /** Locked visible Y range — updated only near edges / new bars. */
+  const stickyPrice = useRef<{ from: number; to: number } | null>(null)
+  const lastBarTime = useRef<number | null>(null)
+  const markersKey = useRef('')
+  const sizeRef = useRef({ w: 0, h: 0 })
 
   useEffect(() => {
     const el = hostRef.current
     if (!el) return
+    stickyPrice.current = null
+    lastBarTime.current = null
+    markersKey.current = ''
+    sizeRef.current = { w: 0, h: 0 }
 
     const chart = createChart(el, {
       layout: {
@@ -138,12 +173,23 @@ export function PriceChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
-        scaleMargins: { top: 0.08, bottom: 0.22 },
+        scaleMargins: { top: 0.1, bottom: 0.22 },
+        autoScale: false,
+        // Lock label column width — prevents whole plot shifting horizontally
+        minimumWidth: 72,
+        entireTextOnly: true,
       },
       timeScale: {
         borderColor: 'rgba(94, 234, 212, 0.08)',
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 6,
+        shiftVisibleRangeOnNewBar: false,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+      },
+      handleScroll: {
+        vertTouchDrag: false,
       },
       width: el.clientWidth,
       height: el.clientHeight,
@@ -161,6 +207,16 @@ export function PriceChart({
         precision: pair.digits,
         minMove: pair.pip,
       },
+      // With autoScale:false we drive range manually — provider unused but safe
+      autoscaleInfoProvider: (
+        original: () => AutoscaleInfo | null,
+      ): AutoscaleInfo | null => {
+        const locked = stickyPrice.current
+        if (locked) {
+          return { priceRange: { minValue: locked.from, maxValue: locked.to } }
+        }
+        return original()
+      },
     })
     markersApi.current = createSeriesMarkers(candleSeries.current, [], {
       zOrder: 'top',
@@ -170,100 +226,77 @@ export function PriceChart({
     utUp.current = chart.addSeries(LineSeries, {
       color: 'rgba(94, 234, 212, 0.85)',
       lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     utDown.current = chart.addSeries(LineSeries, {
       color: 'rgba(240, 113, 103, 0.85)',
       lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     sslHi.current = chart.addSeries(LineSeries, {
       color: 'rgba(94, 234, 212, 0.4)',
       lineWidth: 1,
       lineStyle: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     sslLo.current = chart.addSeries(LineSeries, {
       color: 'rgba(240, 113, 103, 0.4)',
       lineWidth: 1,
       lineStyle: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     vwapLine.current = chart.addSeries(LineSeries, {
       color: 'rgba(232, 196, 124, 0.75)',
       lineWidth: 1,
       lineStyle: 0,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
 
     emaFast.current = chart.addSeries(LineSeries, {
       color: '#E8C47C',
       lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     emaSlow.current = chart.addSeries(LineSeries, {
       color: 'rgba(148, 185, 198, 0.9)',
       lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     bbUpper.current = chart.addSeries(LineSeries, {
       color: 'rgba(94, 234, 212, 0.35)',
       lineWidth: 1,
       lineStyle: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     bbMid.current = chart.addSeries(LineSeries, {
       color: 'rgba(232, 196, 124, 0.45)',
       lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     bbLower.current = chart.addSeries(LineSeries, {
       color: 'rgba(240, 113, 103, 0.35)',
       lineWidth: 1,
       lineStyle: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
 
     macdHist.current = chart.addSeries(HistogramSeries, {
       priceScaleId: 'macd',
       priceLineVisible: false,
       lastValueVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     macdLine.current = chart.addSeries(LineSeries, {
       color: '#94B9C6',
       lineWidth: 1,
       priceScaleId: 'macd',
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     macdSignal.current = chart.addSeries(LineSeries, {
       color: '#E8C47C',
       lineWidth: 1,
       priceScaleId: 'macd',
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     chart.priceScale('macd').applyOptions({
       scaleMargins: { top: 0.78, bottom: 0.02 },
@@ -274,9 +307,7 @@ export function PriceChart({
       color: '#94B9C6',
       lineWidth: 1,
       priceScaleId: 'rsi',
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
+      ...OVERLAY_SCALE,
     })
     chart.priceScale('rsi').applyOptions({
       scaleMargins: { top: 0.78, bottom: 0.02 },
@@ -285,17 +316,33 @@ export function PriceChart({
 
     chartRef.current = chart
 
+    let resizeTimer: number | null = null
     const ro = new ResizeObserver(() => {
       if (!hostRef.current || !chartRef.current) return
-      chartRef.current.applyOptions({
-        width: hostRef.current.clientWidth,
-        height: hostRef.current.clientHeight,
-      })
+      const w = hostRef.current.clientWidth
+      const h = hostRef.current.clientHeight
+      // Ignore sub-pixel / 1px thrash from layout
+      if (
+        Math.abs(w - sizeRef.current.w) < 2 &&
+        Math.abs(h - sizeRef.current.h) < 2
+      ) {
+        return
+      }
+      if (resizeTimer != null) window.clearTimeout(resizeTimer)
+      resizeTimer = window.setTimeout(() => {
+        resizeTimer = null
+        if (!hostRef.current || !chartRef.current) return
+        const nw = hostRef.current.clientWidth
+        const nh = hostRef.current.clientHeight
+        sizeRef.current = { w: nw, h: nh }
+        chartRef.current.applyOptions({ width: nw, height: nh })
+      }, 120)
     })
     ro.observe(el)
 
     return () => {
       ro.disconnect()
+      if (resizeTimer != null) window.clearTimeout(resizeTimer)
       markersApi.current?.detach()
       markersApi.current = null
       chart.remove()
@@ -304,11 +351,50 @@ export function PriceChart({
   }, [pair.digits, pair.pip])
 
   const prevLen = useRef(0)
+  const overlayKeyRef = useRef('')
+
+  function applyLockedRange(
+    bars: Candle[],
+    price: number,
+    force: boolean,
+  ): void {
+    if (!candleSeries.current) return
+    const lookback = bars.slice(-100)
+    const next = rangeFromBars(lookback, pair.pip)
+    if (!next) return
+    const prev = stickyPrice.current
+    if (!force && prev) {
+      const span = prev.to - prev.from
+      const margin = span * 0.15
+      // Price still comfortable inside locked window — do nothing
+      if (price >= prev.from + margin && price <= prev.to - margin) return
+      // Expand just enough; don't recentre every tick
+      stickyPrice.current = {
+        from: Math.min(prev.from, next.from),
+        to: Math.max(prev.to, next.to),
+      }
+    } else {
+      stickyPrice.current = next
+    }
+    const r = stickyPrice.current
+    if (!r) return
+    try {
+      const scale = candleSeries.current.priceScale()
+      scale.setAutoScale(false)
+      scale.setVisibleRange({ from: r.from, to: r.to })
+    } catch {
+      /* ignore */
+    }
+  }
 
   useEffect(() => {
     if (!candleSeries.current || candles.length === 0) return
 
-    const last = candles[candles.length - 1]
+    // Live chart only needs a recent window — full Nov archive makes redraws heavy
+    const view =
+      candles.length > 480 ? candles.slice(-480) : candles
+
+    const last = view[view.length - 1]
     const lastBar: CandlestickData<Time> = {
       time: last.time as UTCTimestamp,
       open: last.open,
@@ -316,17 +402,27 @@ export function PriceChart({
       low: last.low,
       close: last.close,
     }
+    const newBar =
+      lastBarTime.current != null && last.time !== lastBarTime.current
+    const firstPaint = lastBarTime.current == null
+    const overlayKey = `${overlays.join(',')}|${signalParams?.utKey ?? ''}/${signalParams?.utAtr ?? ''}/${signalParams?.sslLen ?? ''}`
+    const overlayChanged = overlayKeyRef.current !== overlayKey
+    overlayKeyRef.current = overlayKey
 
-    // Fast path for tip updates — skip heavy overlay rebuilds
+    // Fast path for tip updates — skip heavy overlay rebuilds + don't scroll
     if (
+      !overlayChanged &&
       prevLen.current > 0 &&
-      candles.length >= prevLen.current &&
-      candles.length - prevLen.current <= 1
+      view.length >= Math.min(prevLen.current, 480) &&
+      Math.abs(view.length - prevLen.current) <= 1
     ) {
       try {
         candleSeries.current.update(lastBar)
-        prevLen.current = candles.length
-        chartRef.current?.timeScale().scrollToRealTime()
+        prevLen.current = view.length
+        lastBarTime.current = last.time
+        // Keep Y locked; only expand when price nears the edge
+        applyLockedRange(view, last.close, false)
+        if (newBar) chartRef.current?.timeScale().scrollToRealTime()
         return
       } catch {
         /* fall through to full setData */
@@ -336,7 +432,7 @@ export function PriceChart({
     {
       const seen = new Set<number>()
       const candleData: CandlestickData<Time>[] = []
-      for (const c of candles) {
+      for (const c of view) {
         if (!Number.isFinite(c.time) || seen.has(c.time)) continue
         seen.add(c.time)
         candleData.push({
@@ -349,7 +445,9 @@ export function PriceChart({
       }
       try {
         candleSeries.current.setData(candleData)
-        prevLen.current = candles.length
+        prevLen.current = view.length
+        lastBarTime.current = last.time
+        applyLockedRange(view, last.close, firstPaint || overlayChanged || newBar)
       } catch {
         prevLen.current = 0
         return
@@ -367,9 +465,7 @@ export function PriceChart({
     const utKey = signalParams?.utKey ?? 2
     const utAtr = signalParams?.utAtr ?? 7
     const sslLen = signalParams?.sslLen ?? 10
-    // Overlay math on full Nov archive is too heavy — tip window is enough.
-    const overlaySrc =
-      candles.length > 2200 ? candles.slice(-2000) : candles
+    const overlaySrc = view
 
     if (utUp.current && utDown.current) {
       if (showUt) {
@@ -480,33 +576,48 @@ export function PriceChart({
       }
     }
 
-    chartRef.current?.timeScale().scrollToRealTime()
+    // Initial / overlay rebuild only — avoid per-tick scroll jitter
+    if (firstPaint || newBar) {
+      chartRef.current?.timeScale().scrollToRealTime()
+    }
   }, [candles, overlays, signalParams])
 
   useEffect(() => {
     if (!markersApi.current) return
-    // High-contrast vs candle teal/coral — gold / hot pink + larger size
-    const markers: SeriesMarker<Time>[] = histSignals.map((s) =>
-      s.side === 'BUY'
-        ? {
-            time: s.time as UTCTimestamp,
-            position: 'belowBar' as const,
-            shape: 'arrowUp' as const,
-            color: '#FFE566',
-            text: '買い',
-            size: 2,
-          }
-        : {
-            time: s.time as UTCTimestamp,
-            position: 'aboveBar' as const,
-            shape: 'arrowDown' as const,
-            color: '#FF4D9A',
-            text: '売り',
-            size: 2,
-          },
-    )
+    // Only markers that fall inside the visible chart window (~last 480 bars)
+    const tMin = candles.length
+      ? candles[Math.max(0, candles.length - 480)]!.time
+      : 0
+    const visible = histSignals.filter((s) => s.time >= tMin)
+    const key = visible.map((s) => `${s.time}:${s.side}:${s.prime ? 1 : 0}`).join('|')
+    if (key === markersKey.current) return
+    markersKey.current = key
+    // 推奨 (prime/A/S) = bright + large; 標準 = softer but still visible
+    const markers: SeriesMarker<Time>[] = visible.map((s) => {
+      const recommended =
+        s.prime === true || s.grade === 'S' || s.grade === 'A'
+      if (s.side === 'BUY') {
+        return {
+          time: s.time as UTCTimestamp,
+          position: 'belowBar' as const,
+          shape: 'arrowUp' as const,
+          color: recommended ? '#FFE566' : '#C4B87A',
+          text: recommended ? '買い★' : '買い',
+          size: recommended ? 2 : 1,
+        }
+      }
+      return {
+        time: s.time as UTCTimestamp,
+        position: 'aboveBar' as const,
+        shape: 'arrowDown' as const,
+        color: recommended ? '#FF4D9A' : '#C47A9A',
+        text: recommended ? '売り★' : '売り',
+        size: recommended ? 2 : 1,
+      }
+    })
     markersApi.current.setMarkers(markers)
-  }, [histSignals])
+  }, [histSignals, candles])
+
 
   return <div className="chart-host" ref={hostRef} aria-label="価格チャート" />
 }

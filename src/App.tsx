@@ -48,6 +48,7 @@ import {
   toggleSessionDisabled,
   type SessionStatsState,
 } from './lib/sessionStats'
+import { BROKER_SPREAD_PIPS } from './lib/filters'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import { investigateShockCause, type ShockCauseReport } from './lib/shockCause'
 import { ShockDetector } from './lib/shockDetect'
@@ -89,8 +90,6 @@ export default function App() {
   const [candles, setCandles] = useState<Candle[]>([])
   const [archiveSignals, setArchiveSignals] = useState<HistSignal[]>([])
   const [livePrice, setLivePrice] = useState<number | null>(null)
-  const [liveBid, setLiveBid] = useState<number | null>(null)
-  const [liveAsk, setLiveAsk] = useState<number | null>(null)
   const [booted, setBooted] = useState(false)
   const [liveSource, setLiveSource] = useState<string | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
@@ -134,6 +133,9 @@ export default function App() {
   const priceHistRef = useRef<{ t: number; price: number }[]>([])
   const lastFiveSpoken = useRef<number | null>(null)
   const livePriceRef = useRef<number | null>(null)
+  /** Throttle chart candle writes — board price still updates every tick. */
+  const pendingTickRef = useRef<number | null>(null)
+  const tickFlushTimer = useRef<number | null>(null)
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -217,11 +219,7 @@ export default function App() {
             setLivePrice(live.lastPrice)
           }
           if (initial) {
-            setLiveSource(
-              archive.length
-                ? `${live.source} · 11月〜履歴`
-                : live.source,
-            )
+            setLiveSource(live.source)
           }
           setLiveError(null)
         } else throw new Error('足が足りません')
@@ -238,8 +236,6 @@ export default function App() {
       }
     }
 
-    setLiveBid(null)
-    setLiveAsk(null)
     setArchiveSignals([])
     void load(true)
     // 履歴だけゆっくり更新（形成中足はティック側が担当）
@@ -286,24 +282,31 @@ export default function App() {
     let streaming = false
     let lastStreamAt = 0
 
-    function applyQuote(q: LiveQuote) {
-      if (cancelled) return
-      const px = q.price
-      setLivePrice(px)
-      if (q.bid != null) setLiveBid(q.bid)
-      if (q.ask != null) setLiveAsk(q.ask)
+    function flushTickToChart() {
+      tickFlushTimer.current = null
+      const px = pendingTickRef.current
+      if (px == null || !Number.isFinite(px)) return
       setCandles((prev) => {
         if (prev.length < 30) return prev
         return applyLiveTick(prev, px, timeframe)
       })
-      const age = Math.max(0, Math.round(Date.now() / 1000 - q.at))
+    }
+
+    function applyQuote(q: LiveQuote) {
+      if (cancelled) return
+      const px = q.price
+      setLivePrice(px)
+      // Chart: coalesce WS spam. Board bid/ask = mid ± fixed 0.2p.
+      pendingTickRef.current = px
+      if (tickFlushTimer.current == null) {
+        tickFlushTimer.current = window.setTimeout(flushTickToChart, 500)
+      }
       const tag =
         q.source === 'biquote' && streaming
           ? 'biquote WS'
           : q.source
-      setLiveSource(
-        age <= 2 ? `ライブ ${tag}` : `ライブ ${tag} · ${age}秒前`,
-      )
+      // Stable label only — age/sec text used to reflow chart-meta every tick
+      setLiveSource((prev) => (prev === tag ? prev : tag))
       setLiveError(null)
 
       if (shockAlert && shockRef.current) {
@@ -380,6 +383,10 @@ export default function App() {
       stopStream()
       window.clearInterval(id)
       window.clearInterval(watch)
+      if (tickFlushTimer.current != null) {
+        window.clearTimeout(tickFlushTimer.current)
+        tickFlushTimer.current = null
+      }
     }
   }, [pairId, timeframe, pair.label, shockAlert])
 
@@ -417,6 +424,8 @@ export default function App() {
     return evaluateSimple(window, pair, stats.disabledSessions)
   }, [candles, pair, stats.disabledSessions])
 
+  // Tip ticks must not rebuild markers — only when a new bar opens
+  const lastCandleTime = candles[candles.length - 1]?.time ?? 0
   const histSignals = useMemo(() => {
     // Extra bars for indicator warmup, then only emit after warmup.
     const need = 1400
@@ -428,7 +437,9 @@ export default function App() {
         : HIST_FROM_UNIX
     const recent = listHistoricalSignals(slice, pair, from)
     return mergeHistSignals(archiveSignals, recent)
-  }, [archiveSignals, candles, pair])
+    // candles read intentionally; invalidate on bar time / length only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archiveSignals, lastCandleTime, pair, candles.length])
   const signal = useMemo(() => {
     if (!inPosition) return raw
     return {
@@ -450,14 +461,18 @@ export default function App() {
         side: raw.action as 'BUY' | 'SELL',
         expectedEntry: expected,
         pairId,
+        slPips: raw.slPips,
+        tpPips: raw.tpPips,
       }),
     )
   }
 
   function handleClose(kind: 'TP' | 'SL' | 'OTHER') {
     const slip = Math.max(0, Number(slipInput) || 0)
+    const openSl = stats.open?.slPips ?? SIMPLE.slPips
+    const openTp = stats.open?.tpPips ?? SIMPLE.tpPips
     let pnl =
-      kind === 'TP' ? SIMPLE.tpPips : kind === 'SL' ? -SIMPLE.slPips : Number(otherPnl)
+      kind === 'TP' ? openTp : kind === 'SL' ? -openSl : Number(otherPnl)
     if (kind === 'OTHER' && !Number.isFinite(pnl)) return
     // Adverse slip reduces net for winners / worsens losers slightly on entry
     if (kind === 'TP') pnl = Math.max(0, pnl - slip)
@@ -482,19 +497,10 @@ export default function App() {
       : last
         ? last.close
         : NaN
-  const halfSpread = ((raw.spreadPips || 0.2) * pair.pip) / 2
-  const bidNum =
-    liveBid != null && Number.isFinite(liveBid)
-      ? liveBid
-      : Number.isFinite(mid)
-        ? mid - halfSpread
-        : NaN
-  const askNum =
-    liveAsk != null && Number.isFinite(liveAsk)
-      ? liveAsk
-      : Number.isFinite(mid)
-        ? mid + halfSpread
-        : NaN
+  // Display bid/ask always at fixed broker spread (0.2p) — ignore live BBO width
+  const halfSpread = (BROKER_SPREAD_PIPS * pair.pip) / 2
+  const bidNum = Number.isFinite(mid) ? mid - halfSpread : NaN
+  const askNum = Number.isFinite(mid) ? mid + halfSpread : NaN
   const bid = Number.isFinite(bidNum) ? bidNum.toFixed(pair.digits) : '—'
   const ask = Number.isFinite(askNum) ? askNum.toFixed(pair.digits) : '—'
   const midText = Number.isFinite(mid) ? mid.toFixed(pair.digits) : '—'
@@ -508,11 +514,12 @@ export default function App() {
       if (lastEntryKey.current !== key) {
         lastEntryKey.current = key
         announceEntry(raw.action === 'BUY' ? 'LONG' : 'SHORT', midText, {
-          sl: SIMPLE.slPips,
-          tp: SIMPLE.tpPips,
+          sl: raw.slPips,
+          tp: raw.tpPips,
           unit: unitLabel(pair),
           session: raw.sessionLabel ?? undefined,
           grade: raw.grade,
+          prime: raw.prime,
         })
       }
       return
@@ -534,6 +541,9 @@ export default function App() {
     raw.action,
     raw.entryPrice,
     raw.grade,
+    raw.prime,
+    raw.slPips,
+    raw.tpPips,
     raw.sessionLabel,
     raw.trailDistancePips,
     pair,
@@ -694,13 +704,15 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [events, headlines, voiceOn, newsVoice])
 
-  const sourceLabel = liveSource
-    ? `ライブ ${liveSource}`
-    : liveLoading
-      ? 'レート取得中…'
-      : liveError
-        ? `レート取得失敗（${liveError}）· 再読み込みしてください`
-        : 'レート待機中'
+  // Never show "ライブ ライブ …" even if a source string already starts with ライブ
+  const sourceLabel = (() => {
+    if (liveLoading && !liveSource) return 'レート取得中…'
+    if (!liveSource) {
+      return liveError ? 'レート取得失敗 · 再読み込み' : 'レート待機中'
+    }
+    const cleaned = liveSource.replace(/^ライブ\s*[·•.\-:]?\s*/u, '').trim()
+    return cleaned ? `ライブ · ${cleaned}` : 'ライブ'
+  })()
 
   return (
     <div className={`app ${booted ? 'is-ready' : ''}`}>
@@ -756,7 +768,7 @@ export default function App() {
         <div className="brand-block">
           <p className="brand">KEHAI</p>
           <p className="tagline">
-            {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
+            {SIMPLE.stack} · 手動サイン · SL/TP ATR連動
           </p>
         </div>
 
@@ -940,17 +952,28 @@ export default function App() {
             <h1>
               {pair.label}
               <span className="tf-chip">
-                {timeframe} · {SIMPLE.stack}
+                {timeframe} · Peak
               </span>
             </h1>
-            <p className="sample-note">
+            <p
+              className="sample-note"
+              title={[
+                sourceLabel,
+                signal.sessionLabel ?? 'セッション外',
+                histSignals.length > 0
+                  ? `過去サイン ${histSignals.length}（11月〜）`
+                  : null,
+                liveError,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            >
               {sourceLabel}
-              {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ' · セッション外'}
-              {' · '}BUY/SELLのみ · 1本
+              {' · '}
+              {signal.sessionLabel ?? 'セッション外'}
               {histSignals.length > 0
-                ? ` · 過去サイン ${histSignals.length}（11月〜）`
+                ? ` · 過去 ${histSignals.length}`
                 : ''}
-              {liveError ? ` · ${liveError}` : ''}
             </p>
           </div>
           {candles.length >= 30 ? (

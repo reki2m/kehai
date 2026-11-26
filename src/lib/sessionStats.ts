@@ -28,6 +28,9 @@ export interface OpenTrade {
   side: TradeSide
   expectedEntry: number
   pairId: string
+  /** ATR-hybrid risk locked at entry (fallback 7/10). */
+  slPips?: number
+  tpPips?: number
 }
 
 export interface SessionStatsState {
@@ -88,6 +91,8 @@ export function openTrade(
     side: TradeSide
     expectedEntry: number
     pairId: string
+    slPips?: number
+    tpPips?: number
   },
 ): SessionStatsState {
   if (state.open) return state
@@ -100,6 +105,8 @@ export function openTrade(
       side: input.side,
       expectedEntry: input.expectedEntry,
       pairId: input.pairId,
+      slPips: input.slPips,
+      tpPips: input.tpPips,
     },
   }
   saveSessionStats(next)

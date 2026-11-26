@@ -8,8 +8,8 @@ export function RulesPanel() {
     <section className="rules-panel" aria-label="ルール">
       <h2>ルール</h2>
       <p className="rules-lead">
-        {SIMPLE.stack} · 手動 · 1本のみ · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips} · スプレッド
-        前提 {BROKER_SPREAD_PIPS}p
+        {SIMPLE.stack} · 手動 · 1本のみ · SL/TP ATR連動 · スプレッド前提{' '}
+        {BROKER_SPREAD_PIPS}p
       </p>
       <ol className="rules-list">
         <li>
@@ -22,13 +22,16 @@ export function RulesPanel() {
         <li>
           <strong>品質ゲート</strong>
           <span>
-            ADX≥{SIMPLE.adxMin} · WaveTrend強い逆行は見送り · 品質 S/A 優先（Cは見送り推奨）
+            Peak確認: Supertrend + 上位SSL + DI + WT一致 + RSI帯 · 通常枠
+            12:00–0:00 JSTは ADX≥{SIMPLE.adxMin} · 枠外の推奨は ADX≥
+            {SIMPLE.adxPrime}
           </span>
         </li>
         <li>
           <strong>決済</strong>
           <span>
-            損切り {SIMPLE.slPips} pips · 利確 {SIMPLE.tpPips} pips（固定）
+            ATR連動 · SL {SIMPLE.slMin}–{SIMPLE.slMax}p · TP {SIMPLE.tpMin}–
+            {SIMPLE.tpMax}p（ボード表示に合わせる）
           </span>
         </li>
         <li>

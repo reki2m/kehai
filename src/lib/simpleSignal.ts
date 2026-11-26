@@ -1,12 +1,11 @@
 /**
- * KEHAI Simple Pro — manual buy/sell only.
+ * KEHAI Peak — manual buy/sell only.
  *
- * Core (bakeoff winner): UT Bot flip × SSL Channel confirm
- * Quality stack (soft gates + grade):
- *   ADX regime · WaveTrend momentum · session EMA/VWAP
- *
- * Rules: one position mindset · fixed SL 7 / TP 10 · no auto-trading
- * READY: SSL/EMA/VWAP already aligned + price within readyPips of UT trail
+ * Core: UT Bot flip × SSL Channel
+ * Peak confirms (Aug–Nov bakeoff winner):
+ *   Supertrend(10,3) · HTF SSL50 · DI · WaveTrend agree · RSI pullback
+ *   ADX≥18 in JST 12:00–0:00 · ADX≥22 off-window (推奨 only)
+ * Risk: ATR-hybrid SL/TP
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -15,8 +14,10 @@ import {
   adx,
   atr,
   ema,
+  rsi,
   sessionVwap,
   sslDirection,
+  supertrendDirection,
   utBotTrail,
   wavetrend,
 } from './indicators'
@@ -24,30 +25,71 @@ import type { PairMeta } from './pairs'
 import {
   SESSION_PROFILES,
   detectFxSession,
+  isFxWeekday,
   isInstrumentWindow,
+  isNoonSignalWindow,
+  sessionAwayFromEdge,
   type FxSession,
 } from './apex'
 
 export const SIMPLE = {
-  name: 'KEHAI Simple Pro',
-  stack: 'UT×SSL + ADX/WT',
+  name: 'KEHAI Peak',
+  stack: 'UT×SSL×ST + HTF/DI/WT/RSI',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
-    'ADX(14) regime · WaveTrend (LazyBear)',
-    'Session windows — Tokyo / London Mid / NY',
+    'Supertrend(10,3) · ADX(14)+DI · WaveTrend · RSI(14) pullback',
+    'HTF SSL(50) · ATR risk · JST 12:00–0:00 + off-window 推奨',
   ],
+  /** Fallback / baseline when ATR missing. */
   slPips: 7,
   tpPips: 10,
+  /** ATR-hybrid risk: SL = clamp(ATR×mult), TP = clamp(SL×rr). */
+  slAtrMult: 1.1,
+  slMin: 6,
+  slMax: 10,
+  tpRr: 1.45,
+  tpMin: 9,
+  tpMax: 14,
   maxHoldBars: 45,
   /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
-  /** Soft floor: below this ADX, treat as dead range (no new entries). */
+  /** Primary window (JST 12–0) ADX floor. */
   adxMin: 18,
-  /** Soft block when WaveTrend is strongly against the flip. */
-  wtAgainstAbs: 50,
+  /** Off-window 推奨 ADX floor. */
+  adxPrime: 22,
+  /** Soft block leftover (peak requires WT agree instead). */
+  wtAgainstAbs: 55,
+  /** Skip lifeless tape. */
+  minAtrPips: 1.2,
+  sessionEdgeMin: 0,
+  htfSslLen: 50,
+  stPeriod: 10,
+  stMult: 3,
+  /** RSI pullback bands (avoid chase). */
+  rsiLongLo: 40,
+  rsiLongHi: 65,
+  rsiShortLo: 35,
+  rsiShortHi: 60,
   pip: 0.01,
 } as const
+
+/** ATR-scaled SL/TP used by live board + manual close. */
+export function atrRiskPips(atrPips: number): { sl: number; tp: number } {
+  if (!(atrPips > 0)) return { sl: SIMPLE.slPips, tp: SIMPLE.tpPips }
+  const sl =
+    Math.round(
+      Math.max(
+        SIMPLE.slMin,
+        Math.min(SIMPLE.slMax, atrPips * SIMPLE.slAtrMult),
+      ) * 10,
+    ) / 10
+  const tp =
+    Math.round(
+      Math.max(SIMPLE.tpMin, Math.min(SIMPLE.tpMax, sl * SIMPLE.tpRr)) * 10,
+    ) / 10
+  return { sl, tp }
+}
 
 export type SimpleAction = 'BUY' | 'SELL' | 'READY_BUY' | 'READY_SELL' | 'WAIT'
 export type QualityGrade = 'S' | 'A' | 'B' | 'C' | '—'
@@ -69,6 +111,9 @@ export interface SimpleSignal {
   spreadPips: number
   stopDistance: number
   takeProfitDistance: number
+  /** Risk distances in pips (ATR-hybrid). */
+  slPips: number
+  tpPips: number
   utFlip: boolean
   sslSide: 'buy' | 'sell' | 'flat'
   filtersOk: boolean
@@ -78,12 +123,14 @@ export interface SimpleSignal {
   trailPrice: number | null
   /** Suggested entry price when READY/BUY/SELL (UT flip level or last close). */
   entryPrice: number | null
-  /** Absolute SL / TP from entryPrice (fixed pip distances). */
+  /** Absolute SL / TP from entryPrice (ATR-hybrid pip distances). */
   stopPrice: number | null
   takeProfitPrice: number | null
   readySide: 'BUY' | 'SELL' | null
   grade: QualityGrade
   quality: number
+  /** DI + ADX≥prime + WT agree + HTF SSL — take these first. */
+  prime: boolean
   layers: IndicatorLayer[]
   utKey: number
   utAtr: number
@@ -120,6 +167,8 @@ export function evaluateSimple(
     spreadPips: 0,
     stopDistance: SIMPLE.slPips * pip,
     takeProfitDistance: SIMPLE.tpPips * pip,
+    slPips: SIMPLE.slPips,
+    tpPips: SIMPLE.tpPips,
     utFlip: false,
     sslSide: 'flat',
     filtersOk: false,
@@ -131,6 +180,7 @@ export function evaluateSimple(
     readySide: null,
     grade: '—',
     quality: 0,
+    prime: false,
     layers: [],
     utKey: 2,
     utAtr: 7,
@@ -148,7 +198,13 @@ export function evaluateSimple(
       reason: '弱い帯として停止中',
     })
   }
-  const profile = fxSession ? SESSION_PROFILES[fxSession] : null
+  // Outside Tokyo/London/NY bands still allow 推奨 with Tokyo knobs
+  const profile = fxSession
+    ? SESSION_PROFILES[fxSession]
+    : pair?.kind === 'fx' || !pair
+      ? SESSION_PROFILES.tokyo
+      : null
+  const noonOk = !pair || pair.kind === 'fx' ? isNoonSignalWindow(t) : true
 
   const utKey = profile?.utKey ?? 2
   const utAtr = profile?.utAtr ?? 7
@@ -165,8 +221,11 @@ export function evaluateSimple(
       : estimateSpreadPips(t, atrPips || undefined)
 
   const news = pair?.kind === 'fx' ? newsBlackout(t) : null
+  // FX: weekday 24h (prime off-noon); non-FX keeps instrument windows
   const windowOk =
-    pair && pair.kind !== 'fx' ? isInstrumentWindow(t, pair) : fxSession != null
+    pair && pair.kind !== 'fx'
+      ? isInstrumentWindow(t, pair)
+      : isFxWeekday(t)
 
   const { direction: utSeries, trail: trailSeries } = utBotTrail(
     candles,
@@ -177,10 +236,15 @@ export function evaluateSimple(
   const utPrev = utSeries.length >= 2 ? utSeries[utSeries.length - 2] : undefined
   const trail = last(trailSeries)
   const ssl = last(sslDirection(candles, sslLen))
+  const htfSsl = last(sslDirection(candles, SIMPLE.htfSslLen))
+  const stDir = last(
+    supertrendDirection(candles, SIMPLE.stPeriod, SIMPLE.stMult),
+  )
   const vwap = last(sessionVwap(candles))
   const ema21 = last(ema(candles, 21))
   const ema55 = last(ema(candles, 55))
   const adxVal = last(adx(candles, 14))
+  const rsiVal = last(rsi(candles, 14))
   const { wt1, wt2 } = wavetrend(candles, 10, 21)
   const w1 = last(wt1)
   const w2 = last(wt2)
@@ -189,6 +253,10 @@ export function evaluateSimple(
   const utFlipShort = !!(ut && utPrev && ut.value < 0 && utPrev.value >= 0)
   const sslLong = !!ssl && ssl.value > 0
   const sslShort = !!ssl && ssl.value < 0
+  const htfLong = !!htfSsl && htfSsl.value > 0
+  const htfShort = !!htfSsl && htfSsl.value < 0
+  const stLong = !!stDir && stDir.value > 0
+  const stShort = !!stDir && stDir.value < 0
   const emaLong = !requireEma || (!!ema21 && !!ema55 && ema21.value > ema55.value)
   const emaShort = !requireEma || (!!ema21 && !!ema55 && ema21.value < ema55.value)
 
@@ -204,32 +272,77 @@ export function evaluateSimple(
 
   const newsOk = !news
   const spreadOk = spreadPips <= maxSpread
-  const filtersOk = windowOk && newsOk && spreadOk
+  const edgeOk = sessionAwayFromEdge(t, SIMPLE.sessionEdgeMin, fxSession)
+  const atrFloorOk = atrPips <= 0 || atrPips >= SIMPLE.minAtrPips
+  const filtersOk = windowOk && newsOk && spreadOk && edgeOk && atrFloorOk
 
-  const adxOk = !adxVal || adxVal.adx >= SIMPLE.adxMin
+  const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
+  const adxOk = !!adxVal && adxVal.adx >= adxFloor
   const adxStrong = !!adxVal && adxVal.adx >= 25
+  const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
+  const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
   const wtBull = !!(w1 && w2 && w1.value > w2.value)
   const wtBear = !!(w1 && w2 && w1.value < w2.value)
-  const wtAbs = w1 ? Math.abs(w1.value) : 0
-  const wtStrongAgainstLong =
-    wtBear && wtAbs >= SIMPLE.wtAgainstAbs
-  const wtStrongAgainstShort =
-    wtBull && wtAbs >= SIMPLE.wtAgainstAbs
   const wtAgreeLong = wtBull
   const wtAgreeShort = wtBear
+  const rsiLongOk =
+    !!rsiVal &&
+    rsiVal.value >= SIMPLE.rsiLongLo &&
+    rsiVal.value <= SIMPLE.rsiLongHi
+  const rsiShortOk =
+    !!rsiVal &&
+    rsiVal.value >= SIMPLE.rsiShortLo &&
+    rsiVal.value <= SIMPLE.rsiShortHi
 
-  // Soft quality gates — keep UT×SSL core, cut dead/against moves
+  // Peak stack — all confirms required
   let qualityBlock: string | null = null
-  if ((buy || sell) && !adxOk) {
-    qualityBlock = `ADX弱い ${adxVal?.adx.toFixed(0) ?? '—'}（レンジ）`
+  if ((buy || sell) && !edgeOk) {
+    qualityBlock = 'セッション端（見送り）'
     buy = false
     sell = false
-  } else if (buy && wtStrongAgainstLong) {
-    qualityBlock = `WaveTrend強く逆行 ${w1!.value.toFixed(0)}`
+  } else if ((buy || sell) && !atrFloorOk) {
+    qualityBlock = `ATR薄い ${atrPips.toFixed(1)}p`
     buy = false
-  } else if (sell && wtStrongAgainstShort) {
-    qualityBlock = `WaveTrend強く逆行 ${w1!.value.toFixed(0)}`
     sell = false
+  } else if ((buy || sell) && !adxOk) {
+    qualityBlock = `ADX弱い ${adxVal?.adx.toFixed(0) ?? '—'}（要≥${adxFloor}）`
+    buy = false
+    sell = false
+  } else if (buy && !htfLong) {
+    qualityBlock = '上位SSL不一致'
+    buy = false
+  } else if (sell && !htfShort) {
+    qualityBlock = '上位SSL不一致'
+    sell = false
+  } else if (buy && !diLong) {
+    qualityBlock = 'DI方向不一致'
+    buy = false
+  } else if (sell && !diShort) {
+    qualityBlock = 'DI方向不一致'
+    sell = false
+  } else if (buy && !stLong) {
+    qualityBlock = 'Supertrend逆行'
+    buy = false
+  } else if (sell && !stShort) {
+    qualityBlock = 'Supertrend逆行'
+    sell = false
+  } else if (buy && !wtAgreeLong) {
+    qualityBlock = 'WaveTrend不一致'
+    buy = false
+  } else if (sell && !wtAgreeShort) {
+    qualityBlock = 'WaveTrend不一致'
+    sell = false
+  } else if (buy && !rsiLongOk) {
+    qualityBlock = `RSI追撃回避 ${rsiVal?.value.toFixed(0) ?? '—'}`
+    buy = false
+  } else if (sell && !rsiShortOk) {
+    qualityBlock = `RSI追撃回避 ${rsiVal?.value.toFixed(0) ?? '—'}`
+    sell = false
+  }
+
+  // Off-window (outside JST 12–0): only if peak stack already passed (=推奨)
+  if ((buy || sell) && !noonOk) {
+    // already required adxPrime via adxFloor; mark as prime path
   }
 
   const trailDistancePips =
@@ -237,29 +350,40 @@ export function evaluateSimple(
       ? Math.abs(price - trail.value) / pip
       : null
 
-  // READY: confirms already set, UT not flipped yet, price near trail
   const nearTrail =
     trailDistancePips != null && trailDistancePips <= SIMPLE.readyPips
+  const peakLongReady =
+    confirmLong &&
+    htfLong &&
+    stLong &&
+    diLong &&
+    wtAgreeLong &&
+    rsiLongOk &&
+    adxOk
+  const peakShortReady =
+    confirmShort &&
+    htfShort &&
+    stShort &&
+    diShort &&
+    wtAgreeShort &&
+    rsiShortOk &&
+    adxOk
   const readyBuy =
     filtersOk &&
-    adxOk &&
     !buy &&
     !sell &&
-    confirmLong &&
     !!ut &&
     ut.value < 0 &&
     nearTrail &&
-    !wtStrongAgainstLong
+    peakLongReady
   const readySell =
     filtersOk &&
-    adxOk &&
     !buy &&
     !sell &&
-    confirmShort &&
     !!ut &&
     ut.value > 0 &&
     nearTrail &&
-    !wtStrongAgainstShort
+    peakShortReady
 
   let action: SimpleAction = 'WAIT'
   if (filtersOk && buy) action = 'BUY'
@@ -267,32 +391,33 @@ export function evaluateSimple(
   else if (readyBuy) action = 'READY_BUY'
   else if (readySell) action = 'READY_SELL'
 
-  // Quality score 0–100
   let quality = 0
-  if (windowOk) quality += 12
-  if (newsOk) quality += 8
-  if (spreadOk) quality += 8
-  if (sslLong || sslShort) quality += 14
-  if (ut) quality += 10
-  if (utFlipLong || utFlipShort) quality += 18
-  if ((buy && confirmLong) || (sell && confirmShort)) quality += 10
+  if (windowOk) quality += 8
+  if (newsOk) quality += 4
+  if (spreadOk) quality += 4
+  if (atrFloorOk) quality += 6
+  if (sslLong || sslShort) quality += 8
+  if (htfLong || htfShort) quality += 8
+  if (stLong || stShort) quality += 8
+  if (ut) quality += 6
+  if (utFlipLong || utFlipShort) quality += 12
   if (adxOk) quality += 8
-  if (adxStrong) quality += 6
-  if ((buy || readyBuy) && wtAgreeLong) quality += 10
-  else if ((sell || readySell) && wtAgreeShort) quality += 10
-  else if (w1 && w2) quality += 2
-  if (requireVwap && vwap) {
-    if ((buy || readyBuy) && price >= vwap.value) quality += 6
-    if ((sell || readySell) && price <= vwap.value) quality += 6
-  }
-  if (requireEma && ema21 && ema55) {
-    if ((buy || readyBuy) && ema21.value > ema55.value) quality += 6
-    if ((sell || readySell) && ema21.value < ema55.value) quality += 6
-  }
+  if (adxStrong) quality += 4
+  if (diLong || diShort) quality += 8
+  if (wtAgreeLong || wtAgreeShort) quality += 8
+  if (rsiLongOk || rsiShortOk) quality += 8
+  if (noonOk) quality += 4
+  else quality += 6 // off-window survived higher ADX
   quality = Math.max(0, Math.min(100, Math.round(quality)))
 
   const hasEntry = action === 'BUY' || action === 'SELL'
-  const grade = gradeFromQuality(quality, hasEntry || action.startsWith('READY'))
+  // Off-window always 推奨; in-window also 推奨 when ADX≥prime
+  const prime =
+    hasEntry &&
+    (!noonOk || (!!adxVal && adxVal.adx >= SIMPLE.adxPrime))
+  let grade = gradeFromQuality(quality, hasEntry || action.startsWith('READY'))
+  if (hasEntry && (grade === 'B' || grade === 'C')) grade = 'A'
+  if (prime && quality >= 86) grade = 'S'
 
   const layers: IndicatorLayer[] = [
     {
@@ -318,27 +443,53 @@ export function evaluateSimple(
       detail: sslLong ? '買い側' : sslShort ? '売り側' : 'フラット',
     },
     {
+      id: 'htf',
+      name: `SSL(${SIMPLE.htfSslLen})`,
+      bias: htfLong ? 'bull' : htfShort ? 'bear' : 'neutral',
+      ok: htfLong || htfShort,
+      detail: htfLong ? '上位買い' : htfShort ? '上位売り' : 'フラット',
+    },
+    {
+      id: 'st',
+      name: `ST(${SIMPLE.stPeriod},${SIMPLE.stMult})`,
+      bias: stLong ? 'bull' : stShort ? 'bear' : 'neutral',
+      ok: stLong || stShort,
+      detail: stLong ? '上昇' : stShort ? '下降' : 'フラット',
+    },
+    {
       id: 'adx',
       name: 'ADX(14)',
       bias:
-        adxVal && adxVal.adx >= SIMPLE.adxMin
+        adxVal && adxVal.adx >= adxFloor
           ? adxVal.plusDi > adxVal.minusDi
             ? 'bull'
             : 'bear'
           : 'neutral',
       ok: adxOk,
       detail: adxVal
-        ? `${adxVal.adx.toFixed(0)}${adxOk ? (adxStrong ? ' 強い' : ' OK') : ' 弱い'}`
+        ? `${adxVal.adx.toFixed(0)}${adxOk ? (adxStrong ? ' 強い' : ' OK') : ` <${adxFloor}`}`
         : '未計算',
     },
     {
       id: 'wt',
       name: 'WaveTrend',
       bias: wtBull ? 'bull' : wtBear ? 'bear' : 'neutral',
-      ok: !!(w1 && w2),
+      ok: wtAgreeLong || wtAgreeShort,
       detail: w1 && w2
         ? `${w1.value.toFixed(0)}/${w2.value.toFixed(0)}`
         : '未計算',
+    },
+    {
+      id: 'rsi',
+      name: 'RSI(14)',
+      bias:
+        rsiVal && rsiVal.value >= 55
+          ? 'bull'
+          : rsiVal && rsiVal.value <= 45
+            ? 'bear'
+            : 'neutral',
+      ok: rsiLongOk || rsiShortOk,
+      detail: rsiVal ? rsiVal.value.toFixed(0) : '未計算',
     },
   ]
   if (requireVwap || vwap) {
@@ -374,13 +525,20 @@ export function evaluateSimple(
     })
   }
 
-  const sessionLabel = profile
-    ? `${profile.labelJa} (${profile.jst})`
-    : null
+  const sessionOut: FxSession | null =
+    fxSession ?? (isFxWeekday(t) && (!pair || pair.kind === 'fx') ? 'tokyo' : null)
+  const sessionLabel = noonOk
+    ? '通常枠 (12:00–0:00 JST)'
+    : fxSession
+      ? `${SESSION_PROFILES[fxSession].labelJa} · 推奨のみ`
+      : sessionOut
+        ? '推奨枠 (平日いつでも)'
+        : null
 
   const digits = pair?.digits ?? 3
   const trailPrice =
     trail && Number.isFinite(trail.value) ? trail.value : null
+  const risk = atrRiskPips(atrPips)
 
   // READY: watch UT trail flip. BUY/SELL: fill reference is last close.
   let entryPrice: number | null = null
@@ -395,22 +553,23 @@ export function evaluateSimple(
   if (entryPrice != null) {
     const longSide = action === 'BUY' || action === 'READY_BUY'
     stopPrice = longSide
-      ? entryPrice - SIMPLE.slPips * pip
-      : entryPrice + SIMPLE.slPips * pip
+      ? entryPrice - risk.sl * pip
+      : entryPrice + risk.sl * pip
     takeProfitPrice = longSide
-      ? entryPrice + SIMPLE.tpPips * pip
-      : entryPrice - SIMPLE.tpPips * pip
+      ? entryPrice + risk.tp * pip
+      : entryPrice - risk.tp * pip
   }
 
   const fmt = (n: number | null) =>
     n != null && Number.isFinite(n) ? n.toFixed(digits) : null
   const entryTxt = fmt(entryPrice)
 
+  const tierTxt = prime ? '推奨' : grade === 'A' || grade === 'S' ? '推奨' : '標準'
   let reason = '待機'
   if (action === 'BUY')
-    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · 品質${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `UT買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'SELL')
-    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · 品質${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `UT売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
   else if (action === 'READY_BUY')
     reason = entryTxt
       ? `準備・買い · ${entryTxt} で買い検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
@@ -442,12 +601,14 @@ export function evaluateSimple(
   return {
     action,
     label,
-    session: fxSession,
+    session: sessionOut,
     sessionLabel,
     reason,
     spreadPips,
-    stopDistance: SIMPLE.slPips * pip,
-    takeProfitDistance: SIMPLE.tpPips * pip,
+    stopDistance: risk.sl * pip,
+    takeProfitDistance: risk.tp * pip,
+    slPips: risk.sl,
+    tpPips: risk.tp,
     utFlip: utFlipLong || utFlipShort,
     sslSide: sslLong ? 'buy' : sslShort ? 'sell' : 'flat',
     filtersOk,
@@ -459,6 +620,7 @@ export function evaluateSimple(
     readySide: readyBuy ? 'BUY' : readySell ? 'SELL' : null,
     grade,
     quality,
+    prime,
     layers,
     utKey,
     utAtr,

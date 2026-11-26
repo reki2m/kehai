@@ -348,6 +348,7 @@ export function announceEntry(
     unit: string
     session?: string
     grade?: string
+    prime?: boolean
   },
 ): void {
   if (entrySoundOn) playEntryBeep(action)
@@ -356,9 +357,15 @@ export function announceEntry(
   const tp = risk?.tp ?? 6
   const unit = risk?.unit ?? 'ピプス'
   const sess = risk?.session ? `${risk.session}。` : ''
+  const tier =
+    risk?.prime || risk?.grade === 'S' || risk?.grade === 'A'
+      ? '推奨'
+      : risk?.grade && risk.grade !== '—'
+        ? '標準'
+        : ''
   const grade =
     risk?.grade && risk.grade !== '—'
-      ? `品質${risk.grade}。`
+      ? `${tier}品質${risk.grade}。`
       : ''
   speak(
     `${sess}${side}エントリー。${grade}価格 ${price}。損切り${sl}${unit}、利確${tp}${unit}。`,
