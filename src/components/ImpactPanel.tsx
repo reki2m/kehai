@@ -15,7 +15,7 @@ export function ImpactPanel({ impact, loading }: Props) {
       <div className="impact-head">
         <h2>ドル円への影響</h2>
         <p className="impact-lead">
-          ユーロドル・原油・日経・ダウ・VIXがドル円に与える短期圧力
+          原油・日経・ダウ・VIXがドル円に与える短期圧力（監視のみ・非トレード）
         </p>
       </div>
 

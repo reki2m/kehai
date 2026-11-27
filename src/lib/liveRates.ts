@@ -24,6 +24,10 @@ export const YAHOO_SYMBOLS: Record<PairId, string> = {
   EURJPY: 'EURJPY=X',
   AUDUSD: 'AUDUSD=X',
   USDCHF: 'USDCHF=X',
+  GBPUSD: 'GBPUSD=X',
+  NZDUSD: 'NZDUSD=X',
+  CADJPY: 'CADJPY=X',
+  EURGBP: 'EURGBP=X',
   USOIL: 'CL=F',
   NIKKEI: 'NIY=F',
   DOW: 'YM=F',
@@ -38,6 +42,10 @@ export const TWELVE_SYMBOLS: Partial<Record<PairId, string>> = {
   EURJPY: 'EUR/JPY',
   AUDUSD: 'AUD/USD',
   USDCHF: 'USD/CHF',
+  GBPUSD: 'GBP/USD',
+  NZDUSD: 'NZD/USD',
+  CADJPY: 'CAD/JPY',
+  EURGBP: 'EUR/GBP',
 }
 
 const TF_MAP: Record<Timeframe, string> = {

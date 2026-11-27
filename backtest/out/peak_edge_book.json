@@ -1,0 +1,26 @@
+{
+  "note": "USDJPY alone cannot hit ~10/day while beating Peak Edge EV; book = same Peak Edge on 6 FX",
+  "peakEdgeUsdJpy": {
+    "tpd": 1.6,
+    "ev": 1.92,
+    "net": 104,
+    "daily": 3.07
+  },
+  "peakEdgeBook": {
+    "tpd": 9.6,
+    "ev": 1.92,
+    "daily": 18.43,
+    "netNote": "scales with pairs; correlation reduces independence"
+  },
+  "yahoo5dBookObserved": {
+    "tpd": 3.75,
+    "ev": 2.41,
+    "net": 36.2,
+    "daily": 9.05,
+    "note": "short window under-samples quiet pairs"
+  },
+  "searches": {
+    "ten_slots_beatDaily": 0,
+    "alt_edge_beat": 0
+  }
+}

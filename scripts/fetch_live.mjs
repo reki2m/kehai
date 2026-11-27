@@ -17,6 +17,10 @@ const SYMBOLS = {
   EURJPY: 'EURJPY=X',
   AUDUSD: 'AUDUSD=X',
   USDCHF: 'USDCHF=X',
+  GBPUSD: 'GBPUSD=X',
+  NZDUSD: 'NZDUSD=X',
+  CADJPY: 'CADJPY=X',
+  EURGBP: 'EURGBP=X',
   USOIL: 'CL=F',
   NIKKEI: 'NIY=F',
   DOW: 'YM=F',
@@ -120,6 +124,10 @@ const SQ_SYMBOLS = {
   EURJPY: 'EUR/JPY',
   AUDUSD: 'AUD/USD',
   USDCHF: 'USD/CHF',
+  GBPUSD: 'GBP/USD',
+  NZDUSD: 'NZD/USD',
+  CADJPY: 'CAD/JPY',
+  EURGBP: 'EUR/GBP',
 }
 
 async function fetchSwissquote(pairPath) {

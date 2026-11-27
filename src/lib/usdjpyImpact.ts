@@ -1,8 +1,11 @@
 import type { Candle } from './marketData'
 import { getPair, type PairId } from './pairs'
 
-/** Drivers we added specifically to judge USD/JPY pressure. */
-export const IMPACT_DRIVERS: PairId[] = ['EURUSD', 'USOIL', 'NIKKEI', 'DOW', 'VIX']
+/**
+ * Context drivers for USD/JPY pressure (watch-only — not trade targets).
+ * Charts for these appear only while short-horizon related to USDJPY.
+ */
+export const IMPACT_DRIVERS: PairId[] = ['USOIL', 'NIKKEI', 'DOW', 'VIX']
 
 /**
  * Sign convention: positive beta = driver ↑ → USDJPY ↑.
@@ -22,6 +25,10 @@ export const USDJPY_BETA: Record<
   EURJPY: { beta: 0, weight: 0, why: '' },
   AUDUSD: { beta: 0, weight: 0, why: '' },
   USDCHF: { beta: 0, weight: 0, why: '' },
+  GBPUSD: { beta: 0, weight: 0, why: '' },
+  NZDUSD: { beta: 0, weight: 0, why: '' },
+  CADJPY: { beta: 0, weight: 0, why: '' },
+  EURGBP: { beta: 0, weight: 0, why: '' },
   USOIL: {
     beta: 0.45,
     weight: 0.55,

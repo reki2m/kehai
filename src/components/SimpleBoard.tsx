@@ -4,26 +4,17 @@ import { unitLabel } from '../lib/pairs'
 
 interface Props {
   signal: SimpleSignal
-  /** 売値 (BID) */
-  bid: string
-  /** 買値 (ASK) */
-  ask: string
-  mid: string
-  change: number
-  changePct: number
   pair: PairMeta
   inPosition: boolean
+  /** Live open ±pips when in a marked trade. */
+  openPips?: number | null
 }
 
 export function SimpleBoard({
   signal,
-  bid,
-  ask,
-  mid,
-  change,
-  changePct,
   pair,
   inPosition,
+  openPips = null,
 }: Props) {
   const tone =
     signal.action === 'BUY' || signal.action === 'READY_BUY'
@@ -58,12 +49,17 @@ export function SimpleBoard({
         <p className={`simple-action ${actionClass}`}>
           {inPosition ? 'IN TRADE' : signal.label}
         </p>
+        {inPosition && openPips != null && (
+          <p
+            className={`simple-open-pips ${openPips >= 0 ? 'up' : 'down'}`}
+          >
+            建玉 {openPips >= 0 ? '+' : ''}
+            {openPips.toFixed(1)}p
+          </p>
+        )}
         {showGrade && (
           <p className={`simple-grade grade-${signal.grade.toLowerCase()}`}>
-            {signal.prime || signal.grade === 'S' || signal.grade === 'A'
-              ? '推奨'
-              : '標準'}{' '}
-            {signal.grade}
+            {signal.prime ? 'Peak' : '標準'} {signal.grade}
             <span className="simple-grade-score"> · {signal.quality}</span>
           </p>
         )}
@@ -97,9 +93,7 @@ export function SimpleBoard({
               {(signal.stopPrice != null || signal.takeProfitPrice != null) && (
                 <p className="ready-sltp">
                   {signal.stopPrice != null && (
-                    <>
-                      SL {signal.stopPrice.toFixed(pair.digits)}
-                    </>
+                    <>SL {signal.stopPrice.toFixed(pair.digits)}</>
                   )}
                   {signal.stopPrice != null && signal.takeProfitPrice != null
                     ? ' · '
@@ -132,26 +126,6 @@ export function SimpleBoard({
           </ul>
         )}
 
-        <div className="rate-board" aria-label="買い値と売り値">
-          <div className="rate-side rate-ask">
-            <span className="rate-label">買い値</span>
-            <span className="rate-num">{ask}</span>
-          </div>
-          <div className="rate-side rate-bid">
-            <span className="rate-label">売り値</span>
-            <span className="rate-num">{bid}</span>
-          </div>
-        </div>
-        <p className="rate-mid">
-          仲値 {mid}
-          <span className={`quote-chg ${change >= 0 ? 'up' : 'down'}`}>
-            {' '}
-            {change >= 0 ? '+' : ''}
-            {change.toFixed(pair.digits)} ({changePct >= 0 ? '+' : ''}
-            {changePct.toFixed(3)}%)
-          </span>
-        </p>
-
         <p className="simple-risk">
           SL {signal.slPips} / TP {signal.tpPips} {unitLabel(pair)}
           {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ''}
@@ -172,19 +146,17 @@ export function SimpleBoard({
 
       <ol className="simple-howto">
         <li>
-          READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
+          Peak Drive · 約{SIMPLE.verified.tradesPerDay}回/日 · 日次約+
+          {SIMPLE.verified.dailyPips}p（ベース
+          {SIMPLE.baseline.tradesPerDay}回/+{SIMPLE.baseline.dailyPips}p超え）
         </li>
         <li>
-          Pulse · UT/ST二系統 · 目安8–9回/日 · 枠外は ADX≥{SIMPLE.adxPrime}{' '}
-          の推奨
+          HTFオフ · WT+DI+RSI · ADX≥{SIMPLE.adxMin} · SL{SIMPLE.slPips}/TP
+          {SIMPLE.tpPips}
         </li>
-        <li>
-          損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /
-          TP{SIMPLE.tpMin}–{SIMPLE.tpMax}
-          {unitLabel(pair)}）· 表示の数値に合わせる
-        </li>
-        <li>約定の最終確認はGMOの板で行う</li>
-        <li>チャートは UT / SSL / VWAP がサイン用オーバーレイ</li>
+        <li>買い値・売り値はチャート上余白に表示</li>
+        <li>建玉中は上部に±pips · 切ったらリセット</li>
+        <li>原油・日経・ダウ・VIXは監視のみ（関連時だけチャート）</li>
       </ol>
     </aside>
   )
