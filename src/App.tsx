@@ -991,9 +991,32 @@ export default function App() {
 
       <header className="topbar">
         <div className="brand-block">
-          <p className="brand">KEHAI</p>
+          <div className="brand-row">
+            <p className="brand">KEHAI</p>
+            <div className="brand-rates" aria-label="買い値と売り値">
+              <div className="brand-rate ask">
+                <span className="brand-rate-label">買</span>
+                <span className="brand-rate-num">{ask}</span>
+              </div>
+              <div className="brand-rate bid">
+                <span className="brand-rate-label">売</span>
+                <span className="brand-rate-num">{bid}</span>
+              </div>
+              {inPosition && openPips != null && (
+                <div
+                  className={`brand-rate open ${openPips >= 0 ? 'up' : 'down'}`}
+                >
+                  <span className="brand-rate-label">建玉</span>
+                  <span className="brand-rate-num">
+                    {openPips >= 0 ? '+' : ''}
+                    {openPips.toFixed(1)}p
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
           <p className="tagline">
-            {SIMPLE.stack} · 手動サイン · SL/TP ATR連動
+            {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
           </p>
         </div>
 
@@ -1216,27 +1239,6 @@ export default function App() {
                   {timeframe} · Drive · JST
                 </span>
               </h1>
-              <div className="chart-rates" aria-label="買い値と売り値">
-                <div className="chart-rate ask">
-                  <span className="chart-rate-label">買</span>
-                  <span className="chart-rate-num">{ask}</span>
-                </div>
-                <div className="chart-rate bid">
-                  <span className="chart-rate-label">売</span>
-                  <span className="chart-rate-num">{bid}</span>
-                </div>
-                {inPosition && openPips != null && (
-                  <div
-                    className={`chart-rate open ${openPips >= 0 ? 'up' : 'down'}`}
-                  >
-                    <span className="chart-rate-label">建玉</span>
-                    <span className="chart-rate-num">
-                      {openPips >= 0 ? '+' : ''}
-                      {openPips.toFixed(1)}p
-                    </span>
-                  </div>
-                )}
-              </div>
             </div>
             <p
               className="sample-note"
