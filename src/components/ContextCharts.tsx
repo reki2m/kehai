@@ -9,7 +9,7 @@ interface Props {
   loading?: boolean
 }
 
-/** Related context charts — top-right, watch only. */
+/** Related markets — top-right ticker stack (速報UIの右カラム相当). */
 export function ContextCharts({ links, series, loading }: Props) {
   const active = links.filter((l) => l.active)
 
@@ -19,11 +19,11 @@ export function ContextCharts({ links, series, loading }: Props) {
       aria-label="関連コンテキストチャート"
     >
       <div className="context-charts-head">
-        <h2>関連</h2>
+        <h2>関連銘柄</h2>
         <p className="context-charts-lead">
           {active.length > 0
-            ? `原油・日経・ダウ・VIX · ${active.length}件ヒット`
-            : '原油・日経・ダウ・VIX · 関連時のみ表示'}
+            ? `${active.length}件 · 監視のみ`
+            : '原油・日経・ダウ・VIX'}
         </p>
       </div>
       {loading && active.length === 0 && (
@@ -37,17 +37,25 @@ export function ContextCharts({ links, series, loading }: Props) {
           {active.map((link) => {
             const pair = getPair(link.id)
             const candles = series[link.id] ?? []
+            const last = candles[candles.length - 1]?.close
             return (
               <article key={link.id} className="context-chart-card">
                 <header className="context-chart-meta">
                   <h3>{pair.label}</h3>
+                  {last != null && (
+                    <span className="context-last">
+                      {last.toFixed(pair.digits)}
+                    </span>
+                  )}
                   <span
                     className={`context-corr ${link.corr >= 0 ? 'up' : 'down'}`}
                   >
                     {link.corr >= 0 ? '+' : ''}
                     {link.corr.toFixed(2)}
                   </span>
-                  <span className="context-chg">
+                  <span
+                    className={`context-chg ${link.changePct >= 0 ? 'up' : 'down'}`}
+                  >
                     {link.changePct >= 0 ? '+' : ''}
                     {link.changePct.toFixed(2)}%
                   </span>
