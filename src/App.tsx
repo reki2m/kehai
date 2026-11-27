@@ -1019,10 +1019,10 @@ export default function App() {
                 </span>
               </div>
             )}
-            <div className="brand-rate jst-clock" title="日本時間">
-              <span className="brand-rate-label">JST</span>
-              <span className="brand-rate-num">{jstClock}</span>
-            </div>
+          </div>
+          <div className="brand-rate jst-clock" title="日本時間">
+            <span className="brand-rate-label">JST</span>
+            <span className="brand-rate-num">{jstClock}</span>
           </div>
         </div>
 
@@ -1312,14 +1312,14 @@ export default function App() {
               </p>
             )}
           </div>
+        </section>
+
+        <div className="side-stack">
           <ContextCharts
             links={contextWatch?.links ?? []}
             series={contextSeries}
             loading={contextLoading}
           />
-        </section>
-
-        <div className="side-stack">
           <SimpleBoard
             signal={signal}
             pair={pair}

@@ -66,74 +66,92 @@
 .site-head {
   position: relative;
   z-index: 5;
+  flex: 0 0 auto;
 }
 
-/* Absolute top: KEHAI + 買値/売値 — always first, always same row */
+/* Absolute top: KEHAI + 買値/売値 — ドル円チャート領域を圧迫しすぎない高さ */
 .quote-bar {
   position: sticky;
   top: 0;
   z-index: 30;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1rem 1.5rem;
-  flex-wrap: nowrap;
-  padding: 0.7rem 1.5rem;
+  column-gap: 1.5rem;
+  min-height: 4.25rem;
+  padding: 0.55rem 1.35rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(6, 14, 18, 0.92);
+  background: rgba(6, 14, 18, 0.96);
   backdrop-filter: blur(10px);
+  overflow: visible;
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem 1.5rem;
-  padding: 0.55rem 1.5rem 0.65rem;
+  gap: 0.55rem 1rem;
+  padding: 0.3rem 1.25rem 0.35rem;
   flex-wrap: wrap;
+  border-bottom: 1px solid rgba(148, 185, 198, 0.08);
 }
 
 .brand {
   margin: 0;
-  flex: 0 0 auto;
+  grid-column: 1;
   font-family: var(--font-display);
-  font-size: clamp(1.85rem, 4.2vw, 2.75rem);
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
   color: var(--gold);
   text-shadow: 0 0 40px rgba(232, 196, 124, 0.18);
+  align-self: center;
 }
 
 .brand-rates {
+  grid-column: 2;
   display: flex;
-  align-items: baseline;
-  gap: 0.85rem 1.25rem;
-  flex: 1 1 auto;
-  min-width: 0;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 2.25rem;
   flex-wrap: nowrap;
+  min-width: 0;
+  overflow: visible;
 }
 
 .brand-rate {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  flex: 0 0 auto;
   font-family: var(--font-mono);
   line-height: 1;
   white-space: nowrap;
 }
 
+.brand-rate.ask,
+.brand-rate.bid {
+  min-width: 11ch;
+}
+
 .brand-rate-label {
   font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   color: var(--muted);
 }
 
 .brand-rate-num {
-  font-size: clamp(1.35rem, 3.2vw, 2rem);
-  font-weight: 650;
+  /* 大きく、かつチャートを圧迫しないバランス */
+  font-size: 2.75rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  transform: none;
 }
 
 .brand-rate.ask .brand-rate-num {
@@ -152,23 +170,74 @@
   color: #f0a8a8;
 }
 
+.brand-rate.open .brand-rate-num {
+  font-size: 2.4rem;
+}
+
 .brand-rate.jst-clock {
-  margin-left: auto;
-  padding-left: 0.75rem;
+  grid-column: 3;
+  margin-left: 0;
+  padding-left: 1.1rem;
   border-left: 1px solid var(--line);
+  justify-self: end;
 }
 
 .brand-rate.jst-clock .brand-rate-num {
   color: var(--gold);
-  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  font-size: 1.45rem;
+}
+
+@media (min-width: 1200px) {
+  .quote-bar {
+    min-height: 4.75rem;
+    padding: 0.65rem 1.6rem;
+  }
+
+  .brand-rate-num {
+    font-size: 3.25rem;
+  }
+
+  .brand-rate.open .brand-rate-num {
+    font-size: 2.2rem;
+  }
+
+  .brand-rates {
+    gap: 2.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .quote-bar {
+    grid-template-columns: auto 1fr;
+    min-height: 4.5rem;
+    padding: 0.65rem 1rem;
+    row-gap: 0.35rem;
+  }
+
+  .brand-rates {
+    grid-column: 1 / -1;
+    gap: 1.25rem;
+  }
+
+  .brand-rate-num {
+    font-size: 2.35rem;
+  }
+
+  .brand-rate.jst-clock {
+    grid-column: auto;
+    margin-left: auto;
+  }
 }
 
 .tagline {
   margin: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
-  max-width: 36ch;
+  max-width: 42ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes brand-in {
@@ -185,18 +254,18 @@
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
+  gap: 0.45rem;
+  align-items: center;
   justify-content: flex-end;
 }
 
 .control {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
 .control > span {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -207,8 +276,9 @@
   background: rgba(6, 20, 26, 0.65);
   border: 1px solid var(--line);
   border-radius: 0;
-  padding: 0.55rem 2rem 0.55rem 0.75rem;
-  min-width: 8.5rem;
+  padding: 0.35rem 1.6rem 0.35rem 0.55rem;
+  min-width: 7.5rem;
+  font-size: 0.78rem;
   background-image: linear-gradient(45deg, transparent 50%, var(--gold) 50%),
     linear-gradient(135deg, var(--gold) 50%, transparent 50%);
   background-position:
@@ -231,8 +301,8 @@
   border: 0;
   background: transparent;
   color: var(--muted);
-  padding: 0.55rem 0.7rem;
-  font-size: 0.78rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
   letter-spacing: 0.04em;
   transition:
     color 180ms var(--ease),
@@ -253,15 +323,15 @@
 }
 
 .workspace {
-  flex: 1;
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: 0;
   min-height: 0;
-  /* Fill the viewport under quote-bar + toolbar */
-  height: calc(100vh - 8.5rem);
-  max-height: calc(100vh - 8.5rem);
-  padding: 0.35rem 1rem 0.75rem;
+  /* Flex under site-head — no fixed calc gap so the side stack sits higher */
+  height: auto;
+  max-height: none;
+  padding: 0 0.75rem 0.5rem 1rem;
   align-items: stretch;
 }
 
@@ -289,32 +359,42 @@
   justify-content: center;
 }
 
+/* Related charts live in the right column (top), not under USDJPY */
 .context-charts {
   flex: 0 0 auto;
-  border-top: 1px solid var(--line);
-  padding: 0.55rem 0.75rem 0.7rem;
-  background: rgba(8, 18, 22, 0.35);
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem 0.55rem;
+  background: rgba(8, 18, 22, 0.45);
+}
+
+.context-charts-side {
+  order: -1;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(6, 14, 18, 0.92);
+  backdrop-filter: blur(8px);
 }
 
 .context-charts-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.45rem 0.9rem;
-  margin-bottom: 0.45rem;
+  gap: 0.35rem 0.65rem;
+  margin-bottom: 0.35rem;
 }
 
 .context-charts-head h2 {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--gold);
 }
 
 .context-charts-lead {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--muted);
 }
 
@@ -326,14 +406,18 @@
 
 .context-charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.context-charts-grid:has(> :only-child) {
+  grid-template-columns: 1fr;
 }
 
 .context-chart-card {
   border: 1px solid var(--line);
   background: rgba(12, 24, 28, 0.55);
-  padding: 0.4rem 0.45rem 0.35rem;
+  padding: 0.3rem 0.35rem 0.25rem;
   min-width: 0;
 }
 
@@ -374,7 +458,11 @@
 
 .mini-chart-host {
   width: 100%;
-  height: 132px;
+  height: 96px;
+}
+
+.context-charts-side .context-reason {
+  display: none;
 }
 
 .main-chart-slot {
@@ -405,16 +493,16 @@
 }
 
 .chart-meta {
-  /* Title + rates on one row; locked height so the chart never jumps */
+  /* Compact meta strip — keep side panel starting higher */
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.55rem 1rem 0.35rem;
-  flex: 0 0 3.6rem;
-  height: 3.6rem;
-  max-height: 3.6rem;
+  gap: 0.1rem;
+  padding: 0.35rem 0.85rem 0.25rem;
+  flex: 0 0 2.6rem;
+  height: 2.6rem;
+  max-height: 2.6rem;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -687,12 +775,14 @@
 .side-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  padding: 0 0 0 0.85rem;
+  gap: 0.65rem;
+  padding: 0.15rem 0 0 0.65rem;
   min-height: 0;
   height: 100%;
   max-height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  align-self: stretch;
 }
 
 .signal-rail {
@@ -710,9 +800,9 @@
 
 .voice-btn {
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.04em;
-  padding: 0.45rem 0.7rem;
+  padding: 0.32rem 0.55rem;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);

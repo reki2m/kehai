@@ -9,21 +9,28 @@ interface Props {
   loading?: boolean
 }
 
-/** Related context charts — watch only, never trade. */
+/** Related context charts — top-right, watch only. */
 export function ContextCharts({ links, series, loading }: Props) {
   const active = links.filter((l) => l.active)
-  if (!loading && active.length === 0) return null
 
   return (
-    <section className="context-charts" aria-label="関連コンテキストチャート">
+    <section
+      className={`context-charts context-charts-side${active.length ? ' has-active' : ''}`}
+      aria-label="関連コンテキストチャート"
+    >
       <div className="context-charts-head">
-        <h2>関連チャート</h2>
+        <h2>関連</h2>
         <p className="context-charts-lead">
-          原油・日経・ダウ・VIX · トレード対象外 · ドル円と動きが関連するときだけ表示
+          {active.length > 0
+            ? `原油・日経・ダウ・VIX · ${active.length}件ヒット`
+            : '原油・日経・ダウ・VIX · 関連時のみ表示'}
         </p>
       </div>
       {loading && active.length === 0 && (
-        <p className="context-charts-empty">関連銘柄を監視中…</p>
+        <p className="context-charts-empty">監視中…</p>
+      )}
+      {!loading && active.length === 0 && (
+        <p className="context-charts-empty">いま関連なし</p>
       )}
       {active.length > 0 && (
         <div className="context-charts-grid">
@@ -37,7 +44,7 @@ export function ContextCharts({ links, series, loading }: Props) {
                   <span
                     className={`context-corr ${link.corr >= 0 ? 'up' : 'down'}`}
                   >
-                    corr {link.corr >= 0 ? '+' : ''}
+                    {link.corr >= 0 ? '+' : ''}
                     {link.corr.toFixed(2)}
                   </span>
                   <span className="context-chg">
@@ -45,7 +52,6 @@ export function ContextCharts({ links, series, loading }: Props) {
                     {link.changePct.toFixed(2)}%
                   </span>
                 </header>
-                <p className="context-reason">{link.reason}</p>
                 {candles.length >= 20 ? (
                   <MiniPriceChart candles={candles} pair={pair} />
                 ) : (
