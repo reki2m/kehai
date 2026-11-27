@@ -69,7 +69,7 @@
   flex: 0 0 auto;
 }
 
-/* Absolute top: KEHAI + 買値/売値 — PCでも桁が潰れないよう固定サイズ */
+/* Absolute top: KEHAI + 買値/売値 — ドル円チャート領域を圧迫しすぎない高さ */
 .quote-bar {
   position: sticky;
   top: 0;
@@ -77,9 +77,9 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 1.75rem;
-  min-height: 5.5rem;
-  padding: 0.85rem 1.5rem;
+  column-gap: 1.5rem;
+  min-height: 4.25rem;
+  padding: 0.55rem 1.35rem;
   border-bottom: 1px solid var(--line);
   background: rgba(6, 14, 18, 0.96);
   backdrop-filter: blur(10px);
@@ -144,8 +144,8 @@
 }
 
 .brand-rate-num {
-  /* PC向けに大きく固定。clamp上限で潰さない */
-  font-size: 3.5rem;
+  /* 大きく、かつチャートを圧迫しないバランス */
+  font-size: 2.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--text);
@@ -189,20 +189,20 @@
 
 @media (min-width: 1200px) {
   .quote-bar {
-    min-height: 6.25rem;
-    padding: 1rem 1.75rem;
+    min-height: 4.75rem;
+    padding: 0.65rem 1.6rem;
   }
 
   .brand-rate-num {
-    font-size: 4.25rem;
+    font-size: 3.25rem;
   }
 
   .brand-rate.open .brand-rate-num {
-    font-size: 2.85rem;
+    font-size: 2.2rem;
   }
 
   .brand-rates {
-    gap: 3rem;
+    gap: 2.5rem;
   }
 }
 
@@ -359,32 +359,42 @@
   justify-content: center;
 }
 
+/* Related charts live in the right column (top), not under USDJPY */
 .context-charts {
   flex: 0 0 auto;
-  border-top: 1px solid var(--line);
-  padding: 0.55rem 0.75rem 0.7rem;
-  background: rgba(8, 18, 22, 0.35);
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.55rem 0.55rem;
+  background: rgba(8, 18, 22, 0.45);
+}
+
+.context-charts-side {
+  order: -1;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(6, 14, 18, 0.92);
+  backdrop-filter: blur(8px);
 }
 
 .context-charts-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.45rem 0.9rem;
-  margin-bottom: 0.45rem;
+  gap: 0.35rem 0.65rem;
+  margin-bottom: 0.35rem;
 }
 
 .context-charts-head h2 {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--gold);
 }
 
 .context-charts-lead {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--muted);
 }
 
@@ -396,14 +406,18 @@
 
 .context-charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.context-charts-grid:has(> :only-child) {
+  grid-template-columns: 1fr;
 }
 
 .context-chart-card {
   border: 1px solid var(--line);
   background: rgba(12, 24, 28, 0.55);
-  padding: 0.4rem 0.45rem 0.35rem;
+  padding: 0.3rem 0.35rem 0.25rem;
   min-width: 0;
 }
 
@@ -444,7 +458,11 @@
 
 .mini-chart-host {
   width: 100%;
-  height: 132px;
+  height: 96px;
+}
+
+.context-charts-side .context-reason {
+  display: none;
 }
 
 .main-chart-slot {

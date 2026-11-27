@@ -1312,14 +1312,14 @@ export default function App() {
               </p>
             )}
           </div>
+        </section>
+
+        <div className="side-stack">
           <ContextCharts
             links={contextWatch?.links ?? []}
             series={contextSeries}
             loading={contextLoading}
           />
-        </section>
-
-        <div className="side-stack">
           <SimpleBoard
             signal={signal}
             pair={pair}
