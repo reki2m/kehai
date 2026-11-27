@@ -146,17 +146,17 @@ export function SimpleBoard({
 
       <ol className="simple-howto">
         <li>
-          Peak Drive · 単ペア約{SIMPLE.verified.tradesPerDay}回/日 · 日次約+
-          {SIMPLE.verified.dailyPips}p
+          Peak Drive · 約{SIMPLE.verified.tradesPerDay}回/日 · 日次約+
+          {SIMPLE.verified.dailyPips}p（ベース
+          {SIMPLE.baseline.tradesPerDay}回/+{SIMPLE.baseline.dailyPips}p超え）
         </li>
         <li>
-          HTF/WTを外して約3倍手数 · DI+RSI+ADX≥{SIMPLE.adxMin}は維持
+          HTFオフ · WT+DI+RSI · ADX≥{SIMPLE.adxMin} · SL{SIMPLE.slPips}/TP
+          {SIMPLE.tpPips}
         </li>
         <li>買い値・売り値はチャート上余白に表示</li>
-        <li>
-          SL{SIMPLE.slPips} / TP{SIMPLE.tpPips} {unitLabel(pair)} · 表示に合わせる
-        </li>
         <li>建玉中は上部に±pips · 切ったらリセット</li>
+        <li>原油・日経・ダウ・VIXは監視のみ（関連時だけチャート）</li>
       </ol>
     </aside>
   )

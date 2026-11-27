@@ -34,18 +34,21 @@ export function HistPerformancePanel({ summary, loading }: Props) {
       </div>
 
       <div className="hist-perf-verified">
-        <span>単ペア {SIMPLE.verified.period}</span>
+        <span>Drive {SIMPLE.verified.period}</span>
         <span>{SIMPLE.verified.tradesPerDay.toFixed(1)}回/日</span>
         <span className="up">日次約{fmtPips(SIMPLE.verified.dailyPips)}</span>
         <span className="up">EV {fmtPips(SIMPLE.verified.evPips)}</span>
       </div>
       <div className="hist-perf-verified book">
-        <span>Drive 強化版</span>
-        <span>約3倍手数</span>
-        <span className="up">
-          日次約+{SIMPLE.hunter.dailyPipsExpected}p
+        <span>
+          ベース {SIMPLE.baseline.tradesPerDay}回 / 日次
+          {fmtPips(SIMPLE.baseline.dailyPips)}
         </span>
-        <span>HTF/WTオフ</span>
+        <span className="up">Driveが上回り</span>
+        <span>HTFオフ · WT維持</span>
+        <span>
+          SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
+        </span>
       </div>
 
       {loading && <p className="hist-perf-empty">集計中…</p>}

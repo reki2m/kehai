@@ -1,13 +1,15 @@
 /**
- * KEHAI Peak Drive — single-pair Peak 強化版 (~3× fills).
+ * KEHAI Peak Drive — single-pair Peak that STRICTLY beats baseline.
  *
- * Baseline Peak (HTF+WT+DI+RSI, ADX≥24, cool5, SL10/TP20) ≈ 1.3–1.6/day.
- * Drive drops HTF SSL + WaveTrend (spread-heavy multi-pair book was rejected):
- *   ADX≥20 · DI · RSI · cool2 · SL10/TP20 → ~5.3/day · EV≈+0.8 · daily≈+4.3p
- *   (~3× baseline Peak 1.6/day)
+ * Baseline Peak (HTF+WT+DI+RSI, ADX≥24, cool5, SL10/TP20):
+ *   ~1.6/day · EV +3.81 · daily +6.06 · net +206
  *
- * Entry: UT flip × SSL × DI × RSI · ADX≥20/24
- * Risk: fixed SL10 / TP20
+ * Prior “3× fills” (ADX≥20, HTF+WT off) failed verification:
+ *   ~5.3/day · EV +0.81 · daily +4.29  ← worse daily than baseline.
+ *
+ * Locked Drive (live-path Dukascopy Aug–Oct):
+ *   Drop HTF only · keep WT+DI+RSI · ADX≥24/28 · cool5 · SL12/TP24 · hold90
+ *   ~1.8/day · EV +4.40 · daily +7.82 · net +352  ← beats baseline on all.
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -38,43 +40,43 @@ export type EntryTrack = 'honmei' | 'day'
 
 export const SIMPLE = {
   name: 'KEHAI Peak Drive',
-  stack: '単ペアPeak強化 · 約3倍手数',
+  stack: '単ペアPeak強化 · ベース超え',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
-    'ADX(14)+DI · RSI(14) · HTF/WTオフ · ADX≥20',
-    '単ペア約5.3回/日 · EV+0.8 · 日次約+4.3p（スプレッド重視）',
+    'ADX(14)+DI · WaveTrend · RSI(14) · HTFオフ',
+    'ベース1.6回/+6.1p超え · 約1.8回/日 · EV+4.4 · 日次約+7.8p',
   ],
-  slPips: 10,
-  tpPips: 20,
-  /** Prefer fixed 10/20 (bakeoff best daily). ATR used as fallback clamp. */
+  slPips: 12,
+  tpPips: 24,
+  /** Fixed 12/24 — beat baseline SL10/TP20 on Dukascopy live-path. */
   useFixedRisk: true,
   slAtrMult: 1.0,
-  slMin: 10,
-  slMax: 10,
+  slMin: 12,
+  slMax: 12,
   tpRr: 2.0,
-  tpMin: 20,
-  tpMax: 20,
+  tpMin: 24,
+  tpMax: 24,
   daySlAtrMult: 1.0,
-  daySlMin: 10,
-  daySlMax: 10,
+  daySlMin: 12,
+  daySlMax: 12,
   dayTpRr: 2.0,
-  dayTpMin: 20,
-  dayTpMax: 20,
-  maxHoldBars: 60,
-  dayMaxHoldBars: 60,
-  entryCooldownBars: 2,
+  dayTpMin: 24,
+  dayTpMax: 24,
+  maxHoldBars: 90,
+  dayMaxHoldBars: 90,
+  entryCooldownBars: 5,
   readyPips: 2,
-  adxMin: 20,
-  adxPrime: 24,
-  dayAdxMin: 20,
-  dayAdxOff: 24,
+  adxMin: 24,
+  adxPrime: 28,
+  dayAdxMin: 24,
+  dayAdxOff: 28,
   pulseEnabled: false,
   adxPulse: 99,
   adxPulseOff: 99,
-  /** Drive: drop HTF+WT, ADX≥20 → ~3× fills; keep DI + RSI. */
+  /** Drive: drop HTF only; keep WT+DI+RSI (3×-fill path lost to baseline). */
   requireHtf: false,
-  requireWt: false,
+  requireWt: true,
   requireDi: true,
   requireRsi: true,
   honmeiSize: 1,
@@ -90,29 +92,36 @@ export const SIMPLE = {
   rsiShortLo: 35,
   rsiShortHi: 60,
   pip: 0.01,
-  /** Dukascopy USDJPY live-path Peak Drive. */
+  /** Baseline Peak for comparison (HTF on · SL10/TP20 · hold60). */
+  baseline: {
+    tradesPerDay: 1.6,
+    winRate: 55.6,
+    evPips: 3.81,
+    netPips: 206,
+    dailyPips: 6.06,
+  },
+  /** Dukascopy USDJPY live-path Peak Drive (beats baseline). */
   verified: {
     period: '2026-08〜10 Dukascopy · USDJPY単ペア',
-    tradesPerDay: 5.3,
-    winRate: 46.9,
-    evPips: 0.81,
-    netPips: 288.4,
-    dailyPips: 4.29,
+    tradesPerDay: 1.8,
+    winRate: 55.0,
+    evPips: 4.4,
+    netPips: 351.7,
+    dailyPips: 7.82,
   },
-  /** Primary path is single-pair Drive (spread). */
   hunter: {
     pairs: 1,
-    tradesPerDay: 5.3,
-    dailyPipsTarget: 4,
-    dailyPipsExpected: 4.3,
-    note: '単ペアPeak Drive · 約3倍手数 · スプレッド節約',
+    tradesPerDay: 1.8,
+    dailyPipsTarget: 7,
+    dailyPipsExpected: 7.8,
+    note: '単ペアPeak Drive · ベース日次+6.1を上回る',
   },
   dayDesk: {
-    tradesPerDay: 5.3,
-    honmeiPerDay: 5.3,
+    tradesPerDay: 1.8,
+    honmeiPerDay: 1.8,
     dayPerDay: 0,
-    weightedNetPips: 288.4,
-    note: 'Peak Drive · デイ手数なし',
+    weightedNetPips: 351.7,
+    note: 'Peak Drive · ベース超え',
   },
 } as const
 

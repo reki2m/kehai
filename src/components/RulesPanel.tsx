@@ -18,16 +18,17 @@ export function RulesPanel() {
         <li>
           <strong>目標</strong>
           <span>
-            単ペア約{SIMPLE.verified.tradesPerDay}回/日 · EV +
-            {SIMPLE.verified.evPips}p · 日次約+{SIMPLE.verified.dailyPips}p
+            ベース（{SIMPLE.baseline.tradesPerDay}回 · 日次+
+            {SIMPLE.baseline.dailyPips}p）超え · 実績約
+            {SIMPLE.verified.tradesPerDay}回/日 · EV +{SIMPLE.verified.evPips}
+            p · 日次約+{SIMPLE.verified.dailyPips}p
           </span>
         </li>
         <li>
           <strong>サイン</strong>
           <span>
-            UTフリップ + SSL + DI + RSI · ADX≥{SIMPLE.adxMin}/
-            {SIMPLE.adxPrime}
-            （HTF・WTなし）
+            UTフリップ + SSL + WT + DI + RSI · ADX≥{SIMPLE.adxMin}/
+            {SIMPLE.adxPrime}（HTFのみオフ）
           </span>
         </li>
         <li>
