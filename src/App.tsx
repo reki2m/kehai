@@ -64,6 +64,7 @@ import {
   isTradeablePair,
   type ContextWatchState,
 } from './lib/contextWatch'
+import { formatJstNow, toJstParts } from './lib/jstTime'
 import { BROKER_SPREAD_PIPS } from './lib/filters'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import { investigateShockCause, type ShockCauseReport } from './lib/shockCause'
@@ -111,6 +112,7 @@ export default function App() {
   )
   const [contextLoading, setContextLoading] = useState(false)
   const contextActiveRef = useRef<Set<PairId>>(new Set())
+  const [jstClock, setJstClock] = useState(() => formatJstNow())
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   // Clean TradingView-style candles by default; UT/SSL etc. are opt-in
   const [overlays, setOverlays] = useState<OverlayId[]>([])
@@ -172,6 +174,11 @@ export default function App() {
       setPairId('USDJPY')
     }
   }, [pairId])
+
+  useEffect(() => {
+    const id = window.setInterval(() => setJstClock(formatJstNow()), 15_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -1012,6 +1019,10 @@ export default function App() {
                 </span>
               </div>
             )}
+            <div className="brand-rate jst-clock" title="日本時間">
+              <span className="brand-rate-label">JST</span>
+              <span className="brand-rate-num">{jstClock}</span>
+            </div>
           </div>
         </div>
 
@@ -1236,7 +1247,13 @@ export default function App() {
               <h1>
                 {pair.label}
                 <span className="tf-chip">
-                  {timeframe} · Drive · JST
+                  {timeframe} · チャート時刻 JST
+                  {last
+                    ? ` · 先端 ${(() => {
+                        const p = toJstParts(last.time)
+                        return `${p.h}:${p.min}`
+                      })()}`
+                    : ''}
                 </span>
               </h1>
             </div>
