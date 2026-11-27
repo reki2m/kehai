@@ -22,7 +22,7 @@ const payload = {
   timeframe: '1m',
   from: HIST_FROM_UNIX,
   count: signals.length,
-  stack: 'peak_hunter',
+  stack: 'peak_drive',
   params: {
     adxMin: SIMPLE.adxMin,
     adxPrime: SIMPLE.adxPrime,
@@ -30,8 +30,10 @@ const payload = {
     tpPips: SIMPLE.tpPips,
     useFixedRisk: SIMPLE.useFixedRisk,
     entryCooldownBars: SIMPLE.entryCooldownBars,
-    hunterPairs: SIMPLE.hunter.pairs,
-    dailyPipsTarget: SIMPLE.hunter.dailyPipsTarget,
+    requireHtf: SIMPLE.requireHtf,
+    requireWt: SIMPLE.requireWt,
+    requireDi: SIMPLE.requireDi,
+    requireRsi: SIMPLE.requireRsi,
   },
   performance: {
     n: summary.n,

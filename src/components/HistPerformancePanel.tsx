@@ -29,7 +29,7 @@ export function HistPerformancePanel({ summary, loading }: Props) {
       <div className="hist-perf-head">
         <h2>過去成績</h2>
         <p className="hist-perf-lead">
-          表示ペア · Peak Hunter · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips} シミュ
+          表示ペア · Peak Drive · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips} シミュ
         </p>
       </div>
 
@@ -40,14 +40,12 @@ export function HistPerformancePanel({ summary, loading }: Props) {
         <span className="up">EV {fmtPips(SIMPLE.verified.evPips)}</span>
       </div>
       <div className="hist-perf-verified book">
-        <span>Hunter {SIMPLE.hunter.pairs}FX</span>
-        <span>目安{SIMPLE.hunter.tradesPerDay}回/日</span>
+        <span>Drive 強化版</span>
+        <span>約3倍手数</span>
         <span className="up">
-          日次目標+{SIMPLE.hunter.dailyPipsTarget}p
+          日次約+{SIMPLE.hunter.dailyPipsExpected}p
         </span>
-        <span className="up">
-          期待+{SIMPLE.hunter.dailyPipsExpected}p
-        </span>
+        <span>HTF/WTオフ</span>
       </div>
 
       {loading && <p className="hist-perf-empty">集計中…</p>}

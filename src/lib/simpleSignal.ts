@@ -1,14 +1,13 @@
 /**
- * KEHAI Peak Hunter — manual companion aimed at ~30 pips/day.
+ * KEHAI Peak Drive — single-pair Peak 強化版 (~3× fills).
  *
- * Single-pair Peak (SL10/TP20) ≈ +6 pips/day on Dukascopy USDJPY.
- * That alone cannot hit 30. The product is Peak quality × a 10-pair FX book:
- *   ~1.6 fills/pair/day × EV≈+3.8 × 10 ≈ +60 raw · ~+45 after correlation haircut.
- * Target: +30 pips/day average.
+ * Baseline Peak (HTF+WT+DI+RSI, ADX≥24, cool5, SL10/TP20) ≈ 1.3–1.6/day.
+ * Drive drops HTF SSL + WaveTrend (spread-heavy multi-pair book was rejected):
+ *   ADX≥20 · DI · RSI · cool2 · SL10/TP20 → ~5.3/day · EV≈+0.8 · daily≈+4.3p
+ *   (~3× baseline Peak 1.6/day)
  *
- * Entry (per pair): UT flip × SSL × HTF × DI × WT × RSI · ADX≥24/28
- * Risk: fixed SL10 / TP20 (best daily-edge M1 bakeoff variant)
- * No soft “デイ手数” filler — frequency comes from pairs, not junk gates.
+ * Entry: UT flip × SSL × DI × RSI · ADX≥20/24
+ * Risk: fixed SL10 / TP20
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -38,13 +37,13 @@ import {
 export type EntryTrack = 'honmei' | 'day'
 
 export const SIMPLE = {
-  name: 'KEHAI Peak Hunter',
-  stack: 'Peak × 10FXブック · 日次+30p狙い',
+  name: 'KEHAI Peak Drive',
+  stack: '単ペアPeak強化 · 約3倍手数',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
-    'ADX(14)+DI · WaveTrend · RSI(14) · HTF SSL(50)',
-    '単ペア日次+6p → 10ペアで日次+30p帯（相関ヘアカット後）',
+    'ADX(14)+DI · RSI(14) · HTF/WTオフ · ADX≥20',
+    '単ペア約5.3回/日 · EV+0.8 · 日次約+4.3p（スプレッド重視）',
   ],
   slPips: 10,
   tpPips: 20,
@@ -64,15 +63,20 @@ export const SIMPLE = {
   dayTpMax: 20,
   maxHoldBars: 60,
   dayMaxHoldBars: 60,
-  entryCooldownBars: 5,
+  entryCooldownBars: 2,
   readyPips: 2,
-  adxMin: 24,
-  adxPrime: 28,
-  dayAdxMin: 24,
-  dayAdxOff: 28,
+  adxMin: 20,
+  adxPrime: 24,
+  dayAdxMin: 20,
+  dayAdxOff: 24,
   pulseEnabled: false,
   adxPulse: 99,
   adxPulseOff: 99,
+  /** Drive: drop HTF+WT, ADX≥20 → ~3× fills; keep DI + RSI. */
+  requireHtf: false,
+  requireWt: false,
+  requireDi: true,
+  requireRsi: true,
   honmeiSize: 1,
   daySize: 1,
   wtAgainstAbs: 55,
@@ -86,29 +90,29 @@ export const SIMPLE = {
   rsiShortLo: 35,
   rsiShortHi: 60,
   pip: 0.01,
-  /** Per-pair Dukascopy live-path Peak · SL10/TP20. */
+  /** Dukascopy USDJPY live-path Peak Drive. */
   verified: {
     period: '2026-08〜10 Dukascopy · USDJPY単ペア',
-    tradesPerDay: 1.6,
-    winRate: 55.6,
-    evPips: 3.81,
-    netPips: 205.7,
-    dailyPips: 6.06,
+    tradesPerDay: 5.3,
+    winRate: 46.9,
+    evPips: 0.81,
+    netPips: 288.4,
+    dailyPips: 4.29,
   },
-  /** Book target: 10 pairs × per-pair daily (correlation haircut applied). */
+  /** Primary path is single-pair Drive (spread). */
   hunter: {
-    pairs: 10,
-    tradesPerDay: 16,
-    dailyPipsTarget: 30,
-    dailyPipsExpected: 45,
-    note: '単ペア+6p ×10 ≈+60 · 相関で髪を切って+45目安 · 目標+30',
+    pairs: 1,
+    tradesPerDay: 5.3,
+    dailyPipsTarget: 4,
+    dailyPipsExpected: 4.3,
+    note: '単ペアPeak Drive · 約3倍手数 · スプレッド節約',
   },
   dayDesk: {
-    tradesPerDay: 16,
-    honmeiPerDay: 1.6,
+    tradesPerDay: 5.3,
+    honmeiPerDay: 5.3,
     dayPerDay: 0,
-    weightedNetPips: 205.7,
-    note: 'Hunter book · デイ手数なし',
+    weightedNetPips: 288.4,
+    note: 'Peak Drive · デイ手数なし',
   },
 } as const
 
@@ -352,28 +356,28 @@ export function evaluateSimple(
     qualityBlock = `ADX弱い ${adxVal?.adx.toFixed(0) ?? '—'}（要≥${adxFloor}）`
     buy = false
     sell = false
-  } else if (buy && !htfLong) {
+  } else if (SIMPLE.requireHtf && buy && !htfLong) {
     qualityBlock = '上位SSL不一致'
     buy = false
-  } else if (sell && !htfShort) {
+  } else if (SIMPLE.requireHtf && sell && !htfShort) {
     qualityBlock = '上位SSL不一致'
     sell = false
-  } else if (buy && !diLong) {
+  } else if (SIMPLE.requireDi && buy && !diLong) {
     qualityBlock = 'DI方向不一致'
     buy = false
-  } else if (sell && !diShort) {
+  } else if (SIMPLE.requireDi && sell && !diShort) {
     qualityBlock = 'DI方向不一致'
     sell = false
-  } else if (buy && !wtAgreeLong) {
+  } else if (SIMPLE.requireWt && buy && !wtAgreeLong) {
     qualityBlock = 'WaveTrend不一致'
     buy = false
-  } else if (sell && !wtAgreeShort) {
+  } else if (SIMPLE.requireWt && sell && !wtAgreeShort) {
     qualityBlock = 'WaveTrend不一致'
     sell = false
-  } else if (buy && !rsiLongOk) {
+  } else if (SIMPLE.requireRsi && buy && !rsiLongOk) {
     qualityBlock = `RSI追撃回避 ${rsiVal?.value.toFixed(0) ?? '—'}`
     buy = false
-  } else if (sell && !rsiShortOk) {
+  } else if (SIMPLE.requireRsi && sell && !rsiShortOk) {
     qualityBlock = `RSI追撃回避 ${rsiVal?.value.toFixed(0) ?? '—'}`
     sell = false
   }
@@ -387,9 +391,19 @@ export function evaluateSimple(
   const nearTrail =
     trailDistancePips != null && trailDistancePips <= SIMPLE.readyPips
   const peakLongReady =
-    confirmLong && htfLong && diLong && wtAgreeLong && rsiLongOk && adxOk
+    confirmLong &&
+    (!SIMPLE.requireHtf || htfLong) &&
+    (!SIMPLE.requireDi || diLong) &&
+    (!SIMPLE.requireWt || wtAgreeLong) &&
+    (!SIMPLE.requireRsi || rsiLongOk) &&
+    adxOk
   const peakShortReady =
-    confirmShort && htfShort && diShort && wtAgreeShort && rsiShortOk && adxOk
+    confirmShort &&
+    (!SIMPLE.requireHtf || htfShort) &&
+    (!SIMPLE.requireDi || diShort) &&
+    (!SIMPLE.requireWt || wtAgreeShort) &&
+    (!SIMPLE.requireRsi || rsiShortOk) &&
+    adxOk
   const readyBuy =
     filtersOk && !buy && !sell && !!ut && ut.value < 0 && nearTrail && peakLongReady
   const readySell =
@@ -435,14 +449,14 @@ export function evaluateSimple(
   const layers: IndicatorLayer[] = [
     {
       id: 'hunter',
-      name: 'Hunter',
+      name: 'Drive',
       bias: hasEntry ? 'bull' : 'neutral',
       ok: hasEntry || readyBuy || readySell,
       detail: hasEntry
         ? `Peak · SL${SIMPLE.slPips}/TP${SIMPLE.tpPips}`
         : readyBuy || readySell
           ? 'READY'
-          : `ブック${SIMPLE.hunter.pairs}FX · 日次+${SIMPLE.hunter.dailyPipsTarget}p狙い`,
+          : `単ペア約${SIMPLE.verified.tradesPerDay}回/日 · 日次約+${SIMPLE.verified.dailyPips}p`,
     },
     {
       id: 'ut',

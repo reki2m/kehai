@@ -150,6 +150,18 @@ export default function App() {
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
+  /** Keep last BUY/SELL actionable for a few minutes so entry button stays pressable. */
+  const stickyOfferRef = useRef<{
+    action: 'BUY' | 'SELL'
+    session: FxSession
+    sessionLabel: string | null
+    slPips: number
+    tpPips: number
+    grade: string
+    prime: boolean
+    until: number
+  } | null>(null)
+  const [, bumpSticky] = useState(0)
 
   useEffect(() => {
     eventsRef.current = events
@@ -440,6 +452,55 @@ export default function App() {
     return evaluateSimple(window, pair, stats.disabledSessions)
   }, [candles, pair, stats.disabledSessions])
 
+  // Sticky entry offer: UT flip is 1-bar; keep pressable for 5 minutes.
+  useEffect(() => {
+    if (raw.action === 'BUY' || raw.action === 'SELL') {
+      if (!raw.session) return
+      stickyOfferRef.current = {
+        action: raw.action,
+        session: raw.session,
+        sessionLabel: raw.sessionLabel,
+        slPips: raw.slPips,
+        tpPips: raw.tpPips,
+        grade: raw.grade,
+        prime: raw.prime,
+        until: Date.now() + 5 * 60_000,
+      }
+      bumpSticky((n) => n + 1)
+      return
+    }
+    const offer = stickyOfferRef.current
+    if (offer && Date.now() > offer.until) {
+      stickyOfferRef.current = null
+      bumpSticky((n) => n + 1)
+    }
+  }, [raw])
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const offer = stickyOfferRef.current
+      if (offer && Date.now() > offer.until) {
+        stickyOfferRef.current = null
+        bumpSticky((n) => n + 1)
+      }
+    }, 15_000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const stickyOffer =
+    stickyOfferRef.current && Date.now() <= stickyOfferRef.current.until
+      ? stickyOfferRef.current
+      : null
+  const entryAction =
+    raw.action === 'BUY' || raw.action === 'SELL'
+      ? raw.action
+      : stickyOffer?.action ?? null
+  const entrySession =
+    raw.action === 'BUY' || raw.action === 'SELL'
+      ? raw.session
+      : stickyOffer?.session ?? null
+  const canMarkEntry = !inPosition && !!entryAction && !!entrySession
+
   // Tip ticks must not rebuild markers — only when a new bar opens
   const lastCandleTime = candles[candles.length - 1]?.time ?? 0
   const histSignals = useMemo(() => {
@@ -494,20 +555,28 @@ export default function App() {
   }, [raw, inPosition])
 
   function handleEntry() {
-    if (raw.action !== 'BUY' && raw.action !== 'SELL') return
-    if (!raw.session) return
-    const expected = Number(bid)
+    const side = entryAction
+    const session = entrySession
+    if (!side || !session) return
+    // BUY pays ask, SELL hits bid
+    const expected = side === 'BUY' ? askNum : bidNum
     if (!Number.isFinite(expected)) return
+    const sl =
+      raw.action === side ? raw.slPips : (stickyOffer?.slPips ?? SIMPLE.slPips)
+    const tp =
+      raw.action === side ? raw.tpPips : (stickyOffer?.tpPips ?? SIMPLE.tpPips)
     setStats((s) =>
       openTrade(s, {
-        session: raw.session as FxSession,
-        side: raw.action as 'BUY' | 'SELL',
+        session,
+        side,
         expectedEntry: expected,
         pairId,
-        slPips: raw.slPips,
-        tpPips: raw.tpPips,
+        slPips: sl,
+        tpPips: tp,
       }),
     )
+    stickyOfferRef.current = null
+    bumpSticky((n) => n + 1)
   }
 
   function handleClose(kind: 'TP' | 'SL' | 'OTHER') {
@@ -530,6 +599,11 @@ export default function App() {
     setOtherPnl('')
   }
 
+  function handleResetOpen() {
+    setStats((s) => cancelOpen(s))
+    setOtherPnl('')
+  }
+
   const first = candles[0]
   const last = candles[candles.length - 1]
   const change = last && first ? last.close - first.close : 0
@@ -547,6 +621,19 @@ export default function App() {
   const bid = Number.isFinite(bidNum) ? bidNum.toFixed(pair.digits) : '—'
   const ask = Number.isFinite(askNum) ? askNum.toFixed(pair.digits) : '—'
   const midText = Number.isFinite(mid) ? mid.toFixed(pair.digits) : '—'
+
+  /** Live open ±pips vs mark (BUY→bid exit, SELL→ask exit). */
+  const openPips = (() => {
+    const o = stats.open
+    if (!o || !Number.isFinite(mid)) return null
+    const mark = o.side === 'BUY' ? bidNum : askNum
+    if (!Number.isFinite(mark)) return null
+    const raw =
+      o.side === 'BUY'
+        ? (mark - o.expectedEntry) / pair.pip
+        : (o.expectedEntry - mark) / pair.pip
+    return Math.round(raw * 10) / 10
+  })()
 
   // Entry / READY alerts on signal change
   useEffect(() => {
@@ -879,15 +966,57 @@ export default function App() {
               <button
                 type="button"
                 className="voice-btn primary"
-                disabled={
-                  (raw.action !== 'BUY' && raw.action !== 'SELL') || !raw.session
-                }
+                disabled={!canMarkEntry}
                 onClick={handleEntry}
+                title={
+                  canMarkEntry
+                    ? stickyOffer && raw.action !== 'BUY' && raw.action !== 'SELL'
+                      ? `直近${stickyOffer.action}を5分保持中`
+                      : `${entryAction}を記録`
+                    : 'BUY/SELLサイン待ち'
+                }
               >
                 エントリーした
+                {canMarkEntry && entryAction ? ` · ${entryAction}` : ''}
               </button>
             ) : (
-              <span className="voice-btn active">建玉中 → 右の成績で決済</span>
+              <>
+                <span
+                  className={`voice-btn active open-pips ${
+                    openPips != null && openPips >= 0 ? 'up' : 'down'
+                  }`}
+                  title={`建値 ${stats.open?.expectedEntry.toFixed(pair.digits) ?? '—'} · ${stats.open?.side ?? ''}`}
+                >
+                  建玉 {stats.open?.side}
+                  {openPips != null
+                    ? ` ${openPips >= 0 ? '+' : ''}${openPips.toFixed(1)}p`
+                    : ''}
+                </span>
+                <button
+                  type="button"
+                  className="voice-btn"
+                  onClick={() => handleClose('TP')}
+                  title="利確として記録"
+                >
+                  TP
+                </button>
+                <button
+                  type="button"
+                  className="voice-btn"
+                  onClick={() => handleClose('SL')}
+                  title="損切として記録"
+                >
+                  SL
+                </button>
+                <button
+                  type="button"
+                  className="voice-btn"
+                  onClick={handleResetOpen}
+                  title="ブローカーで切ったあと建玉表示を消す（成績に載せない）"
+                >
+                  リセット
+                </button>
+              </>
             )}
             {!isVoiceUnlocked() && !voiceOn ? (
               <button
@@ -992,12 +1121,35 @@ export default function App() {
       <main className="workspace">
         <section className="hero-chart">
           <div className="chart-meta">
-            <h1>
-              {pair.label}
-              <span className="tf-chip">
-                {timeframe} · Peak
-              </span>
-            </h1>
+            <div className="chart-meta-row">
+              <h1>
+                {pair.label}
+                <span className="tf-chip">
+                  {timeframe} · Drive · JST
+                </span>
+              </h1>
+              <div className="chart-rates" aria-label="買い値と売り値">
+                <div className="chart-rate ask">
+                  <span className="chart-rate-label">買</span>
+                  <span className="chart-rate-num">{ask}</span>
+                </div>
+                <div className="chart-rate bid">
+                  <span className="chart-rate-label">売</span>
+                  <span className="chart-rate-num">{bid}</span>
+                </div>
+                {inPosition && openPips != null && (
+                  <div
+                    className={`chart-rate open ${openPips >= 0 ? 'up' : 'down'}`}
+                  >
+                    <span className="chart-rate-label">建玉</span>
+                    <span className="chart-rate-num">
+                      {openPips >= 0 ? '+' : ''}
+                      {openPips.toFixed(1)}p
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
             <p
               className="sample-note"
               title={[
@@ -1023,6 +1175,13 @@ export default function App() {
               {histSignals.length > 0
                 ? ` · 過去 ${histSignals.length}`
                 : ''}
+              {` · 仲値 ${midText}`}
+              <span className={`quote-chg ${change >= 0 ? 'up' : 'down'}`}>
+                {' '}
+                {change >= 0 ? '+' : ''}
+                {change.toFixed(pair.digits)} ({changePct >= 0 ? '+' : ''}
+                {changePct.toFixed(3)}%)
+              </span>
             </p>
           </div>
           {candles.length >= 30 ? (
@@ -1049,13 +1208,9 @@ export default function App() {
         <div className="side-stack">
           <SimpleBoard
             signal={signal}
-            bid={bid}
-            ask={ask}
-            mid={midText}
-            change={change}
-            changePct={changePct}
             pair={pair}
             inPosition={inPosition}
+            openPips={openPips}
           />
           <BookPanel
             book={book}

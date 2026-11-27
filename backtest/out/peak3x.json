@@ -1,0 +1,734 @@
+{
+  "base": {
+    "n": 102,
+    "tpd": 1.31,
+    "wr": 46.1,
+    "ev": 1.65,
+    "net": 168.5,
+    "daily": 2.16
+  },
+  "top": [
+    {
+      "cfg": {
+        "name": "a24_c1_h0_w0_r1_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 373,
+        "tpd": 4.78,
+        "wr": 50.1,
+        "ev": 1.46,
+        "net": 545.2,
+        "daily": 6.99
+      },
+      "score": 149.45
+    },
+    {
+      "cfg": {
+        "name": "a24_c2_h0_w0_r1_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 373,
+        "tpd": 4.78,
+        "wr": 50.1,
+        "ev": 1.46,
+        "net": 545.2,
+        "daily": 6.99
+      },
+      "score": 149.45
+    },
+    {
+      "cfg": {
+        "name": "a24_c3_h0_w0_r1_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 373,
+        "tpd": 4.78,
+        "wr": 50.1,
+        "ev": 1.46,
+        "net": 545.2,
+        "daily": 6.99
+      },
+      "score": 149.45
+    },
+    {
+      "cfg": {
+        "name": "a24_c1_h0_w0_r1_sl8",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 388,
+        "tpd": 4.97,
+        "wr": 47.2,
+        "ev": 1.08,
+        "net": 419.4,
+        "daily": 5.38
+      },
+      "score": 121.5
+    },
+    {
+      "cfg": {
+        "name": "a24_c2_h0_w0_r1_sl8",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 388,
+        "tpd": 4.97,
+        "wr": 47.2,
+        "ev": 1.08,
+        "net": 419.4,
+        "daily": 5.38
+      },
+      "score": 121.5
+    },
+    {
+      "cfg": {
+        "name": "a24_c3_h0_w0_r1_sl8",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 388,
+        "tpd": 4.97,
+        "wr": 47.2,
+        "ev": 1.08,
+        "net": 419.4,
+        "daily": 5.38
+      },
+      "score": 121.5
+    },
+    {
+      "cfg": {
+        "name": "a20_c1_h0_w1_r1_sl8",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 378,
+        "tpd": 4.85,
+        "wr": 45.2,
+        "ev": 1.04,
+        "net": 392,
+        "daily": 5.03
+      },
+      "score": 115.85000000000001
+    },
+    {
+      "cfg": {
+        "name": "a20_c2_h0_w1_r1_sl8",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 378,
+        "tpd": 4.85,
+        "wr": 45.2,
+        "ev": 1.04,
+        "net": 392,
+        "daily": 5.03
+      },
+      "score": 115.85000000000001
+    },
+    {
+      "cfg": {
+        "name": "a20_c3_h0_w1_r1_sl8",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 378,
+        "tpd": 4.85,
+        "wr": 45.2,
+        "ev": 1.04,
+        "net": 392,
+        "daily": 5.03
+      },
+      "score": 115.85000000000001
+    },
+    {
+      "cfg": {
+        "name": "a18_c1_h0_w1_r1_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 444,
+        "tpd": 5.69,
+        "wr": 43.9,
+        "ev": 0.87,
+        "net": 388.2,
+        "daily": 4.98
+      },
+      "score": 113.4
+    },
+    {
+      "cfg": {
+        "name": "a18_c2_h0_w1_r1_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 444,
+        "tpd": 5.69,
+        "wr": 43.9,
+        "ev": 0.87,
+        "net": 388.2,
+        "daily": 4.98
+      },
+      "score": 113.4
+    },
+    {
+      "cfg": {
+        "name": "a18_c3_h0_w1_r1_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 444,
+        "tpd": 5.69,
+        "wr": 43.9,
+        "ev": 0.87,
+        "net": 388.2,
+        "daily": 4.98
+      },
+      "score": 113.4
+    },
+    {
+      "cfg": {
+        "name": "a24_c2_h0_w0_r0_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": false,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 481,
+        "tpd": 6.17,
+        "wr": 45.9,
+        "ev": 0.74,
+        "net": 356.1,
+        "daily": 4.57
+      },
+      "score": 105.95000000000002
+    },
+    {
+      "cfg": {
+        "name": "a24_c3_h0_w0_r0_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": false,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 481,
+        "tpd": 6.17,
+        "wr": 45.9,
+        "ev": 0.74,
+        "net": 356.1,
+        "daily": 4.57
+      },
+      "score": 105.95000000000002
+    },
+    {
+      "cfg": {
+        "name": "a20_c3_h0_w0_r1_sl10",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 565,
+        "tpd": 7.24,
+        "wr": 45.1,
+        "ev": 0.76,
+        "net": 431.7,
+        "daily": 5.53
+      },
+      "score": 105.55
+    },
+    {
+      "cfg": {
+        "name": "a24_c1_h0_w0_r0_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": false,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 482,
+        "tpd": 6.18,
+        "wr": 45.9,
+        "ev": 0.72,
+        "net": 345.9,
+        "daily": 4.43
+      },
+      "score": 103.64999999999999
+    },
+    {
+      "cfg": {
+        "name": "a20_c2_h0_w0_r1_sl10",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 566,
+        "tpd": 7.26,
+        "wr": 45.1,
+        "ev": 0.74,
+        "net": 421.5,
+        "daily": 5.4
+      },
+      "score": 103.4
+    },
+    {
+      "cfg": {
+        "name": "a18_c1_h0_w1_r0_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": false,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 524,
+        "tpd": 6.72,
+        "wr": 42.6,
+        "ev": 0.65,
+        "net": 341.4,
+        "daily": 4.38
+      },
+      "score": 102.2
+    },
+    {
+      "cfg": {
+        "name": "a18_c2_h0_w1_r0_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": false,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 524,
+        "tpd": 6.72,
+        "wr": 42.6,
+        "ev": 0.65,
+        "net": 341.4,
+        "daily": 4.38
+      },
+      "score": 102.2
+    },
+    {
+      "cfg": {
+        "name": "a18_c3_h0_w1_r0_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": false,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 524,
+        "tpd": 6.72,
+        "wr": 42.6,
+        "ev": 0.65,
+        "net": 341.4,
+        "daily": 4.38
+      },
+      "score": 102.2
+    }
+  ],
+  "hit3x": [
+    {
+      "cfg": {
+        "name": "a24_c1_h0_w0_r1_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 373,
+        "tpd": 4.78,
+        "wr": 50.1,
+        "ev": 1.46,
+        "net": 545.2,
+        "daily": 6.99
+      },
+      "score": 149.45
+    },
+    {
+      "cfg": {
+        "name": "a24_c2_h0_w0_r1_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 373,
+        "tpd": 4.78,
+        "wr": 50.1,
+        "ev": 1.46,
+        "net": 545.2,
+        "daily": 6.99
+      },
+      "score": 149.45
+    },
+    {
+      "cfg": {
+        "name": "a24_c3_h0_w0_r1_sl10",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 10,
+        "tp": 20,
+        "hold": 60
+      },
+      "s": {
+        "n": 373,
+        "tpd": 4.78,
+        "wr": 50.1,
+        "ev": 1.46,
+        "net": 545.2,
+        "daily": 6.99
+      },
+      "score": 149.45
+    },
+    {
+      "cfg": {
+        "name": "a24_c1_h0_w0_r1_sl8",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 388,
+        "tpd": 4.97,
+        "wr": 47.2,
+        "ev": 1.08,
+        "net": 419.4,
+        "daily": 5.38
+      },
+      "score": 121.5
+    },
+    {
+      "cfg": {
+        "name": "a24_c2_h0_w0_r1_sl8",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 388,
+        "tpd": 4.97,
+        "wr": 47.2,
+        "ev": 1.08,
+        "net": 419.4,
+        "daily": 5.38
+      },
+      "score": 121.5
+    },
+    {
+      "cfg": {
+        "name": "a24_c3_h0_w0_r1_sl8",
+        "adxMin": 24,
+        "adxPrime": 28,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": false,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 388,
+        "tpd": 4.97,
+        "wr": 47.2,
+        "ev": 1.08,
+        "net": 419.4,
+        "daily": 5.38
+      },
+      "score": 121.5
+    },
+    {
+      "cfg": {
+        "name": "a20_c1_h0_w1_r1_sl8",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 378,
+        "tpd": 4.85,
+        "wr": 45.2,
+        "ev": 1.04,
+        "net": 392,
+        "daily": 5.03
+      },
+      "score": 115.85000000000001
+    },
+    {
+      "cfg": {
+        "name": "a20_c2_h0_w1_r1_sl8",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 2,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 378,
+        "tpd": 4.85,
+        "wr": 45.2,
+        "ev": 1.04,
+        "net": 392,
+        "daily": 5.03
+      },
+      "score": 115.85000000000001
+    },
+    {
+      "cfg": {
+        "name": "a20_c3_h0_w1_r1_sl8",
+        "adxMin": 20,
+        "adxPrime": 24,
+        "cool": 3,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 378,
+        "tpd": 4.85,
+        "wr": 45.2,
+        "ev": 1.04,
+        "net": 392,
+        "daily": 5.03
+      },
+      "score": 115.85000000000001
+    },
+    {
+      "cfg": {
+        "name": "a18_c1_h0_w1_r1_sl8",
+        "adxMin": 18,
+        "adxPrime": 24,
+        "cool": 1,
+        "htf": false,
+        "di": true,
+        "wt": true,
+        "rsi": true,
+        "sl": 8,
+        "tp": 16,
+        "hold": 60
+      },
+      "s": {
+        "n": 444,
+        "tpd": 5.69,
+        "wr": 43.9,
+        "ev": 0.87,
+        "net": 388.2,
+        "daily": 4.98
+      },
+      "score": 113.4
+    }
+  ]
+}

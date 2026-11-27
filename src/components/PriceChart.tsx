@@ -6,6 +6,7 @@ import {
   createSeriesMarkers,
   HistogramSeries,
   LineSeries,
+  TickMarkType,
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
@@ -48,6 +49,68 @@ interface Props {
 }
 
 const UP = '#26A69A'
+
+/** Format unix seconds as Asia/Tokyo for axis + crosshair. */
+function toJstParts(sec: number) {
+  const d = new Date(sec * 1000)
+  const fmt = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = fmt.formatToParts(d)
+  const get = (t: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === t)?.value ?? ''
+  return {
+    y: get('year'),
+    m: get('month'),
+    day: get('day'),
+    h: get('hour'),
+    min: get('minute'),
+  }
+}
+
+function jstTickMarkFormatter(
+  time: Time,
+  tickMarkType: TickMarkType,
+  _locale: string,
+): string | null {
+  const sec =
+    typeof time === 'number'
+      ? time
+      : typeof time === 'string'
+        ? Math.floor(new Date(time).getTime() / 1000)
+        : Date.UTC(time.year, time.month - 1, time.day) / 1000
+  const p = toJstParts(sec)
+  switch (tickMarkType) {
+    case TickMarkType.Year:
+      return p.y
+    case TickMarkType.Month:
+      return `${p.y}/${p.m}`
+    case TickMarkType.DayOfMonth:
+      return `${p.m}/${p.day}`
+    case TickMarkType.Time:
+    case TickMarkType.TimeWithSeconds:
+      return `${p.h}:${p.min}`
+    default:
+      return `${p.h}:${p.min}`
+  }
+}
+
+function jstTimeFormatter(time: Time): string {
+  const sec =
+    typeof time === 'number'
+      ? time
+      : typeof time === 'string'
+        ? Math.floor(new Date(time).getTime() / 1000)
+        : Date.UTC(time.year, time.month - 1, time.day) / 1000
+  const p = toJstParts(sec)
+  return `${p.m}/${p.day} ${p.h}:${p.min}`
+}
 const DOWN = '#EF5350'
 const UP_VOL = 'rgba(38, 166, 154, 0.55)'
 const DOWN_VOL = 'rgba(239, 83, 80, 0.55)'
@@ -184,6 +247,10 @@ export function PriceChart({
         fontSize: 11,
         attributionLogo: false,
       },
+      localization: {
+        locale: 'ja-JP',
+        timeFormatter: jstTimeFormatter,
+      },
       grid: {
         vertLines: { color: 'rgba(148, 185, 198, 0.08)' },
         horzLines: { color: 'rgba(148, 185, 198, 0.1)' },
@@ -221,6 +288,7 @@ export function PriceChart({
         shiftVisibleRangeOnNewBar: true,
         fixLeftEdge: false,
         fixRightEdge: true,
+        tickMarkFormatter: jstTickMarkFormatter,
       },
       handleScroll: {
         vertTouchDrag: false,

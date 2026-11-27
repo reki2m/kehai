@@ -1,6 +1,5 @@
 import { SESSION_PROFILES } from '../lib/apex'
 import { BROKER_SPREAD_PIPS } from '../lib/filters'
-import { expectedBookPace } from '../lib/peakBook'
 import { SIMPLE } from '../lib/simpleSignal'
 
 export function RulesPanel() {
@@ -9,27 +8,26 @@ export function RulesPanel() {
     SESSION_PROFILES.london,
     SESSION_PROFILES.ny,
   ]
-  const book = expectedBookPace()
   return (
     <section className="rules-panel" aria-label="ルール">
       <h2>ルール</h2>
       <p className="rules-lead">
-        {SIMPLE.stack} · 手動 · ペアごと1本 · スプレッド前提{' '}
-        {BROKER_SPREAD_PIPS}p
+        {SIMPLE.stack} · 手動 · スプレッド前提 {BROKER_SPREAD_PIPS}p
       </p>
       <ol className="rules-list">
         <li>
           <strong>目標</strong>
           <span>
-            日次+{SIMPLE.hunter.dailyPipsTarget}p帯 · Peak品質を{book.pairs}
-            FXに横展開（単ペアでは物理的に届かない）
+            単ペア約{SIMPLE.verified.tradesPerDay}回/日 · EV +
+            {SIMPLE.verified.evPips}p · 日次約+{SIMPLE.verified.dailyPips}p
           </span>
         </li>
         <li>
           <strong>サイン</strong>
           <span>
-            UTフリップ + SSL + HTF + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
+            UTフリップ + SSL + DI + RSI · ADX≥{SIMPLE.adxMin}/
             {SIMPLE.adxPrime}
+            （HTF・WTなし）
           </span>
         </li>
         <li>
@@ -40,11 +38,9 @@ export function RulesPanel() {
           </span>
         </li>
         <li>
-          <strong>机</strong>
+          <strong>操作</strong>
           <span>
-            単ペア約{SIMPLE.verified.tradesPerDay}回/日 · EV +
-            {SIMPLE.verified.evPips}p · ブック約{book.tradesPerDay}回/日 · 日次約+
-            {book.dailyEdge}p
+            エントリーした → 建玉±pips表示 → 切ったらリセット（またはTP/SL記録）
           </span>
         </li>
         <li>

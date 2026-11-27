@@ -25,19 +25,19 @@ export function BookPanel({
   const signals = book?.signals ?? []
 
   return (
-    <section className="book-panel" aria-label="Peak Hunter ブック">
+    <section className="book-panel" aria-label="他ペア・スキャン">
       <div className="book-head">
-        <h2>Hunter Book</h2>
+        <h2>他ペア</h2>
         <p className="book-lead">
-          Peak × {pace.pairs}FX · 日次+{SIMPLE.hunter.dailyPipsTarget}p狙い ·
-          期待約+{pace.dailyEdge}p
+          参考スキャン · 本命は単ペアDrive（約{SIMPLE.verified.tradesPerDay}
+          回/日 · +{SIMPLE.verified.dailyPips}p）
         </p>
       </div>
 
       <div className="book-verified">
         <span>単ペア日次約+{SIMPLE.verified.dailyPips}p</span>
-        <span className="up">ブック日次約+{pace.dailyEdge}p</span>
-        <span>約{pace.tradesPerDay}回/日</span>
+        <span className="up">約{pace.tradesPerDay}回/日</span>
+        <span>{pace.pairs}FX監視</span>
       </div>
 
       {loading && <p className="book-empty">全FXスキャン中…</p>}

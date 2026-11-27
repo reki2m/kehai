@@ -1,5 +1,5 @@
 /**
- * Replay KEHAI Peak Hunter entries across candle history.
+ * Replay KEHAI Peak Drive entries across candle history.
  */
 
 import {
@@ -181,28 +181,36 @@ export function listHistoricalSignals(
     }
     const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
     const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
-    if (buy && !htfLong) buy = false
-    if (sell && !htfShort) sell = false
-    if (buy && !diLong) buy = false
-    if (sell && !diShort) sell = false
-    const w1 = wt1Map.get(c.time)?.value
-    const w2 = wt2Map.get(c.time)?.value
-    if (w1 == null || w2 == null) {
-      buy = false
-      sell = false
-    } else {
-      if (buy && !(w1 > w2)) buy = false
-      if (sell && !(w1 < w2)) sell = false
+    if (SIMPLE.requireHtf) {
+      if (buy && !htfLong) buy = false
+      if (sell && !htfShort) sell = false
     }
-    const rv = rsiMap.get(c.time)?.value
-    if (rv == null) {
-      buy = false
-      sell = false
-    } else {
-      if (buy && !(rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi))
+    if (SIMPLE.requireDi) {
+      if (buy && !diLong) buy = false
+      if (sell && !diShort) sell = false
+    }
+    if (SIMPLE.requireWt) {
+      const w1 = wt1Map.get(c.time)?.value
+      const w2 = wt2Map.get(c.time)?.value
+      if (w1 == null || w2 == null) {
         buy = false
-      if (sell && !(rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi))
         sell = false
+      } else {
+        if (buy && !(w1 > w2)) buy = false
+        if (sell && !(w1 < w2)) sell = false
+      }
+    }
+    if (SIMPLE.requireRsi) {
+      const rv = rsiMap.get(c.time)?.value
+      if (rv == null) {
+        buy = false
+        sell = false
+      } else {
+        if (buy && !(rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi))
+          buy = false
+        if (sell && !(rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi))
+          sell = false
+      }
     }
 
     if (!buy && !sell) continue
