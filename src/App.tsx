@@ -3,6 +3,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { NewsPanel } from './components/NewsPanel'
 import { PriceChart, type OverlayId } from './components/PriceChart'
 import { BookPanel } from './components/BookPanel'
+import { ContextCharts } from './components/ContextCharts'
 import { HistPerformancePanel } from './components/HistPerformancePanel'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
@@ -56,6 +57,13 @@ import {
   toggleSessionDisabled,
   type SessionStatsState,
 } from './lib/sessionStats'
+import {
+  CONTEXT_WATCH_IDS,
+  evaluateContextWatch,
+  isContextOnly,
+  isTradeablePair,
+  type ContextWatchState,
+} from './lib/contextWatch'
 import { BROKER_SPREAD_PIPS } from './lib/filters'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import { investigateShockCause, type ShockCauseReport } from './lib/shockCause'
@@ -92,7 +100,17 @@ const OVERLAYS: { id: OverlayId; label: string }[] = [
 ]
 
 export default function App() {
-  const [pairId, setPairId] = useState<PairId>('USDJPY')
+  const [pairId, setPairId] = useState<PairId>(() => {
+    return 'USDJPY'
+  })
+  const [contextSeries, setContextSeries] = useState<
+    Partial<Record<PairId, Candle[]>>
+  >({})
+  const [contextWatch, setContextWatch] = useState<ContextWatchState | null>(
+    null,
+  )
+  const [contextLoading, setContextLoading] = useState(false)
+  const contextActiveRef = useRef<Set<PairId>>(new Set())
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   // Clean TradingView-style candles by default; UT/SSL etc. are opt-in
   const [overlays, setOverlays] = useState<OverlayId[]>([])
@@ -147,6 +165,13 @@ export default function App() {
   /** Throttle chart candle writes — board price still updates every tick. */
   const pendingTickRef = useRef<number | null>(null)
   const tickFlushTimer = useRef<number | null>(null)
+
+  // Context assets are watch-only — never stay selected as the trade pair.
+  useEffect(() => {
+    if (isContextOnly(pairId) || !isTradeablePair(pairId)) {
+      setPairId('USDJPY')
+    }
+  }, [pairId])
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -544,6 +569,76 @@ export default function App() {
     }
   }, [stats.disabledSessions])
 
+  // Context watch: oil/Nikkei/Dow/VIX — charts only while related to USDJPY.
+  useEffect(() => {
+    let cancelled = false
+    async function loadContext() {
+      setContextLoading(true)
+      try {
+        const results = await Promise.all(
+          CONTEXT_WATCH_IDS.map(async (id) => {
+            try {
+              const live = await fetchLiveCandles(id, '1m')
+              return [id, live.candles] as const
+            } catch {
+              return [id, [] as Candle[]] as const
+            }
+          }),
+        )
+        if (cancelled) return
+        const series: Partial<Record<PairId, Candle[]>> = {}
+        for (const [id, bars] of results) series[id] = bars
+        setContextSeries(series)
+
+        let base = candles
+        if (pairId !== 'USDJPY' || timeframe !== '1m' || candles.length < 80) {
+          try {
+            const uj = await fetchLiveCandles('USDJPY', '1m')
+            base = uj.candles
+          } catch {
+            /* keep candles */
+          }
+        }
+        if (cancelled) return
+        const watch = evaluateContextWatch(
+          base,
+          series,
+          contextActiveRef.current,
+        )
+        contextActiveRef.current = new Set(watch.activeIds)
+        setContextWatch(watch)
+      } catch {
+        if (!cancelled) setContextWatch(null)
+      } finally {
+        if (!cancelled) setContextLoading(false)
+      }
+    }
+    void loadContext()
+    const id = window.setInterval(() => void loadContext(), 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+    // Re-poll on pair/tf change; candle length only kicks first fill.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairId, timeframe])
+
+  // Re-score correlation on each new USDJPY bar without refetching drivers.
+  useEffect(() => {
+    if (pairId !== 'USDJPY' || timeframe !== '1m') return
+    if (candles.length < 80) return
+    if (!CONTEXT_WATCH_IDS.some((id) => (contextSeries[id]?.length ?? 0) > 40))
+      return
+    const watch = evaluateContextWatch(
+      candles,
+      contextSeries,
+      contextActiveRef.current,
+    )
+    contextActiveRef.current = new Set(watch.activeIds)
+    setContextWatch(watch)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCandleTime])
+
   const signal = useMemo(() => {
     if (!inPosition) return raw
     return {
@@ -912,15 +1007,8 @@ export default function App() {
                 setStats((s) => cancelOpen(s))
               }}
             >
-              <optgroup label="FX">
+              <optgroup label="FX（トレード対象）">
                 {PAIRS.filter((p) => p.kind === 'fx').map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="その他">
-                {PAIRS.filter((p) => p.kind !== 'fx').map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}
                   </option>
@@ -1184,25 +1272,32 @@ export default function App() {
               </span>
             </p>
           </div>
-          {candles.length >= 30 ? (
-            <ErrorBoundary>
-              <PriceChart
-                candles={candles}
-                pair={pair}
-                overlays={overlays}
-                signalParams={{
-                  utKey: raw.utKey,
-                  utAtr: raw.utAtr,
-                  sslLen: raw.sslLen,
-                }}
-                histSignals={histSignals}
-              />
-            </ErrorBoundary>
-          ) : (
-            <p className="sample-note" style={{ padding: '1.2rem' }}>
-              {liveLoading ? 'チャート読み込み中…' : '足データ待ち…'}
-            </p>
-          )}
+          <div className="main-chart-slot">
+            {candles.length >= 30 ? (
+              <ErrorBoundary>
+                <PriceChart
+                  candles={candles}
+                  pair={pair}
+                  overlays={overlays}
+                  signalParams={{
+                    utKey: raw.utKey,
+                    utAtr: raw.utAtr,
+                    sslLen: raw.sslLen,
+                  }}
+                  histSignals={histSignals}
+                />
+              </ErrorBoundary>
+            ) : (
+              <p className="sample-note" style={{ padding: '1.2rem' }}>
+                {liveLoading ? 'チャート読み込み中…' : '足データ待ち…'}
+              </p>
+            )}
+          </div>
+          <ContextCharts
+            links={contextWatch?.links ?? []}
+            series={contextSeries}
+            loading={contextLoading}
+          />
         </section>
 
         <div className="side-stack">

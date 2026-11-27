@@ -215,6 +215,106 @@
   justify-content: center;
 }
 
+.context-charts {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line);
+  padding: 0.55rem 0.75rem 0.7rem;
+  background: rgba(8, 18, 22, 0.35);
+}
+
+.context-charts-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.9rem;
+  margin-bottom: 0.45rem;
+}
+
+.context-charts-head h2 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+
+.context-charts-lead {
+  margin: 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.context-charts-empty {
+  margin: 0.2rem 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.context-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.55rem;
+}
+
+.context-chart-card {
+  border: 1px solid var(--line);
+  background: rgba(12, 24, 28, 0.55);
+  padding: 0.4rem 0.45rem 0.35rem;
+  min-width: 0;
+}
+
+.context-chart-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.context-chart-meta h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.context-corr,
+.context-chg {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.context-corr.up,
+.context-chg.up {
+  color: #5eead4;
+}
+
+.context-corr.down {
+  color: #f0a8a8;
+}
+
+.context-reason {
+  margin: 0.15rem 0 0.3rem;
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.mini-chart-host {
+  width: 100%;
+  height: 132px;
+}
+
+.main-chart-slot {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-chart-slot .chart-host {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .hero-chart {
   position: relative;
   /* Stretch to full workspace height on PC — short capped height made M1 look like hairlines */

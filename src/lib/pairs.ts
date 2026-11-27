@@ -35,6 +35,11 @@ export interface PairMeta {
   open: number
   /** Synthetic series relative volatility hint. */
   volFrac: number
+  /**
+   * false = context watch only (oil/Nikkei/Dow/VIX).
+   * Never used as a trade target in the board.
+   */
+  tradeable?: boolean
 }
 
 export const PAIRS: PairMeta[] = [
@@ -202,6 +207,7 @@ export const PAIRS: PairMeta[] = [
     seed: 7103,
     open: 78.5,
     volFrac: 0.0045,
+    tradeable: false,
   },
   {
     id: 'NIKKEI',
@@ -217,6 +223,7 @@ export const PAIRS: PairMeta[] = [
     seed: 3344,
     open: 39000,
     volFrac: 0.0012,
+    tradeable: false,
   },
   {
     id: 'DOW',
@@ -232,6 +239,7 @@ export const PAIRS: PairMeta[] = [
     seed: 5566,
     open: 42500,
     volFrac: 0.001,
+    tradeable: false,
   },
   {
     id: 'VIX',
@@ -247,6 +255,7 @@ export const PAIRS: PairMeta[] = [
     seed: 8890,
     open: 18.5,
     volFrac: 0.012,
+    tradeable: false,
   },
 ]
 

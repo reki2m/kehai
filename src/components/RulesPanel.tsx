@@ -44,6 +44,13 @@ export function RulesPanel() {
           </span>
         </li>
         <li>
+          <strong>関連チャート</strong>
+          <span>
+            原油・日経・ダウ・VIXは監視のみ（トレードしない）·
+            ドル円と相関が立ったときだけ表示、関連終了で消す
+          </span>
+        </li>
+        <li>
           <strong>READY</strong>
           <span>
             UTまで{SIMPLE.readyPips}p以内 → 監視のみ（まだ入らない）
