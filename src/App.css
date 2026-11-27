@@ -903,15 +903,99 @@
 }
 
 .rules-panel,
-.news-panel {
+.news-panel,
+.fusion-panel {
   padding: 0.9rem 1rem 1rem;
   border: 1px solid var(--line);
   background: var(--panel);
   backdrop-filter: blur(10px);
 }
 
+.fusion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.75rem;
+}
+
+.fusion-lead,
+.fusion-empty,
+.fusion-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.fusion-score {
+  margin: 0.55rem 0 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.fusion-score.up {
+  color: #5eead4;
+}
+
+.fusion-score.down {
+  color: #f0a8a8;
+}
+
+.fusion-score span {
+  margin-left: 0.5rem;
+  font-weight: 500;
+  opacity: 0.75;
+  font-size: 0.8rem;
+}
+
+.fusion-votes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fusion-vote {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  border-left: 2px solid var(--line);
+  font-size: 0.75rem;
+}
+
+.fusion-vote.bull {
+  border-left-color: #5eead4;
+}
+
+.fusion-vote.bear {
+  border-left-color: #f0a8a8;
+}
+
+.fusion-vote-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fusion-vote-name em {
+  margin-left: 0.35rem;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.fusion-vote-detail {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  text-align: right;
+}
+
 .rules-panel h2,
 .news-panel h2,
+.fusion-panel h2,
 .news-section h3 {
   margin: 0;
   font-family: var(--font-display);

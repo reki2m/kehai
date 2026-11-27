@@ -1,0 +1,232 @@
+{
+  "peak": {
+    "daily": 7.82,
+    "ev": 4.4,
+    "tpd": 1.8,
+    "wr": 55,
+    "n": 80
+  },
+  "beat": [],
+  "top": [
+    {
+      "label": "ST_Sq_Lz",
+      "n": 112,
+      "tpd": 1.9,
+      "wr": 44.6,
+      "ev": 1.29,
+      "daily": 2.46,
+      "net": 144.9,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": true,
+        "requireMomAgree": false,
+        "requireSmc": false,
+        "requireLorentz": true,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "Sq_Mom_only",
+      "n": 172,
+      "tpd": 2.6,
+      "wr": 43,
+      "ev": 0.81,
+      "daily": 2.11,
+      "net": 139.2,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": false,
+        "requireSqueezeOff": true,
+        "requireMomAgree": true,
+        "requireSmc": false,
+        "requireLorentz": false,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ST_only",
+      "n": 275,
+      "tpd": 3.9,
+      "wr": 42.2,
+      "ev": 0.47,
+      "daily": 1.83,
+      "net": 128.1,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": false,
+        "requireMomAgree": false,
+        "requireSmc": false,
+        "requireLorentz": false,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "SMC_Lz",
+      "n": 132,
+      "tpd": 2.2,
+      "wr": 43.9,
+      "ev": 0.64,
+      "daily": 1.39,
+      "net": 84.5,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": false,
+        "requireSqueezeOff": false,
+        "requireMomAgree": false,
+        "requireSmc": true,
+        "requireLorentz": true,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ST_SMC_Lz",
+      "n": 85,
+      "tpd": 1.6,
+      "wr": 40,
+      "ev": 0.74,
+      "daily": 1.18,
+      "net": 62.5,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": false,
+        "requireMomAgree": false,
+        "requireSmc": true,
+        "requireLorentz": true,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ST_SMC",
+      "n": 218,
+      "tpd": 3.3,
+      "wr": 39.4,
+      "ev": 0.16,
+      "daily": 0.52,
+      "net": 34.1,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": false,
+        "requireMomAgree": false,
+        "requireSmc": true,
+        "requireLorentz": false,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ST_Mom_SMC",
+      "n": 113,
+      "tpd": 1.9,
+      "wr": 39.8,
+      "ev": 0.11,
+      "daily": 0.22,
+      "net": 12.7,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": false,
+        "requireMomAgree": true,
+        "requireSmc": true,
+        "requireLorentz": false,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ST_Sq_SMC",
+      "n": 216,
+      "tpd": 3.3,
+      "wr": 38.4,
+      "ev": -0.17,
+      "daily": -0.57,
+      "net": -37.5,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": true,
+        "requireMomAgree": false,
+        "requireSmc": true,
+        "requireLorentz": false,
+        "adxMin": 24,
+        "adxPrime": 28,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ALL",
+      "n": 62,
+      "tpd": 1.5,
+      "wr": 38.7,
+      "ev": -0.39,
+      "daily": -0.59,
+      "net": -24.2,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": true,
+        "requireMomAgree": true,
+        "requireSmc": true,
+        "requireLorentz": true,
+        "adxMin": 22,
+        "adxPrime": 26,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    },
+    {
+      "label": "ST_Sq_Mom_SMC",
+      "n": 140,
+      "tpd": 2.3,
+      "wr": 38.6,
+      "ev": -0.49,
+      "daily": -1.11,
+      "net": -68.7,
+      "worst": -12.2,
+      "gates": {
+        "requireSt": true,
+        "requireSqueezeOff": true,
+        "requireMomAgree": true,
+        "requireSmc": true,
+        "requireLorentz": false,
+        "adxMin": 22,
+        "adxPrime": 26,
+        "neighbors": 6,
+        "maxBarsBack": 250,
+        "cool": 5
+      }
+    }
+  ]
+}

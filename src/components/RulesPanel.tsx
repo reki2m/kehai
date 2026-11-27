@@ -58,6 +58,12 @@ export function RulesPanel() {
           </span>
         </li>
         <li>
+          <strong>Fusion監視</strong>
+          <span>
+            UT×SuperTrend×Squeeze×SMC×Lorentz の票読み · 5つANDは検証でPeakに負けたためエントリーには使わない
+          </span>
+        </li>
+        <li>
           <strong>READY</strong>
           <span>
             UTまで{SIMPLE.readyPips}p以内 → 監視のみ（まだ入らない）

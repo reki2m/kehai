@@ -5,9 +5,14 @@ import { PriceChart, type OverlayId } from './components/PriceChart'
 import { BookPanel } from './components/BookPanel'
 import { ContextCharts } from './components/ContextCharts'
 import { HistPerformancePanel } from './components/HistPerformancePanel'
+import { FusionPanel } from './components/FusionPanel'
 import { RulesPanel } from './components/RulesPanel'
 import { SessionStatsPanel } from './components/SessionStatsPanel'
 import { SimpleBoard } from './components/SimpleBoard'
+import {
+  evaluateFusionConfluence,
+  type FusionConfluence,
+} from './lib/fusionConfluence'
 import type { FxSession } from './lib/apex'
 import { BIQUOTE_SYMBOLS, subscribeBiquoteTicks } from './lib/biquote'
 import { histCandlesUrl, histSignalsUrl } from './lib/http'
@@ -542,6 +547,14 @@ export default function App() {
 
   // Tip ticks must not rebuild markers — only when a new bar opens
   const lastCandleTime = candles[candles.length - 1]?.time ?? 0
+
+  const fusion = useMemo((): FusionConfluence | null => {
+    if (pairId !== 'USDJPY' || timeframe !== '1m') return null
+    if (candles.length < 120) return null
+    return evaluateFusionConfluence(candles)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairId, timeframe, lastCandleTime, candles.length])
+
   const histSignals = useMemo(() => {
     // Extra bars for indicator warmup, then only emit after warmup.
     const need = 1400
@@ -1375,6 +1388,7 @@ export default function App() {
             inPosition={inPosition}
             openPips={openPips}
           />
+          <FusionPanel fusion={fusion} />
           <BookPanel
             book={book}
             loading={bookLoading}
