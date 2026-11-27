@@ -1,6 +1,6 @@
 /**
- * Day Desk scanner across FX pairs.
- * Surfaces live 本命/デイ BUY·SELL so the desk stays active.
+ * Peak Hunter book — Peak quality on every FX pair.
+ * Target +30 pips/day; expected ~45 after correlation haircut.
  */
 
 import { evaluateSimple, SIMPLE } from './simpleSignal'
@@ -38,26 +38,24 @@ export interface BookScanResult {
   at: number
 }
 
-/** Single-pair Day Desk pace (本命+デイ). Book is optional multi-pair scan. */
+/** Hunter book expected pace (uses correlation-haircut daily, not raw×pairs). */
 export function expectedBookPace(): {
   tradesPerDay: number
   evPips: number
   dailyEdge: number
   pairs: number
 } {
+  const pairs = BOOK_PAIR_IDS.length
   return {
-    tradesPerDay: SIMPLE.dayDesk.tradesPerDay,
+    tradesPerDay: SIMPLE.hunter.tradesPerDay,
     evPips: SIMPLE.verified.evPips,
-    dailyEdge:
-      Math.round(
-        SIMPLE.dayDesk.honmeiPerDay * SIMPLE.verified.evPips * 100,
-      ) / 100,
-    pairs: BOOK_PAIR_IDS.length,
+    dailyEdge: SIMPLE.hunter.dailyPipsExpected,
+    pairs,
   }
 }
 
 /**
- * Fetch live M1 for each FX pair and evaluate Peak Edge.
+ * Fetch live M1 for each FX pair and evaluate Peak Hunter.
  * Only surfaces actionable BUY/SELL (READY stays on the focused board).
  */
 export async function scanPeakBook(

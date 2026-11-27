@@ -5,6 +5,10 @@ export type PairId =
   | 'EURJPY'
   | 'AUDUSD'
   | 'USDCHF'
+  | 'GBPUSD'
+  | 'NZDUSD'
+  | 'CADJPY'
+  | 'EURGBP'
   | 'USOIL'
   | 'NIKKEI'
   | 'DOW'
@@ -123,6 +127,66 @@ export const PAIRS: PairMeta[] = [
     seed: 9912,
     open: 0.8745,
     volFrac: 0.0005,
+  },
+  {
+    id: 'GBPUSD',
+    label: 'GBP/USD',
+    base: 'GBP',
+    quote: 'USD',
+    kind: 'fx',
+    pip: 0.0001,
+    digits: 5,
+    sl: 2.5,
+    tp: 5.0,
+    unit: 'pips',
+    seed: 1201,
+    open: 1.265,
+    volFrac: 0.00055,
+  },
+  {
+    id: 'NZDUSD',
+    label: 'NZD/USD',
+    base: 'NZD',
+    quote: 'USD',
+    kind: 'fx',
+    pip: 0.0001,
+    digits: 5,
+    sl: 2.5,
+    tp: 5.0,
+    unit: 'pips',
+    seed: 1302,
+    open: 0.595,
+    volFrac: 0.0006,
+  },
+  {
+    id: 'CADJPY',
+    label: 'CAD/JPY',
+    base: 'CAD',
+    quote: 'JPY',
+    kind: 'fx',
+    pip: 0.01,
+    digits: 3,
+    sl: 2.5,
+    tp: 5.0,
+    unit: 'pips',
+    seed: 1403,
+    open: 112.5,
+    volFrac: 0.0004,
+  },
+  {
+    id: 'EURGBP',
+    label: 'EUR/GBP',
+    base: 'EUR',
+    quote: 'GBP',
+    kind: 'fx',
+    pip: 0.0001,
+    digits: 5,
+    sl: 2.5,
+    tp: 5.0,
+    unit: 'pips',
+    seed: 1504,
+    open: 0.842,
+    volFrac: 0.00045,
   },
   {
     id: 'USOIL',

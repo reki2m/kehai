@@ -22,6 +22,10 @@ export const USDJPY_BETA: Record<
   EURJPY: { beta: 0, weight: 0, why: '' },
   AUDUSD: { beta: 0, weight: 0, why: '' },
   USDCHF: { beta: 0, weight: 0, why: '' },
+  GBPUSD: { beta: 0, weight: 0, why: '' },
+  NZDUSD: { beta: 0, weight: 0, why: '' },
+  CADJPY: { beta: 0, weight: 0, why: '' },
+  EURGBP: { beta: 0, weight: 0, why: '' },
   USOIL: {
     beta: 0.45,
     weight: 0.55,

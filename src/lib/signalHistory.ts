@@ -1,5 +1,5 @@
 /**
- * Replay KEHAI Day Desk entries (本命 + デイ) across candle history.
+ * Replay KEHAI Peak Hunter entries across candle history.
  */
 
 import {
@@ -18,7 +18,6 @@ import {
   rsi,
   sessionVwap,
   sslDirection,
-  supertrendDirection,
   utBotTrail,
   wavetrend,
 } from './indicators'
@@ -91,12 +90,6 @@ export function listHistoricalSignals(
   const adxMap = mapByTime(adx(candles, 14))
   const atrMap = mapByTime(atr(candles, 14))
   const rsiMap = mapByTime(rsi(candles, 14))
-  const stSeries = supertrendDirection(
-    candles,
-    SIMPLE.stPeriod,
-    SIMPLE.stMult,
-  )
-  const stMap = mapByTime(stSeries)
   const { wt1, wt2 } = wavetrend(candles, 10, 21)
   const wt1Map = mapByTime(wt1)
   const wt2Map = mapByTime(wt2)
@@ -128,7 +121,6 @@ export function listHistoricalSignals(
     const ut = utMap.get(c.time)
     const utPrev = utMap.get(prev.time)
     if (ut == null || utPrev == null) continue
-
     const ssl = sslMap.get(c.time)
     if (ssl == null) continue
 
@@ -144,19 +136,20 @@ export function listHistoricalSignals(
       pair && pair.kind !== 'fx'
         ? isInstrumentWindow(c.time, pair)
         : isFxWeekday(c.time)
-    const newsOk = !news
-    const spreadOk = spreadPips <= profile.maxSpread
-    const edgeOk = sessionAwayFromEdge(c.time, SIMPLE.sessionEdgeMin, fxSession)
-    const atrFloorOk = atrPips <= 0 || atrPips >= SIMPLE.minAtrPips
-    if (!(windowOk && newsOk && spreadOk && edgeOk && atrFloorOk)) continue
+    if (
+      !(
+        windowOk &&
+        !news &&
+        spreadPips <= profile.maxSpread &&
+        sessionAwayFromEdge(c.time, SIMPLE.sessionEdgeMin, fxSession) &&
+        (atrPips <= 0 || atrPips >= SIMPLE.minAtrPips)
+      )
+    ) {
+      continue
+    }
 
     const utFlipLong = ut > 0 && utPrev <= 0
     const utFlipShort = ut < 0 && utPrev >= 0
-    const st = stMap.get(c.time)?.value
-    const stPrev = stMap.get(prev.time)?.value
-    const stFlipLong = st != null && stPrev != null && st > 0 && stPrev <= 0
-    const stFlipShort = st != null && stPrev != null && st < 0 && stPrev >= 0
-
     const sslLong = ssl > 0
     const sslShort = ssl < 0
     const htf = htfMap.get(c.time)
@@ -177,85 +170,51 @@ export function listHistoricalSignals(
       confirmShort = confirmShort && c.close <= vwap
     }
 
+    let buy = utFlipLong && confirmLong
+    let sell = utFlipShort && confirmShort
+
+    const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
     const adxVal = adxMap.get(c.time)
-    const honmeiFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
-    const dayUtFloor = noonOk ? SIMPLE.dayAdxMin : SIMPLE.dayAdxOff
-    const dayStFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
+    if (!adxVal || adxVal.adx < adxFloor) {
+      buy = false
+      sell = false
+    }
     const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
     const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
+    if (buy && !htfLong) buy = false
+    if (sell && !htfShort) sell = false
+    if (buy && !diLong) buy = false
+    if (sell && !diShort) sell = false
     const w1 = wt1Map.get(c.time)?.value
     const w2 = wt2Map.get(c.time)?.value
-    const wtLong = w1 != null && w2 != null && w1 > w2
-    const wtShort = w1 != null && w2 != null && w1 < w2
-    const rv = rsiMap.get(c.time)?.value
-    const rsiLong =
-      rv != null && rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi
-    const rsiShort =
-      rv != null && rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi
-
-    const peakLong =
-      confirmLong && htfLong && diLong && wtLong && rsiLong
-    const peakShort =
-      confirmShort && htfShort && diShort && wtShort && rsiShort
-
-    let buy = false
-    let sell = false
-    let track: EntryTrack | null = null
-
-    if (adxVal && adxVal.adx >= honmeiFloor) {
-      if (utFlipLong && peakLong) {
-        buy = true
-        track = 'honmei'
-      } else if (utFlipShort && peakShort) {
-        sell = true
-        track = 'honmei'
-      }
+    if (w1 == null || w2 == null) {
+      buy = false
+      sell = false
+    } else {
+      if (buy && !(w1 > w2)) buy = false
+      if (sell && !(w1 < w2)) sell = false
     }
-
-    if (!buy && !sell && SIMPLE.pulseEnabled) {
-      if (adxVal && adxVal.adx >= dayUtFloor) {
-        if (utFlipLong && peakLong) {
-          buy = true
-          track = 'day'
-        } else if (utFlipShort && peakShort) {
-          sell = true
-          track = 'day'
-        }
-      }
-      if (!buy && !sell && adxVal && adxVal.adx >= dayStFloor) {
-        const stBuy =
-          stFlipLong && sslLong && htfLong && diLong && wtLong
-        const stSell =
-          stFlipShort && sslShort && htfShort && diShort && wtShort
-        if (stBuy) {
-          buy = true
-          track = 'day'
-        } else if (stSell) {
-          sell = true
-          track = 'day'
-        }
-      }
+    const rv = rsiMap.get(c.time)?.value
+    if (rv == null) {
+      buy = false
+      sell = false
+    } else {
+      if (buy && !(rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi))
+        buy = false
+      if (sell && !(rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi))
+        sell = false
     }
 
     if (!buy && !sell) continue
 
-    const side: 'BUY' | 'SELL' = buy ? 'BUY' : 'SELL'
-    const prime = track === 'honmei'
-    const grade: HistSignal['grade'] =
-      prime && adxVal && adxVal.adx >= 28
-        ? 'S'
-        : prime
-          ? 'A'
-          : 'B'
-
     out.push({
       time: c.time,
-      side,
+      side: buy ? 'BUY' : 'SELL',
       price: c.close,
-      prime,
-      grade,
-      track: track ?? 'day',
-      sizeHint: track === 'honmei' ? SIMPLE.honmeiSize : SIMPLE.daySize,
+      prime: true,
+      grade: adxVal && adxVal.adx >= 28 ? 'S' : 'A',
+      track: 'honmei',
+      sizeHint: 1,
     })
     lastSignalIndex = i
   }

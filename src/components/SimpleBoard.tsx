@@ -60,21 +60,8 @@ export function SimpleBoard({
         </p>
         {showGrade && (
           <p className={`simple-grade grade-${signal.grade.toLowerCase()}`}>
-            {signal.track === 'honmei'
-              ? '本命'
-              : signal.track === 'day'
-                ? 'デイ'
-                : signal.prime
-                  ? '推奨'
-                  : '標準'}{' '}
-            {signal.grade}
+            {signal.prime ? 'Peak' : '標準'} {signal.grade}
             <span className="simple-grade-score"> · {signal.quality}</span>
-            {(signal.action === 'BUY' || signal.action === 'SELL') && (
-              <span className="simple-grade-score">
-                {' '}
-                · サイズ×{signal.sizeHint}
-              </span>
-            )}
           </p>
         )}
         {signal.entryPrice != null &&
@@ -182,20 +169,17 @@ export function SimpleBoard({
 
       <ol className="simple-howto">
         <li>
-          デイトレ机: 本命（フルサイズ・高ADX）とデイ（半サイズ・手数）の二層
+          Peak Hunter · 日次+{SIMPLE.hunter.dailyPipsTarget}p狙い（
+          {SIMPLE.hunter.pairs}FXブック）
         </li>
         <li>
-          目安{SIMPLE.dayDesk.tradesPerDay}回/日（本命約
-          {SIMPLE.dayDesk.honmeiPerDay} + デイ約{SIMPLE.dayDesk.dayPerDay}）
+          単ペアでは約+{SIMPLE.verified.dailyPips}p/日が上限 · 弱ゲートで水増ししない
         </li>
         <li>
-          READY↑/↓ は本命の準備警告 · まだ入らない
+          READY↑/↓ は準備警告 · まだ入らない
         </li>
         <li>
-          本命 SL{SIMPLE.slMin}–{SIMPLE.slMax}/TP{SIMPLE.tpMin}–
-          {SIMPLE.tpMax} · デイ SL{SIMPLE.daySlMin}–{SIMPLE.daySlMax}/TP
-          {SIMPLE.dayTpMin}–{SIMPLE.dayTpMax}
-          {unitLabel(pair)}
+          SL{SIMPLE.slPips} / TP{SIMPLE.tpPips} {unitLabel(pair)} · 表示に合わせる
         </li>
         <li>約定の最終確認はGMOの板で行う</li>
       </ol>

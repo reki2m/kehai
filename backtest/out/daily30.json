@@ -1,0 +1,525 @@
+{
+  "target": 30,
+  "scanned": 660,
+  "hit30": 0,
+  "best": {
+    "tf": "1m",
+    "mode": "m1_peak24",
+    "risk": {
+      "kind": "fixed",
+      "sl": 10,
+      "tp": 20,
+      "hold": 60,
+      "beR": 0
+    },
+    "cool": 3,
+    "slots": 3,
+    "n": 449,
+    "tpd": 5.76,
+    "wr": 45.4,
+    "ev": 0.7,
+    "net": 315,
+    "daily": 4.04
+  },
+  "topHit": [],
+  "top": [
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "fixed",
+        "sl": 10,
+        "tp": 20,
+        "hold": 60,
+        "beR": 0
+      },
+      "cool": 3,
+      "slots": 3,
+      "n": 449,
+      "tpd": 5.76,
+      "wr": 45.4,
+      "ev": 0.7,
+      "net": 315,
+      "daily": 4.04
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "fixed",
+        "sl": 10,
+        "tp": 20,
+        "hold": 60,
+        "beR": 0
+      },
+      "cool": 5,
+      "slots": 3,
+      "n": 447,
+      "tpd": 5.73,
+      "wr": 45.2,
+      "ev": 0.69,
+      "net": 308.6,
+      "daily": 3.96
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "fixed",
+        "sl": 10,
+        "tp": 20,
+        "hold": 60,
+        "beR": 0
+      },
+      "cool": 3,
+      "slots": 2,
+      "n": 431,
+      "tpd": 5.53,
+      "wr": 45.2,
+      "ev": 0.6,
+      "net": 258.3,
+      "daily": 3.31
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "fixed",
+        "sl": 10,
+        "tp": 20,
+        "hold": 60,
+        "beR": 0
+      },
+      "cool": 5,
+      "slots": 2,
+      "n": 431,
+      "tpd": 5.53,
+      "wr": 44.8,
+      "ev": 0.55,
+      "net": 235.9,
+      "daily": 3.02
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 2,
+        "slMin": 10,
+        "slMax": 25,
+        "rr": 3,
+        "hold": 90,
+        "beR": 1
+      },
+      "cool": 5,
+      "slots": 3,
+      "n": 441,
+      "tpd": 5.65,
+      "wr": 33.1,
+      "ev": 0.52,
+      "net": 230.6,
+      "daily": 2.96
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 2,
+        "slMin": 10,
+        "slMax": 25,
+        "rr": 3,
+        "hold": 90,
+        "beR": 1
+      },
+      "cool": 3,
+      "slots": 3,
+      "n": 443,
+      "tpd": 5.68,
+      "wr": 33.2,
+      "ev": 0.5,
+      "net": 221.1,
+      "daily": 2.83
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "fixed",
+        "sl": 10,
+        "tp": 20,
+        "hold": 60,
+        "beR": 0
+      },
+      "cool": 3,
+      "slots": 1,
+      "n": 346,
+      "tpd": 4.44,
+      "wr": 46.2,
+      "ev": 0.62,
+      "net": 213.6,
+      "daily": 2.74
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "fixed",
+        "sl": 10,
+        "tp": 20,
+        "hold": 60,
+        "beR": 0
+      },
+      "cool": 5,
+      "slots": 1,
+      "n": 346,
+      "tpd": 4.44,
+      "wr": 46.2,
+      "ev": 0.62,
+      "net": 213.6,
+      "daily": 2.74
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 2,
+        "slMin": 10,
+        "slMax": 25,
+        "rr": 3,
+        "hold": 90,
+        "beR": 1
+      },
+      "cool": 3,
+      "slots": 2,
+      "n": 414,
+      "tpd": 5.31,
+      "wr": 32.4,
+      "ev": 0.27,
+      "net": 113.8,
+      "daily": 1.46
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 120,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 2,
+      "slots": 2,
+      "n": 184,
+      "tpd": 0.31,
+      "wr": 34.2,
+      "ev": 4.53,
+      "net": 833,
+      "daily": 1.4
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 2,
+        "slMin": 10,
+        "slMax": 25,
+        "rr": 3,
+        "hold": 90,
+        "beR": 1
+      },
+      "cool": 5,
+      "slots": 2,
+      "n": 414,
+      "tpd": 5.31,
+      "wr": 32.1,
+      "ev": 0.26,
+      "net": 108.4,
+      "daily": 1.39
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_dual",
+      "risk": {
+        "kind": "fixed",
+        "sl": 15,
+        "tp": 30,
+        "hold": 90,
+        "beR": 1
+      },
+      "cool": 3,
+      "slots": 2,
+      "n": 1293,
+      "tpd": 16.58,
+      "wr": 41.5,
+      "ev": 0.08,
+      "net": 108,
+      "daily": 1.38
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 120,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 1,
+      "slots": 2,
+      "n": 185,
+      "tpd": 0.31,
+      "wr": 34.1,
+      "ev": 4.28,
+      "net": 792.7,
+      "daily": 1.34
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 1,
+        "slMin": 7,
+        "slMax": 10,
+        "rr": 2,
+        "hold": 45,
+        "beR": 0
+      },
+      "cool": 3,
+      "slots": 2,
+      "n": 445,
+      "tpd": 5.71,
+      "wr": 42.5,
+      "ev": 0.21,
+      "net": 91.5,
+      "daily": 1.17
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 1,
+        "slMin": 7,
+        "slMax": 10,
+        "rr": 2,
+        "hold": 45,
+        "beR": 0
+      },
+      "cool": 5,
+      "slots": 2,
+      "n": 444,
+      "tpd": 5.69,
+      "wr": 42.3,
+      "ev": 0.19,
+      "net": 86,
+      "daily": 1.1
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 30,
+        "tp": 90,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 2,
+      "slots": 1,
+      "n": 176,
+      "tpd": 0.3,
+      "wr": 31.8,
+      "ev": 3.68,
+      "net": 648.3,
+      "daily": 1.09
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 80,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 2,
+      "slots": 1,
+      "n": 174,
+      "tpd": 0.29,
+      "wr": 39.1,
+      "ev": 3.65,
+      "net": 634.4,
+      "daily": 1.07
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 60,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 2,
+      "slots": 2,
+      "n": 184,
+      "tpd": 0.31,
+      "wr": 43.5,
+      "ev": 3.39,
+      "net": 623.8,
+      "daily": 1.05
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 1,
+        "slMin": 7,
+        "slMax": 10,
+        "rr": 2,
+        "hold": 45,
+        "beR": 0
+      },
+      "cool": 5,
+      "slots": 1,
+      "n": 375,
+      "tpd": 4.81,
+      "wr": 42.7,
+      "ev": 0.22,
+      "net": 81.1,
+      "daily": 1.04
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 30,
+        "tp": 90,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 1,
+      "slots": 1,
+      "n": 177,
+      "tpd": 0.3,
+      "wr": 31.6,
+      "ev": 3.49,
+      "net": 618,
+      "daily": 1.04
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 1,
+        "slMin": 7,
+        "slMax": 10,
+        "rr": 2,
+        "hold": 45,
+        "beR": 0
+      },
+      "cool": 5,
+      "slots": 3,
+      "n": 449,
+      "tpd": 5.76,
+      "wr": 42.1,
+      "ev": 0.17,
+      "net": 77.8,
+      "daily": 1
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 80,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 1,
+      "slots": 1,
+      "n": 175,
+      "tpd": 0.3,
+      "wr": 38.9,
+      "ev": 3.39,
+      "net": 594.1,
+      "daily": 1
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 80,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 2,
+      "slots": 2,
+      "n": 184,
+      "tpd": 0.31,
+      "wr": 38.6,
+      "ev": 3.23,
+      "net": 594,
+      "daily": 1
+    },
+    {
+      "tf": "1m",
+      "mode": "m1_peak24",
+      "risk": {
+        "kind": "atr",
+        "slAtr": 1,
+        "slMin": 7,
+        "slMax": 10,
+        "rr": 2,
+        "hold": 45,
+        "beR": 0
+      },
+      "cool": 3,
+      "slots": 3,
+      "n": 451,
+      "tpd": 5.78,
+      "wr": 42.1,
+      "ev": 0.17,
+      "net": 76.1,
+      "daily": 0.98
+    },
+    {
+      "tf": "1H",
+      "mode": "h1_st",
+      "risk": {
+        "kind": "fixed",
+        "sl": 40,
+        "tp": 60,
+        "hold": 48,
+        "beR": 0
+      },
+      "cool": 1,
+      "slots": 2,
+      "n": 185,
+      "tpd": 0.31,
+      "wr": 43.2,
+      "ev": 3.15,
+      "net": 583.5,
+      "daily": 0.98
+    }
+  ],
+  "multiPairNote": {
+    "pairsNeededFor30": 8,
+    "if6pairs": 24.24,
+    "if10pairs": 40.4
+  }
+}
