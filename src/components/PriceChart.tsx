@@ -211,8 +211,8 @@ export function PriceChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(148, 185, 198, 0.14)',
-        // Slim volume strip — give candles most of the vertical room on PC
-        scaleMargins: { top: 0.02, bottom: 0.16 },
+        // Keep volume thin so M1 bodies stay readable on PC
+        scaleMargins: { top: 0.04, bottom: 0.1 },
         autoScale: true,
         minimumWidth: 72,
         entireTextOnly: true,
@@ -344,7 +344,7 @@ export function PriceChart({
       base: 0,
     })
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.86, bottom: 0.02 },
+      scaleMargins: { top: 0.9, bottom: 0.01 },
       borderVisible: false,
       entireTextOnly: true,
     })

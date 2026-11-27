@@ -997,38 +997,10 @@ export default function App() {
       )}
 
       <header className="site-head">
-        <div className="quote-bar" aria-label="KEHAIとレート">
+        <div className="head-strip">
           <p className="brand">KEHAI</p>
-          <div className="brand-rates">
-            <div className="brand-rate ask">
-              <span className="brand-rate-label">買値</span>
-              <span className="brand-rate-num">{ask}</span>
-            </div>
-            <div className="brand-rate bid">
-              <span className="brand-rate-label">売値</span>
-              <span className="brand-rate-num">{bid}</span>
-            </div>
-            {inPosition && openPips != null && (
-              <div
-                className={`brand-rate open ${openPips >= 0 ? 'up' : 'down'}`}
-              >
-                <span className="brand-rate-label">建玉</span>
-                <span className="brand-rate-num">
-                  {openPips >= 0 ? '+' : ''}
-                  {openPips.toFixed(1)}p
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="brand-rate jst-clock" title="日本時間">
-            <span className="brand-rate-label">JST</span>
-            <span className="brand-rate-num">{jstClock}</span>
-          </div>
-        </div>
-
-        <div className="topbar">
           <p className="tagline">
-            {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
+            {SIMPLE.stack} · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
           </p>
           <div className="controls" role="toolbar" aria-label="設定">
           <label className="control">
@@ -1237,60 +1209,77 @@ export default function App() {
             )}
           </div>
           </div>
+          <div className="head-clock" title="日本時間">
+            <span>JST</span>
+            <strong>{jstClock}</strong>
+          </div>
+        </div>
+
+        <div className="rate-hero" aria-label="買い値と売り値">
+          <div className="rate-hero-pair">
+            <span className="rate-hero-pair-name">{pair.label}</span>
+            <span className="rate-hero-pair-meta">
+              {timeframe} · JST
+              {last
+                ? ` · ${(() => {
+                    const p = toJstParts(last.time)
+                    return `${p.h}:${p.min}`
+                  })()}`
+                : ''}
+            </span>
+          </div>
+          <div className="rate-hero-board">
+            <div className="rate-hero-cell ask">
+              <span className="rate-hero-label">買値</span>
+              <p className="rate-hero-price">
+                <span className="rate-hero-main">
+                  {ask.length > 1 ? ask.slice(0, -1) : ask}
+                </span>
+                {ask.length > 1 && (
+                  <span className="rate-hero-pip">{ask.slice(-1)}</span>
+                )}
+              </p>
+            </div>
+            <div className="rate-hero-cell bid">
+              <span className="rate-hero-label">売値</span>
+              <p className="rate-hero-price">
+                <span className="rate-hero-main">
+                  {bid.length > 1 ? bid.slice(0, -1) : bid}
+                </span>
+                {bid.length > 1 && (
+                  <span className="rate-hero-pip">{bid.slice(-1)}</span>
+                )}
+              </p>
+            </div>
+            {inPosition && openPips != null && (
+              <div
+                className={`rate-hero-cell open ${openPips >= 0 ? 'up' : 'down'}`}
+              >
+                <span className="rate-hero-label">建玉 {stats.open?.side}</span>
+                <p className="rate-hero-price open-pips">
+                  {openPips >= 0 ? '+' : ''}
+                  {openPips.toFixed(1)}
+                  <span className="rate-hero-pip">p</span>
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="rate-hero-sub">
+            <span className={`quote-chg ${change >= 0 ? 'up' : 'down'}`}>
+              {change >= 0 ? '+' : ''}
+              {change.toFixed(pair.digits)} ({changePct >= 0 ? '+' : ''}
+              {changePct.toFixed(3)}%)
+            </span>
+            <span className="rate-hero-src">
+              仲値 {midText} · {sourceLabel}
+              {signal.sessionLabel ? ` · ${signal.sessionLabel}` : ''}
+            </span>
+          </div>
         </div>
       </header>
 
       <main className="workspace">
         <section className="hero-chart">
-          <div className="chart-meta">
-            <div className="chart-meta-row">
-              <h1>
-                {pair.label}
-                <span className="tf-chip">
-                  {timeframe} · チャート時刻 JST
-                  {last
-                    ? ` · 先端 ${(() => {
-                        const p = toJstParts(last.time)
-                        return `${p.h}:${p.min}`
-                      })()}`
-                    : ''}
-                </span>
-              </h1>
-            </div>
-            <p
-              className="sample-note"
-              title={[
-                sourceLabel,
-                signal.sessionLabel ?? 'セッション外',
-                candles.length
-                  ? `出来高 ${Math.round(candles[candles.length - 1]?.volume ?? 0).toLocaleString('ja-JP')}`
-                  : null,
-                histSignals.length > 0
-                  ? `過去サイン ${histSignals.length}（11月〜）`
-                  : null,
-                liveError,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            >
-              {sourceLabel}
-              {' · '}
-              {signal.sessionLabel ?? 'セッション外'}
-              {candles.length
-                ? ` · 出来高 ${Math.round(candles[candles.length - 1]?.volume ?? 0).toLocaleString('ja-JP')}`
-                : ''}
-              {histSignals.length > 0
-                ? ` · 過去 ${histSignals.length}`
-                : ''}
-              {` · 仲値 ${midText}`}
-              <span className={`quote-chg ${change >= 0 ? 'up' : 'down'}`}>
-                {' '}
-                {change >= 0 ? '+' : ''}
-                {change.toFixed(pair.digits)} ({changePct >= 0 ? '+' : ''}
-                {changePct.toFixed(3)}%)
-              </span>
-            </p>
-          </div>
           <div className="main-chart-slot">
             {candles.length >= 30 ? (
               <ErrorBoundary>
