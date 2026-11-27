@@ -66,37 +66,40 @@
 .site-head {
   position: relative;
   z-index: 5;
+  flex: 0 0 auto;
 }
 
-/* Absolute top: KEHAI + 買値/売値 — always first, always same row */
+/* Absolute top: KEHAI + 買値/売値 — never shrink the quote digits */
 .quote-bar {
   position: sticky;
   top: 0;
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 1rem 1.5rem;
+  gap: 1.1rem 1.75rem;
   flex-wrap: nowrap;
-  padding: 0.7rem 1.5rem;
+  padding: 0.55rem 1.25rem 0.5rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(6, 14, 18, 0.92);
+  background: rgba(6, 14, 18, 0.94);
   backdrop-filter: blur(10px);
+  overflow: visible;
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem 1.5rem;
-  padding: 0.55rem 1.5rem 0.65rem;
+  gap: 0.55rem 1rem;
+  padding: 0.3rem 1.25rem 0.35rem;
   flex-wrap: wrap;
+  border-bottom: 1px solid rgba(148, 185, 198, 0.08);
 }
 
 .brand {
   margin: 0;
   flex: 0 0 auto;
   font-family: var(--font-display);
-  font-size: clamp(1.85rem, 4.2vw, 2.75rem);
+  font-size: clamp(1.55rem, 3.2vw, 2.2rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -106,34 +109,45 @@
 
 .brand-rates {
   display: flex;
-  align-items: baseline;
-  gap: 0.85rem 1.25rem;
+  align-items: flex-end;
+  gap: 1.1rem 1.75rem;
   flex: 1 1 auto;
   min-width: 0;
   flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+}
+
+.brand-rates::-webkit-scrollbar {
+  display: none;
 }
 
 .brand-rate {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.12rem;
+  flex: 0 0 auto;
   font-family: var(--font-mono);
   line-height: 1;
   white-space: nowrap;
 }
 
 .brand-rate-label {
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
   color: var(--muted);
 }
 
 .brand-rate-num {
-  font-size: clamp(1.35rem, 3.2vw, 2rem);
-  font-weight: 650;
-  letter-spacing: 0.02em;
+  font-size: clamp(1.85rem, 4.8vw, 2.85rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .brand-rate.ask .brand-rate-num {
@@ -154,21 +168,24 @@
 
 .brand-rate.jst-clock {
   margin-left: auto;
-  padding-left: 0.75rem;
+  padding-left: 1rem;
   border-left: 1px solid var(--line);
 }
 
 .brand-rate.jst-clock .brand-rate-num {
   color: var(--gold);
-  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
 }
 
 .tagline {
   margin: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
-  max-width: 36ch;
+  max-width: 42ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes brand-in {
@@ -185,18 +202,18 @@
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
+  gap: 0.45rem;
+  align-items: center;
   justify-content: flex-end;
 }
 
 .control {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
 .control > span {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -207,8 +224,9 @@
   background: rgba(6, 20, 26, 0.65);
   border: 1px solid var(--line);
   border-radius: 0;
-  padding: 0.55rem 2rem 0.55rem 0.75rem;
-  min-width: 8.5rem;
+  padding: 0.35rem 1.6rem 0.35rem 0.55rem;
+  min-width: 7.5rem;
+  font-size: 0.78rem;
   background-image: linear-gradient(45deg, transparent 50%, var(--gold) 50%),
     linear-gradient(135deg, var(--gold) 50%, transparent 50%);
   background-position:
@@ -231,8 +249,8 @@
   border: 0;
   background: transparent;
   color: var(--muted);
-  padding: 0.55rem 0.7rem;
-  font-size: 0.78rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
   letter-spacing: 0.04em;
   transition:
     color 180ms var(--ease),
@@ -253,15 +271,15 @@
 }
 
 .workspace {
-  flex: 1;
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: 0;
   min-height: 0;
-  /* Fill the viewport under quote-bar + toolbar */
-  height: calc(100vh - 8.5rem);
-  max-height: calc(100vh - 8.5rem);
-  padding: 0.35rem 1rem 0.75rem;
+  /* Flex under site-head — no fixed calc gap so the side stack sits higher */
+  height: auto;
+  max-height: none;
+  padding: 0 0.75rem 0.5rem 1rem;
   align-items: stretch;
 }
 
@@ -405,16 +423,16 @@
 }
 
 .chart-meta {
-  /* Title + rates on one row; locked height so the chart never jumps */
+  /* Compact meta strip — keep side panel starting higher */
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.55rem 1rem 0.35rem;
-  flex: 0 0 3.6rem;
-  height: 3.6rem;
-  max-height: 3.6rem;
+  gap: 0.1rem;
+  padding: 0.35rem 0.85rem 0.25rem;
+  flex: 0 0 2.6rem;
+  height: 2.6rem;
+  max-height: 2.6rem;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -687,12 +705,14 @@
 .side-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  padding: 0 0 0 0.85rem;
+  gap: 0.65rem;
+  padding: 0.15rem 0 0 0.65rem;
   min-height: 0;
   height: 100%;
   max-height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  align-self: stretch;
 }
 
 .signal-rail {
@@ -710,9 +730,9 @@
 
 .voice-btn {
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.04em;
-  padding: 0.45rem 0.7rem;
+  padding: 0.32rem 0.55rem;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
