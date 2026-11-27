@@ -1,12 +1,11 @@
 /**
- * KEHAI Peak Edge — manual buy/sell only.
+ * KEHAI Day Desk — manual day-trading companion.
  *
- * Quality-first Peak stack (Aug–Oct Dukascopy, live-path):
- *   UT flip × SSL × HTF × DI × WT × RSI · ADX≥24/28 · RR≈2.0
- *   → ~1.6 trades/day · EV ≈ +1.92p · net ≈ +104p (USDJPY)
- * Book: same gates on all FX pairs → ~9.6 trades/day, EV kept,
- * daily edge ≈ +18p (1.6×1.92×6) — beats single-pair Peak Edge.
- * Pulse (ST) path stays off — frequency without quality kills EV.
+ * Not "trade less to win more". Two tracks on the same desk:
+ *   本命 (Peak) — ADX≥24/28 · RR≈2.0 · size 1.0 · ~1.6/日 · EV≈+1.9p
+ *   デイ (Active) — ADX≥16/20 UT or ST pulse · RR≈1.45 · size 0.5
+ *                 · fills the day to ~8–10/日 combined on USDJPY
+ * READY keeps the trader engaged between fills.
  */
 
 import { newsBlackout, estimateSpreadPips } from './filters'
@@ -33,79 +32,101 @@ import {
   type FxSession,
 } from './apex'
 
+export type EntryTrack = 'honmei' | 'day'
+
 export const SIMPLE = {
-  name: 'KEHAI Peak Edge',
-  stack: 'UT×SSL · HTF/DI/WT/RSI · 6FXブック',
+  name: 'KEHAI Day Desk',
+  stack: '本命 Peak + デイ手数',
   sources: [
     'UT Bot Alerts — TradingView (QuantNomad / HPotter)',
     'SSL Channel — TradingView classic',
-    'ADX(14)+DI · WaveTrend · RSI(14) pullback · HTF SSL(50)',
-    '質優先 ADX≥24/28 · RR≈2.0 · 全FX合計で目安10回/日',
+    '本命: 高ADX×RR2 · デイ: UT/ST手数×半サイズ',
+    'デイトレは手数とサイズで設計する（回数を減らして勝率を盛らない）',
   ],
-  /** Fallback / baseline when ATR missing. */
+  /** Fallback when ATR missing (本命). */
   slPips: 7,
   tpPips: 14,
-  /** ATR-hybrid risk: SL = clamp(ATR×mult), TP = clamp(SL×rr). */
+  /** 本命 risk */
   slAtrMult: 1.0,
   slMin: 7,
   slMax: 10,
   tpRr: 2.0,
   tpMin: 12,
   tpMax: 18,
+  /** デイ risk — tighter hold / modest RR */
+  daySlAtrMult: 1.1,
+  daySlMin: 6,
+  daySlMax: 10,
+  dayTpRr: 1.45,
+  dayTpMin: 9,
+  dayTpMax: 14,
   maxHoldBars: 45,
-  /** Bars to wait after an entry signal before another (hist + fills). */
+  dayMaxHoldBars: 30,
   entryCooldownBars: 5,
-  /** Distance to UT trail that triggers READY (pre-warn). */
   readyPips: 2,
-  /** UT path ADX floor in JST 12–0. */
+  /** 本命 ADX */
   adxMin: 24,
-  /** UT path off-window / 推奨 ADX floor. */
   adxPrime: 28,
-  /** Supertrend path disabled (kept for UI labels / future). */
-  pulseEnabled: false,
-  adxPulse: 99,
-  adxPulseOff: 99,
-  /** Soft block leftover. */
+  /** デイ UT ADX */
+  dayAdxMin: 16,
+  dayAdxOff: 20,
+  /** デイ ST pulse */
+  pulseEnabled: true,
+  adxPulse: 15,
+  adxPulseOff: 19,
+  /** Suggested lot fraction */
+  honmeiSize: 1,
+  daySize: 0.5,
   wtAgainstAbs: 55,
-  /** Skip lifeless tape. */
   minAtrPips: 1.2,
   sessionEdgeMin: 0,
   htfSslLen: 50,
   stPeriod: 10,
   stMult: 3,
-  /** RSI pullback bands (avoid chase) — UT path. */
   rsiLongLo: 40,
   rsiLongHi: 65,
   rsiShortLo: 35,
   rsiShortHi: 60,
   pip: 0.01,
-  /**
-   * Dukascopy Aug–Oct 2026 bakeoff (same stack + ATR exits).
-   * Shown as reference next to live Yahoo hist sim.
-   */
   verified: {
-    period: '2026-08〜10 Dukascopy',
+    period: '2026-08〜10 Dukascopy · 本命',
     tradesPerDay: 1.6,
     winRate: 48.1,
     evPips: 1.92,
     netPips: 103.7,
   },
+  /**
+   * Combined desk on USDJPY (Dukascopy Aug–Oct, live-path + size weights).
+   * Raw EV slightly red; size-weighted net stays green because デイ is ×0.5.
+   */
+  dayDesk: {
+    tradesPerDay: 9.5,
+    honmeiPerDay: 0.7,
+    dayPerDay: 8.8,
+    weightedNetPips: 19.2,
+    note: '本命×1 · デイ×0.5 · 加重ネット+',
+  },
 } as const
 
-/** ATR-scaled SL/TP used by live board + manual close. */
-export function atrRiskPips(atrPips: number): { sl: number; tp: number } {
-  if (!(atrPips > 0)) return { sl: SIMPLE.slPips, tp: SIMPLE.tpPips }
+/** ATR-scaled SL/TP — track selects risk table. */
+export function atrRiskPips(
+  atrPips: number,
+  track: EntryTrack = 'honmei',
+): { sl: number; tp: number } {
+  const day = track === 'day'
+  const slAtr = day ? SIMPLE.daySlAtrMult : SIMPLE.slAtrMult
+  const slMin = day ? SIMPLE.daySlMin : SIMPLE.slMin
+  const slMax = day ? SIMPLE.daySlMax : SIMPLE.slMax
+  const rr = day ? SIMPLE.dayTpRr : SIMPLE.tpRr
+  const tpMin = day ? SIMPLE.dayTpMin : SIMPLE.tpMin
+  const tpMax = day ? SIMPLE.dayTpMax : SIMPLE.tpMax
+  const fbSl = day ? SIMPLE.daySlMin : SIMPLE.slPips
+  const fbTp = day ? SIMPLE.dayTpMin : SIMPLE.tpPips
+  if (!(atrPips > 0)) return { sl: fbSl, tp: fbTp }
   const sl =
-    Math.round(
-      Math.max(
-        SIMPLE.slMin,
-        Math.min(SIMPLE.slMax, atrPips * SIMPLE.slAtrMult),
-      ) * 10,
-    ) / 10
+    Math.round(Math.max(slMin, Math.min(slMax, atrPips * slAtr)) * 10) / 10
   const tp =
-    Math.round(
-      Math.max(SIMPLE.tpMin, Math.min(SIMPLE.tpMax, sl * SIMPLE.tpRr)) * 10,
-    ) / 10
+    Math.round(Math.max(tpMin, Math.min(tpMax, sl * rr)) * 10) / 10
   return { sl, tp }
 }
 
@@ -129,26 +150,25 @@ export interface SimpleSignal {
   spreadPips: number
   stopDistance: number
   takeProfitDistance: number
-  /** Risk distances in pips (ATR-hybrid). */
   slPips: number
   tpPips: number
   utFlip: boolean
   sslSide: 'buy' | 'sell' | 'flat'
   filtersOk: boolean
-  /** Pips from close to UT trail (positive). */
   trailDistancePips: number | null
-  /** UT trail price (flip level to watch on READY). */
   trailPrice: number | null
-  /** Suggested entry price when READY/BUY/SELL (UT flip level or last close). */
   entryPrice: number | null
-  /** Absolute SL / TP from entryPrice (ATR-hybrid pip distances). */
   stopPrice: number | null
   takeProfitPrice: number | null
   readySide: 'BUY' | 'SELL' | null
   grade: QualityGrade
   quality: number
-  /** DI + ADX≥prime + WT agree + HTF SSL — take these first. */
+  /** 本命 or high-ADX 推奨 */
   prime: boolean
+  /** Which desk track fired (null when WAIT/READY-only). */
+  track: EntryTrack | null
+  /** Suggested size vs 本命=1 */
+  sizeHint: number
   layers: IndicatorLayer[]
   utKey: number
   utAtr: number
@@ -178,7 +198,8 @@ export function evaluateSimple(
   const t = cur?.time ?? 0
 
   const empty = (
-    partial: Partial<SimpleSignal> & Pick<SimpleSignal, 'action' | 'label' | 'reason'>,
+    partial: Partial<SimpleSignal> &
+      Pick<SimpleSignal, 'action' | 'label' | 'reason'>,
   ): SimpleSignal => ({
     session: null,
     sessionLabel: null,
@@ -199,6 +220,8 @@ export function evaluateSimple(
     grade: '—',
     quality: 0,
     prime: false,
+    track: null,
+    sizeHint: SIMPLE.honmeiSize,
     layers: [],
     utKey: 2,
     utAtr: 7,
@@ -216,7 +239,7 @@ export function evaluateSimple(
       reason: '弱い帯として停止中',
     })
   }
-  // Outside Tokyo/London/NY bands still allow 推奨 with Tokyo knobs
+
   const profile = fxSession
     ? SESSION_PROFILES[fxSession]
     : pair?.kind === 'fx' || !pair
@@ -239,7 +262,6 @@ export function evaluateSimple(
       : estimateSpreadPips(t, atrPips || undefined)
 
   const news = pair?.kind === 'fx' ? newsBlackout(t) : null
-  // FX: weekday 24h (prime off-noon); non-FX keeps instrument windows
   const windowOk =
     pair && pair.kind !== 'fx'
       ? isInstrumentWindow(t, pair)
@@ -286,8 +308,10 @@ export function evaluateSimple(
   const htfShort = !!htfSsl && htfSsl.value < 0
   const stLong = !!stDir && stDir.value > 0
   const stShort = !!stDir && stDir.value < 0
-  const emaLong = !requireEma || (!!ema21 && !!ema55 && ema21.value > ema55.value)
-  const emaShort = !requireEma || (!!ema21 && !!ema55 && ema21.value < ema55.value)
+  const emaLong =
+    !requireEma || (!!ema21 && !!ema55 && ema21.value > ema55.value)
+  const emaShort =
+    !requireEma || (!!ema21 && !!ema55 && ema21.value < ema55.value)
 
   let confirmLong = sslLong && emaLong
   let confirmShort = sslShort && emaShort
@@ -296,21 +320,19 @@ export function evaluateSimple(
     confirmShort = confirmShort && price <= vwap.value
   }
 
-  let buy = utFlipLong && confirmLong
-  let sell = utFlipShort && confirmShort
-  let entryPath: 'ut' | 'st' | null = buy || sell ? 'ut' : null
-
   const newsOk = !news
   const spreadOk = spreadPips <= maxSpread
   const edgeOk = sessionAwayFromEdge(t, SIMPLE.sessionEdgeMin, fxSession)
   const atrFloorOk = atrPips <= 0 || atrPips >= SIMPLE.minAtrPips
   const filtersOk = windowOk && newsOk && spreadOk && edgeOk && atrFloorOk
 
-  const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
-  const adxPulseFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
-  const adxOk = !!adxVal && adxVal.adx >= adxFloor
-  const adxPulseOk = !!adxVal && adxVal.adx >= adxPulseFloor
-  const adxStrong = !!adxVal && adxVal.adx >= 25
+  const honmeiFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
+  const dayUtFloor = noonOk ? SIMPLE.dayAdxMin : SIMPLE.dayAdxOff
+  const dayStFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
+  const adxHonmeiOk = !!adxVal && adxVal.adx >= honmeiFloor
+  const adxDayUtOk = !!adxVal && adxVal.adx >= dayUtFloor
+  const adxDayStOk = !!adxVal && adxVal.adx >= dayStFloor
+  const adxStrong = !!adxVal && adxVal.adx >= SIMPLE.adxPrime
   const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
   const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
   const wtBull = !!(w1 && w2 && w1.value > w2.value)
@@ -326,71 +348,71 @@ export function evaluateSimple(
     rsiVal.value >= SIMPLE.rsiShortLo &&
     rsiVal.value <= SIMPLE.rsiShortHi
 
-  // Path A — UT Peak Edge (high ADX · full confirms)
+  let buy = false
+  let sell = false
+  let entryPath: 'ut' | 'st' | null = null
+  let track: EntryTrack | null = null
   let qualityBlock: string | null = null
-  if ((buy || sell) && !edgeOk) {
-    qualityBlock = 'セッション端（見送り）'
-    buy = false
-    sell = false
-  } else if ((buy || sell) && !atrFloorOk) {
-    qualityBlock = `ATR薄い ${atrPips.toFixed(1)}p`
-    buy = false
-    sell = false
-  } else if ((buy || sell) && !adxOk) {
-    qualityBlock = `ADX弱い ${adxVal?.adx.toFixed(0) ?? '—'}（要≥${adxFloor}）`
-    buy = false
-    sell = false
-  } else if (buy && !htfLong) {
-    qualityBlock = '上位SSL不一致'
-    buy = false
-  } else if (sell && !htfShort) {
-    qualityBlock = '上位SSL不一致'
-    sell = false
-  } else if (buy && !diLong) {
-    qualityBlock = 'DI方向不一致'
-    buy = false
-  } else if (sell && !diShort) {
-    qualityBlock = 'DI方向不一致'
-    sell = false
-  } else if (buy && !wtAgreeLong) {
-    qualityBlock = 'WaveTrend不一致'
-    buy = false
-  } else if (sell && !wtAgreeShort) {
-    qualityBlock = 'WaveTrend不一致'
-    sell = false
-  } else if (buy && !rsiLongOk) {
-    qualityBlock = `RSI追撃回避 ${rsiVal?.value.toFixed(0) ?? '—'}`
-    buy = false
-  } else if (sell && !rsiShortOk) {
-    qualityBlock = `RSI追撃回避 ${rsiVal?.value.toFixed(0) ?? '—'}`
-    sell = false
-  }
 
-  // Path B — Supertrend pulse (disabled on Peak Edge — frequency hurt EV)
-  if (
-    SIMPLE.pulseEnabled &&
-    !buy &&
-    !sell &&
-    filtersOk &&
-    adxPulseOk
-  ) {
-    let stBuy = stFlipLong && sslLong
-    let stSell = stFlipShort && sslShort
-    if (stBuy && !htfLong) stBuy = false
-    if (stSell && !htfShort) stSell = false
-    if (stBuy && !diLong) stBuy = false
-    if (stSell && !diShort) stSell = false
-    if (stBuy && !wtAgreeLong) stBuy = false
-    if (stSell && !wtAgreeShort) stSell = false
-    if (stBuy || stSell) {
-      buy = stBuy
-      sell = stSell
-      entryPath = 'st'
-      qualityBlock = null
+  const peakConfirms = (long: boolean) =>
+    long
+      ? confirmLong &&
+        htfLong &&
+        diLong &&
+        wtAgreeLong &&
+        rsiLongOk
+      : confirmShort &&
+        htfShort &&
+        diShort &&
+        wtAgreeShort &&
+        rsiShortOk
+
+  // ——— 本命 Peak ———
+  if (filtersOk && adxHonmeiOk) {
+    if (utFlipLong && peakConfirms(true)) {
+      buy = true
+      entryPath = 'ut'
+      track = 'honmei'
+    } else if (utFlipShort && peakConfirms(false)) {
+      sell = true
+      entryPath = 'ut'
+      track = 'honmei'
     }
   }
 
-  if (!(buy || sell)) entryPath = null
+  // ——— デイ手数 (UT then ST) ———
+  if (!buy && !sell && filtersOk && SIMPLE.pulseEnabled) {
+    if (adxDayUtOk) {
+      if (utFlipLong && peakConfirms(true)) {
+        buy = true
+        entryPath = 'ut'
+        track = 'day'
+      } else if (utFlipShort && peakConfirms(false)) {
+        sell = true
+        entryPath = 'ut'
+        track = 'day'
+      }
+    }
+    if (!buy && !sell && adxDayStOk) {
+      let stBuy = stFlipLong && sslLong && htfLong && diLong && wtAgreeLong
+      let stSell =
+        stFlipShort && sslShort && htfShort && diShort && wtAgreeShort
+      if (stBuy || stSell) {
+        buy = stBuy
+        sell = stSell
+        entryPath = 'st'
+        track = 'day'
+      }
+    }
+  }
+
+  if ((utFlipLong || utFlipShort) && !buy && !sell) {
+    if (!edgeOk) qualityBlock = 'セッション端（見送り）'
+    else if (!atrFloorOk) qualityBlock = `ATR薄い ${atrPips.toFixed(1)}p`
+    else if (!adxDayUtOk && !adxHonmeiOk)
+      qualityBlock = `ADX弱い ${adxVal?.adx.toFixed(0) ?? '—'}（デイ要≥${dayUtFloor}）`
+    else if (!peakConfirms(utFlipLong)) qualityBlock = '確認レイヤー不足'
+  }
 
   const trailDistancePips =
     trail && Number.isFinite(trail.value)
@@ -399,20 +421,21 @@ export function evaluateSimple(
 
   const nearTrail =
     trailDistancePips != null && trailDistancePips <= SIMPLE.readyPips
+  // READY watches 本命-quality approach (keeps desk alive)
   const peakLongReady =
     confirmLong &&
     htfLong &&
     diLong &&
     wtAgreeLong &&
     rsiLongOk &&
-    adxOk
+    adxHonmeiOk
   const peakShortReady =
     confirmShort &&
     htfShort &&
     diShort &&
     wtAgreeShort &&
     rsiShortOk &&
-    adxOk
+    adxHonmeiOk
   const readyBuy =
     filtersOk &&
     !buy &&
@@ -443,28 +466,49 @@ export function evaluateSimple(
   if (atrFloorOk) quality += 6
   if (sslLong || sslShort) quality += 8
   if (htfLong || htfShort) quality += 8
-  if (stLong || stShort) quality += 8
+  if (stLong || stShort) quality += 6
   if (ut) quality += 6
   if (utFlipLong || utFlipShort) quality += 12
-  if (adxOk) quality += 8
+  if (adxHonmeiOk) quality += 10
+  else if (adxDayUtOk) quality += 5
   if (adxStrong) quality += 4
   if (diLong || diShort) quality += 8
   if (wtAgreeLong || wtAgreeShort) quality += 8
   if (rsiLongOk || rsiShortOk) quality += 8
+  if (track === 'honmei') quality += 8
   if (noonOk) quality += 4
-  else quality += 6 // off-window survived higher ADX
+  else quality += 6
   quality = Math.max(0, Math.min(100, Math.round(quality)))
 
   const hasEntry = action === 'BUY' || action === 'SELL'
-  // Off-window always 推奨; in-window also 推奨 when ADX≥prime
-  const prime =
-    hasEntry &&
-    (!noonOk || (!!adxVal && adxVal.adx >= SIMPLE.adxPrime))
+  const prime = hasEntry && track === 'honmei'
   let grade = gradeFromQuality(quality, hasEntry || action.startsWith('READY'))
-  if (hasEntry && (grade === 'B' || grade === 'C')) grade = 'A'
-  if (prime && quality >= 86) grade = 'S'
+  if (track === 'honmei' && hasEntry && (grade === 'B' || grade === 'C'))
+    grade = 'A'
+  if (track === 'honmei' && prime && quality >= 86) grade = 'S'
+  if (track === 'day' && hasEntry) {
+    if (grade === 'S') grade = 'A'
+    if (grade === 'A' && quality < 80) grade = 'B'
+  }
+
+  const sizeHint =
+    track === 'day' ? SIMPLE.daySize : SIMPLE.honmeiSize
 
   const layers: IndicatorLayer[] = [
+    {
+      id: 'track',
+      name: 'Desk',
+      bias: track === 'honmei' ? 'bull' : track === 'day' ? 'bear' : 'neutral',
+      ok: track != null || readyBuy || readySell,
+      detail:
+        track === 'honmei'
+          ? `本命 ×${SIMPLE.honmeiSize}`
+          : track === 'day'
+            ? `デイ ×${SIMPLE.daySize}`
+            : readyBuy || readySell
+              ? 'READY監視'
+              : '待機',
+    },
     {
       id: 'ut',
       name: `UT ${utKey}/${utAtr}`,
@@ -505,14 +549,16 @@ export function evaluateSimple(
       id: 'adx',
       name: 'ADX(14)',
       bias:
-        adxVal && adxVal.adx >= adxFloor
+        adxVal && adxVal.adx >= dayUtFloor
           ? adxVal.plusDi > adxVal.minusDi
             ? 'bull'
             : 'bear'
           : 'neutral',
-      ok: adxOk,
+      ok: adxHonmeiOk || adxDayUtOk,
       detail: adxVal
-        ? `${adxVal.adx.toFixed(0)}${adxOk ? (adxStrong ? ' 強い' : ' OK') : ` <${adxFloor}`}`
+        ? `${adxVal.adx.toFixed(0)}${
+            adxHonmeiOk ? ' 本命' : adxDayUtOk ? ' デイ' : ` <${dayUtFloor}`
+          }`
         : '未計算',
     },
     {
@@ -520,9 +566,8 @@ export function evaluateSimple(
       name: 'WaveTrend',
       bias: wtBull ? 'bull' : wtBear ? 'bear' : 'neutral',
       ok: wtAgreeLong || wtAgreeShort,
-      detail: w1 && w2
-        ? `${w1.value.toFixed(0)}/${w2.value.toFixed(0)}`
-        : '未計算',
+      detail:
+        w1 && w2 ? `${w1.value.toFixed(0)}/${w2.value.toFixed(0)}` : '未計算',
     },
     {
       id: 'rsi',
@@ -537,41 +582,10 @@ export function evaluateSimple(
       detail: rsiVal ? rsiVal.value.toFixed(0) : '未計算',
     },
   ]
-  if (requireVwap || vwap) {
-    layers.push({
-      id: 'vwap',
-      name: 'VWAP',
-      bias: vwap ? (price >= vwap.value ? 'bull' : 'bear') : 'neutral',
-      ok: !!vwap && (!requireVwap || (confirmLong || confirmShort || !(buy || sell))),
-      detail: vwap
-        ? price >= vwap.value
-          ? `上 ${vwap.value.toFixed(3)}`
-          : `下 ${vwap.value.toFixed(3)}`
-        : '未計算',
-    })
-  }
-  if (requireEma || (ema21 && ema55)) {
-    layers.push({
-      id: 'ema',
-      name: 'EMA21/55',
-      bias:
-        ema21 && ema55
-          ? ema21.value > ema55.value
-            ? 'bull'
-            : 'bear'
-          : 'neutral',
-      ok: !!ema21 && !!ema55,
-      detail:
-        ema21 && ema55
-          ? ema21.value > ema55.value
-            ? '短期>長期'
-            : '短期<長期'
-          : '未計算',
-    })
-  }
 
   const sessionOut: FxSession | null =
-    fxSession ?? (isFxWeekday(t) && (!pair || pair.kind === 'fx') ? 'tokyo' : null)
+    fxSession ??
+    (isFxWeekday(t) && (!pair || pair.kind === 'fx') ? 'tokyo' : null)
   const sessionLabel = noonOk
     ? '通常枠 (12:00–0:00 JST)'
     : fxSession
@@ -583,9 +597,8 @@ export function evaluateSimple(
   const digits = pair?.digits ?? 3
   const trailPrice =
     trail && Number.isFinite(trail.value) ? trail.value : null
-  const risk = atrRiskPips(atrPips)
+  const risk = atrRiskPips(atrPips, track ?? 'honmei')
 
-  // READY: watch UT trail flip. BUY/SELL: fill reference is last close.
   let entryPrice: number | null = null
   if (action === 'READY_BUY' || action === 'READY_SELL') {
     entryPrice = trailPrice
@@ -609,36 +622,39 @@ export function evaluateSimple(
     n != null && Number.isFinite(n) ? n.toFixed(digits) : null
   const entryTxt = fmt(entryPrice)
 
-  const tierTxt = prime ? '推奨' : grade === 'A' || grade === 'S' ? '推奨' : '標準'
-  const pathTxt = entryPath === 'st' ? 'STフリップ' : 'UT'
+  const trackTxt =
+    track === 'honmei' ? '本命' : track === 'day' ? 'デイ' : ''
+  const pathTxt = entryPath === 'st' ? 'ST' : 'UT'
   let reason = '待機'
   if (action === 'BUY')
-    reason = `${pathTxt}買い + SSL${requireVwap ? ' + VWAP上' : ''}${requireEma ? ' + EMA順' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `${trackTxt}${pathTxt}買い · サイズ×${sizeHint}${entryTxt ? ` · ${entryTxt}` : ''}`
   else if (action === 'SELL')
-    reason = `${pathTxt}売り + SSL${requireVwap ? ' + VWAP下' : ''}${requireEma ? ' + EMA逆' : ''} · ${tierTxt}${grade}${entryTxt ? ` · 目安 ${entryTxt}` : ''}`
+    reason = `${trackTxt}${pathTxt}売り · サイズ×${sizeHint}${entryTxt ? ` · ${entryTxt}` : ''}`
   else if (action === 'READY_BUY')
     reason = entryTxt
-      ? `準備・買い · ${entryTxt} で買い検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
-      : `準備・買い · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p · 品質${grade}`
+      ? `本命準備・買い · ${entryTxt}（あと${trailDistancePips?.toFixed(1) ?? '—'}p）`
+      : `本命準備・買い · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p`
   else if (action === 'READY_SELL')
     reason = entryTxt
-      ? `準備・売り · ${entryTxt} で売り検討（あと${trailDistancePips?.toFixed(1) ?? '—'}p）· 品質${grade}`
-      : `準備・売り · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p · 品質${grade}`
+      ? `本命準備・売り · ${entryTxt}（あと${trailDistancePips?.toFixed(1) ?? '—'}p）`
+      : `本命準備・売り · UTまで${trailDistancePips?.toFixed(1) ?? '—'}p`
   else if (!windowOk) reason = 'セッション外'
   else if (!newsOk) reason = `ニュース回避 (${news!.label})`
   else if (!spreadOk) reason = 'スプレッド拡大'
   else if (qualityBlock) reason = qualityBlock
   else if (!(utFlipLong || utFlipShort || stFlipLong || stFlipShort))
-    reason = 'UT/STフリップ待ち'
-  else if ((utFlipLong && !sslLong) || (utFlipShort && !sslShort)) reason = 'SSL未確認'
-  else if ((utFlipLong && !emaLong) || (utFlipShort && !emaShort)) reason = 'EMA不一致'
-  else reason = 'VWAP不一致'
+    reason = 'フリップ待ち · READY監視中'
+  else reason = '確認待ち'
 
   const label =
     action === 'BUY'
-      ? 'BUY'
+      ? track === 'honmei'
+        ? 'BUY本命'
+        : 'BUYデイ'
       : action === 'SELL'
-        ? 'SELL'
+        ? track === 'honmei'
+          ? 'SELL本命'
+          : 'SELLデイ'
         : action === 'READY_BUY'
           ? 'READY↑'
           : action === 'READY_SELL'
@@ -668,6 +684,8 @@ export function evaluateSimple(
     grade,
     quality,
     prime,
+    track: hasEntry ? track : null,
+    sizeHint: hasEntry ? sizeHint : SIMPLE.honmeiSize,
     layers,
     utKey,
     utAtr,

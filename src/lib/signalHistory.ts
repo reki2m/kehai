@@ -1,6 +1,5 @@
 /**
- * Replay KEHAI Peak Edge entries across candle history (from a unix cutoff).
- * Same stack as evaluateSimple: UT Peak path (Pulse optional / off by default).
+ * Replay KEHAI Day Desk entries (本命 + デイ) across candle history.
  */
 
 import {
@@ -25,27 +24,24 @@ import {
 } from './indicators'
 import type { Candle } from './marketData'
 import type { PairMeta } from './pairs'
-import { SIMPLE } from './simpleSignal'
+import { SIMPLE, type EntryTrack } from './simpleSignal'
 
 export interface HistSignal {
   time: number
   side: 'BUY' | 'SELL'
   price: number
-  /** Off-window or ADX≥prime. */
   prime?: boolean
   grade?: 'S' | 'A' | 'B' | 'C'
+  track?: EntryTrack
+  sizeHint?: number
 }
 
-/** 2026-11-01 00:00 UTC — chart markers from November onward. */
 export const HIST_FROM_UNIX = Date.UTC(2026, 10, 1) / 1000
 
 function mapByTime<T extends { time: number }>(pts: T[]): Map<number, T> {
   return new Map(pts.map((p) => [p.time, p]))
 }
 
-/**
- * One-pass historical entries. Uses per-bar session knobs (Tokyo/London/NY).
- */
 export function listHistoricalSignals(
   candles: Candle[],
   pair?: PairMeta,
@@ -109,7 +105,7 @@ export function listHistoricalSignals(
   let lastSignalIndex = -9999
 
   for (let i = 1; i < candles.length; i++) {
-    const c = candles[i]
+    const c = candles[i]!
     if (c.time < fromUnix) continue
     if (i - lastSignalIndex < SIMPLE.entryCooldownBars) continue
 
@@ -124,18 +120,11 @@ export function listHistoricalSignals(
         : null
     if (!profile) continue
 
-    const utKey = profile.utKey
-    const utAtr = profile.utAtr
-    const sslLen = profile.sslLen
-    const requireVwap = profile.requireVwap
-    const requireEma = profile.requireEma
-    const maxSpread = profile.maxSpread
-
-    const utMap = utByProfile.get(`${utKey}/${utAtr}`)
-    const sslMap = sslByLen.get(sslLen)
+    const utMap = utByProfile.get(`${profile.utKey}/${profile.utAtr}`)
+    const sslMap = sslByLen.get(profile.sslLen)
     if (!utMap || !sslMap) continue
 
-    const prev = candles[i - 1]
+    const prev = candles[i - 1]!
     const ut = utMap.get(c.time)
     const utPrev = utMap.get(prev.time)
     if (ut == null || utPrev == null) continue
@@ -143,12 +132,11 @@ export function listHistoricalSignals(
     const ssl = sslMap.get(c.time)
     if (ssl == null) continue
 
-    const price = c.close
     const atrVal = atrMap.get(c.time)?.value ?? 0
     const atrPips = atrVal > 0 ? atrVal / pip : 0
     const spreadPips =
       pair && pair.kind !== 'fx'
-        ? Math.min(maxSpread, 0.2)
+        ? Math.min(profile.maxSpread, 0.2)
         : estimateSpreadPips(c.time, atrPips || undefined)
 
     const news = pair?.kind === 'fx' ? newsBlackout(c.time) : null
@@ -157,7 +145,7 @@ export function listHistoricalSignals(
         ? isInstrumentWindow(c.time, pair)
         : isFxWeekday(c.time)
     const newsOk = !news
-    const spreadOk = spreadPips <= maxSpread
+    const spreadOk = spreadPips <= profile.maxSpread
     const edgeOk = sessionAwayFromEdge(c.time, SIMPLE.sessionEdgeMin, fxSession)
     const atrFloorOk = atrPips <= 0 || atrPips >= SIMPLE.minAtrPips
     if (!(windowOk && newsOk && spreadOk && edgeOk && atrFloorOk)) continue
@@ -176,106 +164,105 @@ export function listHistoricalSignals(
     const htfShort = htf != null && htf < 0
     const e21 = ema21Map.get(c.time)?.value
     const e55 = ema55Map.get(c.time)?.value
-    const emaLong = !requireEma || (!!e21 && !!e55 && e21 > e55)
-    const emaShort = !requireEma || (!!e21 && !!e55 && e21 < e55)
+    const emaLong =
+      !profile.requireEma || (!!e21 && !!e55 && e21 > e55)
+    const emaShort =
+      !profile.requireEma || (!!e21 && !!e55 && e21 < e55)
 
     let confirmLong = sslLong && emaLong
     let confirmShort = sslShort && emaShort
     const vwap = vwapMap.get(c.time)?.value
-    if (requireVwap && vwap != null) {
-      confirmLong = confirmLong && price >= vwap
-      confirmShort = confirmShort && price <= vwap
+    if (profile.requireVwap && vwap != null) {
+      confirmLong = confirmLong && c.close >= vwap
+      confirmShort = confirmShort && c.close <= vwap
     }
 
-    let buy = utFlipLong && confirmLong
-    let sell = utFlipShort && confirmShort
-
-    const adxFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
-    const adxPulseFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
     const adxVal = adxMap.get(c.time)
-    if (!adxVal || adxVal.adx < adxFloor) {
-      buy = false
-      sell = false
-    }
-
+    const honmeiFloor = noonOk ? SIMPLE.adxMin : SIMPLE.adxPrime
+    const dayUtFloor = noonOk ? SIMPLE.dayAdxMin : SIMPLE.dayAdxOff
+    const dayStFloor = noonOk ? SIMPLE.adxPulse : SIMPLE.adxPulseOff
     const diLong = !!adxVal && adxVal.plusDi > adxVal.minusDi
     const diShort = !!adxVal && adxVal.minusDi > adxVal.plusDi
-    // Path A: UT Peak Edge
-    if (buy && !htfLong) buy = false
-    if (sell && !htfShort) sell = false
-    if (buy && !diLong) buy = false
-    if (sell && !diShort) sell = false
-
     const w1 = wt1Map.get(c.time)?.value
     const w2 = wt2Map.get(c.time)?.value
-    if (w1 == null || w2 == null) {
-      buy = false
-      sell = false
-    } else {
-      if (buy && !(w1 > w2)) buy = false
-      if (sell && !(w1 < w2)) sell = false
-    }
-
+    const wtLong = w1 != null && w2 != null && w1 > w2
+    const wtShort = w1 != null && w2 != null && w1 < w2
     const rv = rsiMap.get(c.time)?.value
-    if (rv == null) {
-      buy = false
-      sell = false
-    } else {
-      if (
-        buy &&
-        !(rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi)
-      ) {
-        buy = false
-      }
-      if (
-        sell &&
-        !(rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi)
-      ) {
-        sell = false
+    const rsiLong =
+      rv != null && rv >= SIMPLE.rsiLongLo && rv <= SIMPLE.rsiLongHi
+    const rsiShort =
+      rv != null && rv >= SIMPLE.rsiShortLo && rv <= SIMPLE.rsiShortHi
+
+    const peakLong =
+      confirmLong && htfLong && diLong && wtLong && rsiLong
+    const peakShort =
+      confirmShort && htfShort && diShort && wtShort && rsiShort
+
+    let buy = false
+    let sell = false
+    let track: EntryTrack | null = null
+
+    if (adxVal && adxVal.adx >= honmeiFloor) {
+      if (utFlipLong && peakLong) {
+        buy = true
+        track = 'honmei'
+      } else if (utFlipShort && peakShort) {
+        sell = true
+        track = 'honmei'
       }
     }
 
-    // Path B: Supertrend pulse (off on Peak Edge)
-    if (
-      SIMPLE.pulseEnabled &&
-      !buy &&
-      !sell &&
-      adxVal &&
-      adxVal.adx >= adxPulseFloor
-    ) {
-      let stBuy = stFlipLong && sslLong
-      let stSell = stFlipShort && sslShort
-      if (stBuy && !htfLong) stBuy = false
-      if (stSell && !htfShort) stSell = false
-      if (stBuy && !diLong) stBuy = false
-      if (stSell && !diShort) stSell = false
-      if (w1 == null || w2 == null) {
-        stBuy = false
-        stSell = false
-      } else {
-        if (stBuy && !(w1 > w2)) stBuy = false
-        if (stSell && !(w1 < w2)) stSell = false
+    if (!buy && !sell && SIMPLE.pulseEnabled) {
+      if (adxVal && adxVal.adx >= dayUtFloor) {
+        if (utFlipLong && peakLong) {
+          buy = true
+          track = 'day'
+        } else if (utFlipShort && peakShort) {
+          sell = true
+          track = 'day'
+        }
       }
-      buy = stBuy
-      sell = stSell
+      if (!buy && !sell && adxVal && adxVal.adx >= dayStFloor) {
+        const stBuy =
+          stFlipLong && sslLong && htfLong && diLong && wtLong
+        const stSell =
+          stFlipShort && sslShort && htfShort && diShort && wtShort
+        if (stBuy) {
+          buy = true
+          track = 'day'
+        } else if (stSell) {
+          sell = true
+          track = 'day'
+        }
+      }
     }
 
     if (!buy && !sell) continue
 
     const side: 'BUY' | 'SELL' = buy ? 'BUY' : 'SELL'
-    const prime =
-      !noonOk || (!!adxVal && adxVal.adx >= SIMPLE.adxPrime)
-    const grade =
-      prime && adxVal && adxVal.adx >= 25 ? 'S' : prime ? 'A' : 'A'
+    const prime = track === 'honmei'
+    const grade: HistSignal['grade'] =
+      prime && adxVal && adxVal.adx >= 28
+        ? 'S'
+        : prime
+          ? 'A'
+          : 'B'
 
-    out.push({ time: c.time, side, price, prime, grade })
+    out.push({
+      time: c.time,
+      side,
+      price: c.close,
+      prime,
+      grade,
+      track: track ?? 'day',
+      sizeHint: track === 'honmei' ? SIMPLE.honmeiSize : SIMPLE.daySize,
+    })
     lastSignalIndex = i
   }
 
   return out
 }
 
-/** Merge marker lists by time (prefer live/recent). */
 export function mergeHistSignals(
   a: HistSignal[],
   b: HistSignal[],

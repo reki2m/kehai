@@ -27,23 +27,16 @@ export function BookPanel({
   return (
     <section className="book-panel" aria-label="Peak Edge ブック">
       <div className="book-head">
-        <h2>Peak Edge Book</h2>
+        <h2>Desk Scan</h2>
         <p className="book-lead">
-          同ロジック × {pace.pairs}FX · 目安{pace.tradesPerDay}回/日 · EV +
-          {pace.evPips}p · 日次約+{pace.dailyEdge}p
+          全FXの本命/デイをスキャン · 表示ペア以外のチャンスも拾う
         </p>
       </div>
 
       <div className="book-verified">
-        <span>単ペア検証 {SIMPLE.verified.period}</span>
-        <span>
-          {SIMPLE.verified.tradesPerDay}回/日 · EV +
-          {SIMPLE.verified.evPips}p · {SIMPLE.verified.netPips >= 0 ? '+' : ''}
-          {SIMPLE.verified.netPips}p
-        </span>
-        <span className="up">
-          ブック想定 {pace.tradesPerDay}回/日 · 日次+{pace.dailyEdge}p
-        </span>
+        <span>机 {SIMPLE.dayDesk.tradesPerDay}回/日想定</span>
+        <span>本命 EV +{SIMPLE.verified.evPips}p</span>
+        <span>{pace.pairs}FX 監視中</span>
       </div>
 
       {loading && <p className="book-empty">全FXスキャン中…</p>}
@@ -69,7 +62,8 @@ export function BookPanel({
                     {s.side}
                   </span>
                   <span className="book-grade">
-                    {s.prime ? '推奨' : '標準'} {s.grade}
+                    {s.track === 'honmei' ? '本命' : 'デイ'} {s.grade} · ×
+                    {s.sizeHint}
                   </span>
                 </div>
                 <div className="book-row-meta">

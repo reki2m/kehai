@@ -20,9 +20,13 @@ export interface HistTrade {
   slPips: number
   tpPips: number
   pnlPips: number
+  /** Size-weighted pips (デイ×0.5). */
+  weightedPips: number
   reason: HistExitReason
   prime?: boolean
   grade?: HistSignal['grade']
+  track?: HistSignal['track']
+  sizeHint?: number
 }
 
 export interface HistTradeSummary {
@@ -32,12 +36,16 @@ export interface HistTradeSummary {
   losses: number
   winRate: number
   netPips: number
+  /** Size-weighted net (本命1 · デイ0.5). */
+  weightedNetPips: number
   evPips: number
   avgWin: number
   avgLoss: number
   /** Weekday trading days covered (JST). */
   days: number
   tradesPerDay: number
+  honmeiN: number
+  dayN: number
 }
 
 const SPREAD_PIPS = 0.2
@@ -73,7 +81,13 @@ export function simulateHistTrades(
 
     const atrVal = atrMap.get(sig.time) ?? 0
     const atrPips = atrVal > 0 ? atrVal / pip : 0
-    const { sl, tp } = atrRiskPips(atrPips)
+    const track = sig.track ?? (sig.prime ? 'honmei' : 'day')
+    const sizeHint =
+      sig.sizeHint ??
+      (track === 'honmei' ? SIMPLE.honmeiSize : SIMPLE.daySize)
+    const { sl, tp } = atrRiskPips(atrPips, track)
+    const maxHold =
+      track === 'day' ? SIMPLE.dayMaxHoldBars : SIMPLE.maxHoldBars
     const next = candles[si + 1]!
     const long = sig.side === 'BUY'
     const entry = long
@@ -119,7 +133,7 @@ export function simulateHistTrades(
         busyUntil = j
         break
       }
-      if (held >= SIMPLE.maxHoldBars) {
+      if (held >= maxHold) {
         exit = c.close
         exitTime = c.time
         reason = 'TIME'
@@ -139,6 +153,7 @@ export function simulateHistTrades(
 
     const raw = long ? (exit - entry) / pip : (entry - exit) / pip
     const pnlPips = Math.round((raw - SPREAD_PIPS) * 10) / 10
+    const weightedPips = Math.round(pnlPips * sizeHint * 10) / 10
     trades.push({
       entryTime: next.time,
       exitTime,
@@ -148,9 +163,12 @@ export function simulateHistTrades(
       slPips: sl,
       tpPips: tp,
       pnlPips,
+      weightedPips,
       reason,
       prime: sig.prime,
       grade: sig.grade,
+      track,
+      sizeHint,
     })
   }
 
@@ -159,6 +177,8 @@ export function simulateHistTrades(
   const losses = n - wins
   const netPips =
     Math.round(trades.reduce((s, t) => s + t.pnlPips, 0) * 10) / 10
+  const weightedNetPips =
+    Math.round(trades.reduce((s, t) => s + t.weightedPips, 0) * 10) / 10
   const winList = trades.filter((t) => t.pnlPips > 0)
   const lossList = trades.filter((t) => t.pnlPips <= 0)
   const days = new Set(trades.map((t) => jstDay(t.entryTime))).size
@@ -171,6 +191,7 @@ export function simulateHistTrades(
     losses,
     winRate: n ? Math.round((wins / n) * 1000) / 10 : 0,
     netPips,
+    weightedNetPips,
     evPips: n ? Math.round((netPips / n) * 100) / 100 : 0,
     avgWin: winList.length
       ? Math.round(
@@ -184,5 +205,7 @@ export function simulateHistTrades(
       : 0,
     days: dayCount,
     tradesPerDay: Math.round((n / dayCount) * 10) / 10,
+    honmeiN: trades.filter((t) => t.track === 'honmei').length,
+    dayN: trades.filter((t) => t.track === 'day').length,
   }
 }

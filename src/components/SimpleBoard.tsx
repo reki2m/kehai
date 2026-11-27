@@ -60,11 +60,21 @@ export function SimpleBoard({
         </p>
         {showGrade && (
           <p className={`simple-grade grade-${signal.grade.toLowerCase()}`}>
-            {signal.prime || signal.grade === 'S' || signal.grade === 'A'
-              ? '推奨'
-              : '標準'}{' '}
+            {signal.track === 'honmei'
+              ? '本命'
+              : signal.track === 'day'
+                ? 'デイ'
+                : signal.prime
+                  ? '推奨'
+                  : '標準'}{' '}
             {signal.grade}
             <span className="simple-grade-score"> · {signal.quality}</span>
+            {(signal.action === 'BUY' || signal.action === 'SELL') && (
+              <span className="simple-grade-score">
+                {' '}
+                · サイズ×{signal.sizeHint}
+              </span>
+            )}
           </p>
         )}
         {signal.entryPrice != null &&
@@ -172,19 +182,22 @@ export function SimpleBoard({
 
       <ol className="simple-howto">
         <li>
-          READY↑/↓ は準備警告 · 表示の「買い/売り目安」数値でフリップ待ち（まだ入らない）
+          デイトレ机: 本命（フルサイズ・高ADX）とデイ（半サイズ・手数）の二層
         </li>
         <li>
-          Peak Edge · 質優先 · 単ペア約{SIMPLE.verified.tradesPerDay}
-          回/日 · 6FXブックで目安10回 · 枠外 ADX≥{SIMPLE.adxPrime} 推奨
+          目安{SIMPLE.dayDesk.tradesPerDay}回/日（本命約
+          {SIMPLE.dayDesk.honmeiPerDay} + デイ約{SIMPLE.dayDesk.dayPerDay}）
         </li>
         <li>
-          損切り / 利確は ATR 連動（目安 SL{SIMPLE.slMin}–{SIMPLE.slMax} /
-          TP{SIMPLE.tpMin}–{SIMPLE.tpMax}
-          {unitLabel(pair)}）· 表示の数値に合わせる
+          READY↑/↓ は本命の準備警告 · まだ入らない
+        </li>
+        <li>
+          本命 SL{SIMPLE.slMin}–{SIMPLE.slMax}/TP{SIMPLE.tpMin}–
+          {SIMPLE.tpMax} · デイ SL{SIMPLE.daySlMin}–{SIMPLE.daySlMax}/TP
+          {SIMPLE.dayTpMin}–{SIMPLE.dayTpMax}
+          {unitLabel(pair)}
         </li>
         <li>約定の最終確認はGMOの板で行う</li>
-        <li>チャートは UT / SSL / VWAP がサイン用オーバーレイ</li>
       </ol>
     </aside>
   )

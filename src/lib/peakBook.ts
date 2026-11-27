@@ -1,6 +1,6 @@
 /**
- * Peak Edge Book — same quality gates on every FX pair.
- * USDJPY Peak Edge ≈1.6/日 → 6FX book ≈9–10/日, EV kept at Peak Edge level.
+ * Day Desk scanner across FX pairs.
+ * Surfaces live 本命/デイ BUY·SELL so the desk stays active.
  */
 
 import { evaluateSimple, SIMPLE } from './simpleSignal'
@@ -18,6 +18,8 @@ export interface BookSignal {
   side: 'BUY' | 'SELL'
   grade: string
   prime: boolean
+  track: 'honmei' | 'day' | null
+  sizeHint: number
   quality: number
   entryPrice: number | null
   stopPrice: number | null
@@ -36,23 +38,21 @@ export interface BookScanResult {
   at: number
 }
 
-/** Expected book pace from USDJPY Peak Edge × FX pair count. */
+/** Single-pair Day Desk pace (本命+デイ). Book is optional multi-pair scan. */
 export function expectedBookPace(): {
   tradesPerDay: number
   evPips: number
   dailyEdge: number
   pairs: number
 } {
-  const pairs = BOOK_PAIR_IDS.length
-  const tpd = Math.round(SIMPLE.verified.tradesPerDay * pairs * 10) / 10
-  const daily =
-    Math.round(SIMPLE.verified.tradesPerDay * SIMPLE.verified.evPips * pairs * 100) /
-    100
   return {
-    tradesPerDay: tpd,
+    tradesPerDay: SIMPLE.dayDesk.tradesPerDay,
     evPips: SIMPLE.verified.evPips,
-    dailyEdge: daily,
-    pairs,
+    dailyEdge:
+      Math.round(
+        SIMPLE.dayDesk.honmeiPerDay * SIMPLE.verified.evPips * 100,
+      ) / 100,
+    pairs: BOOK_PAIR_IDS.length,
   }
 }
 
@@ -88,6 +88,8 @@ export async function scanPeakBook(
           side: sig.action,
           grade: sig.grade,
           prime: sig.prime,
+          track: sig.track,
+          sizeHint: sig.sizeHint,
           quality: sig.quality,
           entryPrice: sig.entryPrice,
           stopPrice: sig.stopPrice,

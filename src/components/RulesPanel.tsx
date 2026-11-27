@@ -3,36 +3,44 @@ import { BROKER_SPREAD_PIPS } from '../lib/filters'
 import { SIMPLE } from '../lib/simpleSignal'
 
 export function RulesPanel() {
-  const sessions = [SESSION_PROFILES.tokyo, SESSION_PROFILES.london, SESSION_PROFILES.ny]
+  const sessions = [
+    SESSION_PROFILES.tokyo,
+    SESSION_PROFILES.london,
+    SESSION_PROFILES.ny,
+  ]
   return (
     <section className="rules-panel" aria-label="ルール">
       <h2>ルール</h2>
       <p className="rules-lead">
-        {SIMPLE.stack} · 手動 · 1本のみ · SL/TP ATR連動 · スプレッド前提{' '}
-        {BROKER_SPREAD_PIPS}p
+        {SIMPLE.stack} · 手動 · 1本のみ · スプレッド前提 {BROKER_SPREAD_PIPS}p
       </p>
       <ol className="rules-list">
         <li>
-          <strong>サイン</strong>
+          <strong>設計</strong>
           <span>
-            UTフリップ ＋ SSL確認 → BUY / SELL。確認済みでUTまで
-            {SIMPLE.readyPips}p以内なら READY（まだ入らない）
+            回数を減らして勝率を盛らない。本命でエッジ、デイで手数。サイズでリスクを分ける
           </span>
         </li>
         <li>
-          <strong>品質ゲート</strong>
+          <strong>本命</strong>
           <span>
-            上位SSL + DI + WT + RSI · ADX≥{SIMPLE.adxMin}/
-            {SIMPLE.adxPrime} · クール{SIMPLE.entryCooldownBars}本 ·
-            単ペア検証 {SIMPLE.verified.tradesPerDay}回/日 EV +
-            {SIMPLE.verified.evPips}p · 6FXブックで目安10回/日
+            UTフリップ + 全確認 · ADX≥{SIMPLE.adxMin}/{SIMPLE.adxPrime} ·
+            RR≈{SIMPLE.tpRr} · サイズ×{SIMPLE.honmeiSize} · 約
+            {SIMPLE.dayDesk.honmeiPerDay}回/日
           </span>
         </li>
         <li>
-          <strong>決済</strong>
+          <strong>デイ</strong>
           <span>
-            ATR連動 · SL {SIMPLE.slMin}–{SIMPLE.slMax}p · TP {SIMPLE.tpMin}–
-            {SIMPLE.tpMax}p（ボード表示に合わせる）
+            UT（ADX≥{SIMPLE.dayAdxMin}/{SIMPLE.dayAdxOff}）または STパルス（ADX≥
+            {SIMPLE.adxPulse}/{SIMPLE.adxPulseOff}）· RR≈{SIMPLE.dayTpRr} ·
+            サイズ×{SIMPLE.daySize} · 約{SIMPLE.dayDesk.dayPerDay}回/日
+          </span>
+        </li>
+        <li>
+          <strong>READY</strong>
+          <span>
+            本命品質でUTまで{SIMPLE.readyPips}p以内 → 監視のみ（まだ入らない）
           </span>
         </li>
         <li>

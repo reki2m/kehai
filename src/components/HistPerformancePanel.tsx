@@ -1,5 +1,4 @@
 import type { HistTradeSummary } from '../lib/histTrades'
-import { expectedBookPace } from '../lib/peakBook'
 import { SIMPLE } from '../lib/simpleSignal'
 
 interface Props {
@@ -24,33 +23,30 @@ function fmtTime(unix: number): string {
 
 export function HistPerformancePanel({ summary, loading }: Props) {
   const recent = summary?.trades.slice(-12).reverse() ?? []
-  const book = expectedBookPace()
 
   return (
     <section className="hist-perf" aria-label="過去トレード成績">
       <div className="hist-perf-head">
         <h2>過去成績</h2>
         <p className="hist-perf-lead">
-          表示ペアの11月〜 Yahoo M1 · Peak Edge · ATR決済シミュ
+          表示ペア · Day Desk（本命+デイ）· ATR決済シミュ
         </p>
       </div>
 
       <div className="hist-perf-verified">
-        <span>検証 {SIMPLE.verified.period}</span>
+        <span>本命検証 {SIMPLE.verified.period}</span>
         <span>{SIMPLE.verified.tradesPerDay.toFixed(1)}回/日</span>
         <span>勝率 {SIMPLE.verified.winRate.toFixed(0)}%</span>
         <span className={SIMPLE.verified.evPips >= 0 ? 'up' : 'down'}>
           EV {fmtPips(SIMPLE.verified.evPips)}
         </span>
-        <span className={SIMPLE.verified.netPips >= 0 ? 'up' : 'down'}>
-          {fmtPips(SIMPLE.verified.netPips)}
-        </span>
       </div>
       <div className="hist-perf-verified book">
-        <span>6FXブック想定</span>
-        <span>{book.tradesPerDay.toFixed(1)}回/日</span>
-        <span className="up">EV {fmtPips(book.evPips)}</span>
-        <span className="up">日次約{fmtPips(book.dailyEdge)}</span>
+        <span>机の目安</span>
+        <span>{SIMPLE.dayDesk.tradesPerDay}回/日</span>
+        <span>本命{SIMPLE.dayDesk.honmeiPerDay}</span>
+        <span>デイ{SIMPLE.dayDesk.dayPerDay}</span>
+        <span>{SIMPLE.dayDesk.note}</span>
       </div>
 
       {loading && <p className="hist-perf-empty">集計中…</p>}
@@ -61,21 +57,20 @@ export function HistPerformancePanel({ summary, loading }: Props) {
       {summary && summary.n > 0 && (
         <>
           <div className="hist-perf-total">
+            <span className={summary.weightedNetPips >= 0 ? 'up' : 'down'}>
+              加重 {fmtPips(summary.weightedNetPips)}
+            </span>
             <span className={summary.netPips >= 0 ? 'up' : 'down'}>
-              合計 {fmtPips(summary.netPips)}
+              生pips {fmtPips(summary.netPips)}
             </span>
             <span>勝率 {summary.winRate.toFixed(0)}%</span>
-            <span className={summary.evPips >= 0 ? 'up' : 'down'}>
-              EV {fmtPips(summary.evPips)}
-            </span>
             <span>
               {summary.tradesPerDay.toFixed(1)}回/日 · {summary.n}本
             </span>
           </div>
           <div className="hist-perf-sub">
             <span>
-              平均勝ち {fmtPips(summary.avgWin)} / 平均負け{' '}
-              {fmtPips(summary.avgLoss)}
+              本命{summary.honmeiN} · デイ{summary.dayN}
             </span>
             <span>
               {summary.wins}勝 {summary.losses}敗 · {summary.days}営業日
@@ -89,16 +84,16 @@ export function HistPerformancePanel({ summary, loading }: Props) {
                   <strong className={t.side === 'BUY' ? 'up' : 'down'}>
                     {t.side}
                   </strong>
-                  <span className={t.pnlPips >= 0 ? 'up' : 'down'}>
-                    {fmtPips(t.pnlPips)}
+                  <span>{t.track === 'honmei' ? '本命' : 'デイ'}</span>
+                  <span className={t.weightedPips >= 0 ? 'up' : 'down'}>
+                    {fmtPips(t.weightedPips)}
                   </span>
                   <span className="hist-perf-reason">{t.reason}</span>
                 </div>
                 <div className="hist-perf-row-meta">
                   <span>{fmtTime(t.entryTime)}</span>
                   <span>
-                    SL{t.slPips}/TP{t.tpPips}
-                    {t.prime ? ' · 推奨' : ''}
+                    SL{t.slPips}/TP{t.tpPips} · ×{t.sizeHint ?? 1}
                   </span>
                 </div>
               </li>
