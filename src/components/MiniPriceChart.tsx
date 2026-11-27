@@ -3,7 +3,6 @@ import {
   CandlestickSeries,
   ColorType,
   createChart,
-  TickMarkType,
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
@@ -11,39 +10,12 @@ import {
   type UTCTimestamp,
 } from 'lightweight-charts'
 import type { Candle } from '../lib/marketData'
+import { jstTickMarkFormatter, jstTimeFormatter } from '../lib/jstTime'
 import type { PairMeta } from '../lib/pairs'
 
 interface Props {
   candles: Candle[]
   pair: PairMeta
-}
-
-function toJstParts(sec: number) {
-  const d = new Date(sec * 1000)
-  const fmt = new Intl.DateTimeFormat('ja-JP', {
-    timeZone: 'Asia/Tokyo',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-  const parts = fmt.formatToParts(d)
-  const get = (t: Intl.DateTimeFormatPartTypes) =>
-    parts.find((p) => p.type === t)?.value ?? ''
-  return { m: get('month'), day: get('day'), h: get('hour'), min: get('minute') }
-}
-
-function jstTick(time: Time, type: TickMarkType): string | null {
-  const sec =
-    typeof time === 'number'
-      ? time
-      : typeof time === 'string'
-        ? Math.floor(new Date(time).getTime() / 1000)
-        : Date.UTC(time.year, time.month - 1, time.day) / 1000
-  const p = toJstParts(sec)
-  if (type === TickMarkType.DayOfMonth) return `${p.m}/${p.day}`
-  return `${p.h}:${p.min}`
 }
 
 function toBars(candles: Candle[]): CandlestickData<Time>[] {
@@ -75,16 +47,8 @@ export function MiniPriceChart({ candles, pair }: Props) {
       },
       localization: {
         locale: 'ja-JP',
-        timeFormatter: (time: Time) => {
-          const sec =
-            typeof time === 'number'
-              ? time
-              : typeof time === 'string'
-                ? Math.floor(new Date(time).getTime() / 1000)
-                : Date.UTC(time.year, time.month - 1, time.day) / 1000
-          const p = toJstParts(sec)
-          return `${p.h}:${p.min}`
-        },
+        dateFormat: 'MM/dd',
+        timeFormatter: jstTimeFormatter,
       },
       grid: {
         vertLines: { color: 'rgba(148, 185, 198, 0.06)' },
@@ -101,11 +65,20 @@ export function MiniPriceChart({ candles, pair }: Props) {
         secondsVisible: false,
         rightOffset: 2,
         barSpacing: 5,
-        tickMarkFormatter: jstTick,
+        tickMarkFormatter: jstTickMarkFormatter,
       },
       crosshair: { mode: 0 },
       width: el.clientWidth,
       height: el.clientHeight,
+    })
+    chart.applyOptions({
+      localization: {
+        locale: 'ja-JP',
+        timeFormatter: jstTimeFormatter,
+      },
+      timeScale: {
+        tickMarkFormatter: jstTickMarkFormatter,
+      },
     })
     const series = chart.addSeries(CandlestickSeries, {
       upColor: '#26A69A',

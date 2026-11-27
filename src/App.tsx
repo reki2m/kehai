@@ -64,6 +64,7 @@ import {
   isTradeablePair,
   type ContextWatchState,
 } from './lib/contextWatch'
+import { formatJstNow, toJstParts } from './lib/jstTime'
 import { BROKER_SPREAD_PIPS } from './lib/filters'
 import { evaluateSimple, SIMPLE } from './lib/simpleSignal'
 import { investigateShockCause, type ShockCauseReport } from './lib/shockCause'
@@ -111,6 +112,7 @@ export default function App() {
   )
   const [contextLoading, setContextLoading] = useState(false)
   const contextActiveRef = useRef<Set<PairId>>(new Set())
+  const [jstClock, setJstClock] = useState(() => formatJstNow())
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   // Clean TradingView-style candles by default; UT/SSL etc. are opt-in
   const [overlays, setOverlays] = useState<OverlayId[]>([])
@@ -172,6 +174,11 @@ export default function App() {
       setPairId('USDJPY')
     }
   }, [pairId])
+
+  useEffect(() => {
+    const id = window.setInterval(() => setJstClock(formatJstNow()), 15_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const pair = getPair(pairId)
   const inPosition = !!stats.open
@@ -989,38 +996,41 @@ export default function App() {
         </div>
       )}
 
-      <header className="topbar">
-        <div className="brand-block">
-          <div className="brand-row">
-            <p className="brand">KEHAI</p>
-            <div className="brand-rates" aria-label="買い値と売り値">
-              <div className="brand-rate ask">
-                <span className="brand-rate-label">買</span>
-                <span className="brand-rate-num">{ask}</span>
+      <header className="site-head">
+        <div className="quote-bar" aria-label="KEHAIとレート">
+          <p className="brand">KEHAI</p>
+          <div className="brand-rates">
+            <div className="brand-rate ask">
+              <span className="brand-rate-label">買値</span>
+              <span className="brand-rate-num">{ask}</span>
+            </div>
+            <div className="brand-rate bid">
+              <span className="brand-rate-label">売値</span>
+              <span className="brand-rate-num">{bid}</span>
+            </div>
+            {inPosition && openPips != null && (
+              <div
+                className={`brand-rate open ${openPips >= 0 ? 'up' : 'down'}`}
+              >
+                <span className="brand-rate-label">建玉</span>
+                <span className="brand-rate-num">
+                  {openPips >= 0 ? '+' : ''}
+                  {openPips.toFixed(1)}p
+                </span>
               </div>
-              <div className="brand-rate bid">
-                <span className="brand-rate-label">売</span>
-                <span className="brand-rate-num">{bid}</span>
-              </div>
-              {inPosition && openPips != null && (
-                <div
-                  className={`brand-rate open ${openPips >= 0 ? 'up' : 'down'}`}
-                >
-                  <span className="brand-rate-label">建玉</span>
-                  <span className="brand-rate-num">
-                    {openPips >= 0 ? '+' : ''}
-                    {openPips.toFixed(1)}p
-                  </span>
-                </div>
-              )}
+            )}
+            <div className="brand-rate jst-clock" title="日本時間">
+              <span className="brand-rate-label">JST</span>
+              <span className="brand-rate-num">{jstClock}</span>
             </div>
           </div>
+        </div>
+
+        <div className="topbar">
           <p className="tagline">
             {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
           </p>
-        </div>
-
-        <div className="controls" role="toolbar" aria-label="設定">
+          <div className="controls" role="toolbar" aria-label="設定">
           <label className="control">
             <span>銘柄</span>
             <select
@@ -1226,6 +1236,7 @@ export default function App() {
               </>
             )}
           </div>
+          </div>
         </div>
       </header>
 
@@ -1236,7 +1247,13 @@ export default function App() {
               <h1>
                 {pair.label}
                 <span className="tf-chip">
-                  {timeframe} · Drive · JST
+                  {timeframe} · チャート時刻 JST
+                  {last
+                    ? ` · 先端 ${(() => {
+                        const p = toJstParts(last.time)
+                        return `${p.h}:${p.min}`
+                      })()}`
+                    : ''}
                 </span>
               </h1>
             </div>

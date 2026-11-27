@@ -63,65 +63,77 @@
   z-index: 1;
 }
 
+.site-head {
+  position: relative;
+  z-index: 5;
+}
+
+/* Absolute top: KEHAI + 買値/売値 — always first, always same row */
+.quote-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  flex-wrap: nowrap;
+  padding: 0.7rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(6, 14, 18, 0.92);
+  backdrop-filter: blur(10px);
+}
+
 .topbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.25rem 1.5rem 0.75rem;
-  flex-wrap: wrap;
-}
-
-.brand-block {
-  min-width: min(100%, 280px);
-}
-
-.brand-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem 1.35rem;
+  gap: 1rem 1.5rem;
+  padding: 0.55rem 1.5rem 0.65rem;
   flex-wrap: wrap;
 }
 
 .brand {
   margin: 0;
+  flex: 0 0 auto;
   font-family: var(--font-display);
-  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  font-size: clamp(1.85rem, 4.2vw, 2.75rem);
   font-weight: 700;
   letter-spacing: 0.04em;
-  line-height: 0.9;
+  line-height: 1;
   color: var(--gold);
   text-shadow: 0 0 40px rgba(232, 196, 124, 0.18);
-  animation: brand-in 900ms var(--ease) both;
 }
 
 .brand-rates {
   display: flex;
   align-items: baseline;
-  gap: 0.75rem;
-  padding-bottom: 0.2rem;
-  animation: brand-in 900ms var(--ease) 80ms both;
+  gap: 0.85rem 1.25rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .brand-rate {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.3rem;
+  gap: 0.35rem;
   font-family: var(--font-mono);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .brand-rate-label {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
 
 .brand-rate-num {
-  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
-  font-weight: 600;
+  font-size: clamp(1.35rem, 3.2vw, 2rem);
+  font-weight: 650;
   letter-spacing: 0.02em;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .brand-rate.ask .brand-rate-num {
@@ -140,13 +152,23 @@
   color: #f0a8a8;
 }
 
+.brand-rate.jst-clock {
+  margin-left: auto;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--line);
+}
+
+.brand-rate.jst-clock .brand-rate-num {
+  color: var(--gold);
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+}
+
 .tagline {
-  margin: 0.55rem 0 0;
+  margin: 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   letter-spacing: 0.02em;
-  max-width: 28ch;
-  animation: brand-in 900ms var(--ease) 120ms both;
+  max-width: 36ch;
 }
 
 @keyframes brand-in {
@@ -236,9 +258,9 @@
   grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
   gap: 0;
   min-height: 0;
-  /* Fill the viewport under the topbar so the chart isn't a short strip on PC */
-  height: calc(100vh - 6.75rem);
-  max-height: calc(100vh - 6.75rem);
+  /* Fill the viewport under quote-bar + toolbar */
+  height: calc(100vh - 8.5rem);
+  max-height: calc(100vh - 8.5rem);
   padding: 0.35rem 1rem 0.75rem;
   align-items: stretch;
 }
