@@ -152,7 +152,8 @@ export function SimpleBoard({
         </li>
         <li>
           HTFオフ · WT+DI+RSI · ADX≥{SIMPLE.adxMin} · SL{SIMPLE.slPips}/TP
-          {SIMPLE.tpPips}
+          {SIMPLE.tpPips} · 上限−{SIMPLE.maxLossPips}p · 日次−
+          {SIMPLE.dailyLossCapPips}p停止
         </li>
         <li>買い値・売り値はチャート上余白に表示</li>
         <li>建玉中は上部に±pips · 切ったらリセット</li>

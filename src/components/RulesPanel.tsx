@@ -35,13 +35,19 @@ export function RulesPanel() {
           <strong>決済</strong>
           <span>
             固定 SL{SIMPLE.slPips} / TP{SIMPLE.tpPips} · 最大
-            {SIMPLE.maxHoldBars}本
+            {SIMPLE.maxHoldBars}本 · 1トレード上限−{SIMPLE.maxLossPips}p（自動SL）
+          </span>
+        </li>
+        <li>
+          <strong>日次ロス上限</strong>
+          <span>
+            本日ネット−{SIMPLE.dailyLossCapPips}pで新規停止（約3R · −96p放置禁止）
           </span>
         </li>
         <li>
           <strong>操作</strong>
           <span>
-            エントリーした → 建玉±pips表示 → 切ったらリセット（またはTP/SL記録）
+            エントリーした → 建玉±pips · SL/TP到達で自動記録 · 手動切はリセット可
           </span>
         </li>
         <li>

@@ -225,3 +225,32 @@ export function totals(rows: SessionRow[]) {
     avgSlip: trades ? slipSum / trades : 0,
   }
 }
+
+function jstDateKey(ms: number = Date.now()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(ms))
+}
+
+/** Net pips from closed trades today (Asia/Tokyo). */
+export function todayNetPips(state: SessionStatsState): number {
+  const today = jstDateKey()
+  return (
+    Math.round(
+      state.closed
+        .filter((t) => jstDateKey(t.closedAt) === today)
+        .reduce((s, t) => s + t.pnlPips, 0) * 10,
+    ) / 10
+  )
+}
+
+/** True when today's closed net is at/under the daily loss cap. */
+export function isDailyLossHalted(
+  state: SessionStatsState,
+  capPips: number,
+): boolean {
+  return todayNetPips(state) <= -Math.abs(capPips)
+}

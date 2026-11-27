@@ -52,8 +52,10 @@ import {
   cancelOpen,
   clearSessionStats,
   closeTradeWithSlip,
+  isDailyLossHalted,
   loadSessionStats,
   openTrade,
+  todayNetPips,
   toggleSessionDisabled,
   type SessionStatsState,
 } from './lib/sessionStats'
@@ -87,6 +89,7 @@ import {
   setRateVoiceOn,
   setShockAlertOn,
   setVoiceVolume,
+  speak,
   speakRate,
   unlockAudio,
 } from './lib/voice'
@@ -531,7 +534,11 @@ export default function App() {
     raw.action === 'BUY' || raw.action === 'SELL'
       ? raw.session
       : stickyOffer?.session ?? null
-  const canMarkEntry = !inPosition && !!entryAction && !!entrySession
+  const dailyHalted = isDailyLossHalted(stats, SIMPLE.dailyLossCapPips)
+  const dayNet = todayNetPips(stats)
+  const canMarkEntry =
+    !inPosition && !dailyHalted && !!entryAction && !!entrySession
+  const autoExitKey = useRef<string | null>(null)
 
   // Tip ticks must not rebuild markers — only when a new bar opens
   const lastCandleTime = candles[candles.length - 1]?.time ?? 0
@@ -647,6 +654,14 @@ export default function App() {
   }, [lastCandleTime])
 
   const signal = useMemo(() => {
+    if (dailyHalted && !inPosition) {
+      return {
+        ...raw,
+        action: 'WAIT' as const,
+        label: 'WAIT',
+        reason: `日次ロス上限 · 本日${dayNet}p · 新規停止`,
+      }
+    }
     if (!inPosition) return raw
     return {
       ...raw,
@@ -654,12 +669,13 @@ export default function App() {
       label: 'WAIT',
       reason: '建玉中 · 新規サイン無視',
     }
-  }, [raw, inPosition])
+  }, [raw, inPosition, dailyHalted, dayNet])
 
   function handleEntry() {
     const side = entryAction
     const session = entrySession
     if (!side || !session) return
+    if (dailyHalted) return
     // BUY pays ask, SELL hits bid
     const expected = side === 'BUY' ? askNum : bidNum
     if (!Number.isFinite(expected)) return
@@ -683,17 +699,29 @@ export default function App() {
 
   function handleClose(kind: 'TP' | 'SL' | 'OTHER') {
     const slip = Math.max(0, Number(slipInput) || 0)
-    const openSl = stats.open?.slPips ?? SIMPLE.slPips
+    const openSl = Math.min(
+      stats.open?.slPips ?? SIMPLE.slPips,
+      SIMPLE.maxLossPips,
+    )
     const openTp = stats.open?.tpPips ?? SIMPLE.tpPips
+    let exit: 'TP' | 'SL' | 'OTHER' = kind
     let pnl =
       kind === 'TP' ? openTp : kind === 'SL' ? -openSl : Number(otherPnl)
     if (kind === 'OTHER' && !Number.isFinite(pnl)) return
+    // Hard floor: never book worse than −maxLoss (blocks −96p "その他")
+    if (kind === 'OTHER' && pnl <= -openSl) {
+      exit = 'SL'
+      pnl = -openSl
+    } else if (kind === 'OTHER' && pnl >= openTp) {
+      exit = 'TP'
+      pnl = openTp
+    }
     // Adverse slip reduces net for winners / worsens losers slightly on entry
-    if (kind === 'TP') pnl = Math.max(0, pnl - slip)
-    if (kind === 'SL') pnl = pnl - slip
+    if (exit === 'TP') pnl = Math.max(0, pnl - slip)
+    if (exit === 'SL') pnl = Math.max(-SIMPLE.maxLossPips - slip, pnl - slip)
     setStats((s) =>
       closeTradeWithSlip(s, {
-        exit: kind,
+        exit,
         pnlPips: Math.round(pnl * 10) / 10,
         slipPips: slip,
       }),
@@ -730,12 +758,39 @@ export default function App() {
     if (!o || !Number.isFinite(mid)) return null
     const mark = o.side === 'BUY' ? bidNum : askNum
     if (!Number.isFinite(mark)) return null
-    const raw =
+    const rawP =
       o.side === 'BUY'
         ? (mark - o.expectedEntry) / pair.pip
         : (o.expectedEntry - mark) / pair.pip
-    return Math.round(raw * 10) / 10
+    return Math.round(rawP * 10) / 10
   })()
+
+  // Hard SL/TP: never let floating PnL drift past ±risk (blocks −96p holds).
+  useEffect(() => {
+    const o = stats.open
+    if (!o || openPips == null) {
+      autoExitKey.current = null
+      return
+    }
+    const sl = Math.min(o.slPips ?? SIMPLE.slPips, SIMPLE.maxLossPips)
+    const tp = o.tpPips ?? SIMPLE.tpPips
+    if (openPips <= -sl) {
+      const key = `${o.id}-SL`
+      if (autoExitKey.current === key) return
+      autoExitKey.current = key
+      if (voiceOn) speak(`自動損切 ${sl}ピップス`, { priority: 0 })
+      handleClose('SL')
+      return
+    }
+    if (openPips >= tp) {
+      const key = `${o.id}-TP`
+      if (autoExitKey.current === key) return
+      autoExitKey.current = key
+      if (voiceOn) speak(`自動利確 ${tp}ピップス`, { priority: 0 })
+      handleClose('TP')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openPips, stats.open?.id, voiceOn])
 
   // Entry / READY alerts on signal change
   useEffect(() => {
@@ -1062,15 +1117,20 @@ export default function App() {
                 disabled={!canMarkEntry}
                 onClick={handleEntry}
                 title={
-                  canMarkEntry
-                    ? stickyOffer && raw.action !== 'BUY' && raw.action !== 'SELL'
-                      ? `直近${stickyOffer.action}を5分保持中`
-                      : `${entryAction}を記録`
-                    : 'BUY/SELLサイン待ち'
+                  dailyHalted
+                    ? `日次ロス上限 −${SIMPLE.dailyLossCapPips}p · 本日${dayNet}p`
+                    : canMarkEntry
+                      ? stickyOffer &&
+                        raw.action !== 'BUY' &&
+                        raw.action !== 'SELL'
+                        ? `直近${stickyOffer.action}を5分保持中`
+                        : `${entryAction}を記録`
+                      : 'BUY/SELLサイン待ち'
                 }
               >
-                エントリーした
-                {canMarkEntry && entryAction ? ` · ${entryAction}` : ''}
+                {dailyHalted
+                  ? `日次停止 · ${dayNet}p`
+                  : `エントリーした${canMarkEntry && entryAction ? ` · ${entryAction}` : ''}`}
               </button>
             ) : (
               <>

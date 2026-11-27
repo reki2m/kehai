@@ -151,6 +151,15 @@ export function simulateHistTrades(
       busyUntil = candles.length - 1
     }
 
+    // Hard risk floor: TIME/GAP never worse than SL (no runaway −90p exits).
+    {
+      const rawPre = long ? (exit - entry) / pip : (entry - exit) / pip
+      if (rawPre < -sl) {
+        exit = stop
+        reason = 'SL'
+      }
+    }
+
     const raw = long ? (exit - entry) / pip : (entry - exit) / pip
     const pnlPips = Math.round((raw - SPREAD_PIPS) * 10) / 10
     const weightedPips = Math.round(pnlPips * sizeHint * 10) / 10

@@ -49,6 +49,10 @@ export const SIMPLE = {
   ],
   slPips: 12,
   tpPips: 24,
+  /** Hard ceiling: one trade must never book worse than −SL (no −96 drift). */
+  maxLossPips: 12,
+  /** Stop new entries after this much net loss today (JST). ~3R. */
+  dailyLossCapPips: 36,
   /** Fixed 12/24 — beat baseline SL10/TP20 on Dukascopy live-path. */
   useFixedRisk: true,
   slAtrMult: 1.0,
