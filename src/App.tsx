@@ -989,38 +989,37 @@ export default function App() {
         </div>
       )}
 
-      <header className="topbar">
-        <div className="brand-block">
-          <div className="brand-row">
-            <p className="brand">KEHAI</p>
-            <div className="brand-rates" aria-label="買い値と売り値">
-              <div className="brand-rate ask">
-                <span className="brand-rate-label">買</span>
-                <span className="brand-rate-num">{ask}</span>
-              </div>
-              <div className="brand-rate bid">
-                <span className="brand-rate-label">売</span>
-                <span className="brand-rate-num">{bid}</span>
-              </div>
-              {inPosition && openPips != null && (
-                <div
-                  className={`brand-rate open ${openPips >= 0 ? 'up' : 'down'}`}
-                >
-                  <span className="brand-rate-label">建玉</span>
-                  <span className="brand-rate-num">
-                    {openPips >= 0 ? '+' : ''}
-                    {openPips.toFixed(1)}p
-                  </span>
-                </div>
-              )}
+      <header className="site-head">
+        <div className="quote-bar" aria-label="KEHAIとレート">
+          <p className="brand">KEHAI</p>
+          <div className="brand-rates">
+            <div className="brand-rate ask">
+              <span className="brand-rate-label">買値</span>
+              <span className="brand-rate-num">{ask}</span>
             </div>
+            <div className="brand-rate bid">
+              <span className="brand-rate-label">売値</span>
+              <span className="brand-rate-num">{bid}</span>
+            </div>
+            {inPosition && openPips != null && (
+              <div
+                className={`brand-rate open ${openPips >= 0 ? 'up' : 'down'}`}
+              >
+                <span className="brand-rate-label">建玉</span>
+                <span className="brand-rate-num">
+                  {openPips >= 0 ? '+' : ''}
+                  {openPips.toFixed(1)}p
+                </span>
+              </div>
+            )}
           </div>
+        </div>
+
+        <div className="topbar">
           <p className="tagline">
             {SIMPLE.stack} · 手動サイン · SL{SIMPLE.slPips}/TP{SIMPLE.tpPips}
           </p>
-        </div>
-
-        <div className="controls" role="toolbar" aria-label="設定">
+          <div className="controls" role="toolbar" aria-label="設定">
           <label className="control">
             <span>銘柄</span>
             <select
@@ -1225,6 +1224,7 @@ export default function App() {
                 </label>
               </>
             )}
+          </div>
           </div>
         </div>
       </header>
